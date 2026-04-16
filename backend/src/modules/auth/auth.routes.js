@@ -1,9 +1,10 @@
-import {login,register} from './auth.controller.js';
+import { login, refresh } from "./auth.controller.js";
 import { Router } from "express";
+import { authRateLimiter } from "../../middleware/rateLimiter.middleware.js";
+
 const router = Router();
-//login route for users to login
-router.post("/login",login);
-//admin route to create new users
-router.post("/register",register);
+
+router.post("/login", authRateLimiter("login"), login);
+router.post("/refresh", refresh);
 
 export default router;
