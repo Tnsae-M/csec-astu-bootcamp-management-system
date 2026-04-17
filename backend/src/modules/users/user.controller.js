@@ -1,4 +1,4 @@
-import * as userService from './user.service.js';
+import * as userService from "./user.service.js";
 
 /**
  * @desc    Create a new user
@@ -8,11 +8,11 @@ import * as userService from './user.service.js';
 export const createUser = async (req, res, next) => {
   try {
     const user = await userService.createUser(req.body);
-    
+
     res.status(201).json({
       success: true,
-      message: 'User created successfully',
-      data: user
+      message: "User created successfully",
+      data: user,
     });
   } catch (error) {
     // Pass the error to the global Express error handler
@@ -33,11 +33,11 @@ export const getAllUsers = async (req, res, next) => {
     if (req.query.status) filters.status = req.query.status;
 
     const users = await userService.getAllUsers(filters);
-    
+
     res.status(200).json({
       success: true,
       count: users.length,
-      data: users
+      data: users,
     });
   } catch (error) {
     next(error);
@@ -52,10 +52,10 @@ export const getAllUsers = async (req, res, next) => {
 export const getUserById = async (req, res, next) => {
   try {
     const user = await userService.getUserById(req.params.id);
-    
+
     res.status(200).json({
       success: true,
-      data: user
+      data: user,
     });
   } catch (error) {
     next(error);
@@ -70,11 +70,11 @@ export const getUserById = async (req, res, next) => {
 export const updateUser = async (req, res, next) => {
   try {
     const user = await userService.updateUser(req.params.id, req.body);
-    
+
     res.status(200).json({
       success: true,
-      message: 'User updated successfully',
-      data: user
+      message: "User updated successfully",
+      data: user,
     });
   } catch (error) {
     next(error);
