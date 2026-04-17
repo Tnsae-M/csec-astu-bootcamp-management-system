@@ -36,6 +36,34 @@ const generateTokens = (user) => {
   return { accessToken, refreshToken };
 };
 
+export const registerUser = async (name, email, password, role) => {
+  if (!name || !email || !password) {
+    throw Object.assign(new Error("Name, email, and password are required."), {
+      statusCode: 400,
+    });
+  }
+
+  const existingUser = await User.findOne({
+    email: email.toLowerCase().trim(),
+  });
+  if (existingUser) {
+    throw Object.assign(new Error("Email is already registered."), {
+      statusCode: 409,
+    });
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const user = new User({
+    name,
+    email: email.toLowerCase().trim(),
+    password: hashedPassword,
+    role: role || "user",
+    status: "active",
+  });
+  await user.save();
+  return sanitizeUser(user);
+};
+
 export const loginUser = async (email, password) => {
   if (!email || !password) {
     throw Object.assign(new Error("Email and password are required."), {
@@ -104,4 +132,12 @@ export const refreshAuthToken = async (refreshToken) => {
     accessToken: tokens.accessToken,
     refreshToken: tokens.refreshToken,
   };
+};
+
+export const currentUser = async (userId) => {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw Object.assign(new Error("User not found."), { statusCode: 404 });
+  }
+  return sanitizeUser(user);
 };
