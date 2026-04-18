@@ -1,6 +1,7 @@
 export const sidebarConfig: Record<string, { name: string; path: string }[]> = {
   Admin: [
     { name: "Dashboard", path: "/dashboard" },
+    { name: "Bootcamps", path: "/bootcamps" },
     { name: "Users", path: "/users" },
     { name: "Divisions", path: "/divisions" },
     { name: "Groups", path: "/groups" },
@@ -11,6 +12,7 @@ export const sidebarConfig: Record<string, { name: string; path: string }[]> = {
 
   Instructor: [
     { name: "Dashboard", path: "/dashboard" },
+    { name: "Bootcamps", path: "/bootcamps" },
     { name: "My Sessions", path: "/sessions" },
     { name: "Attendance", path: "/attendance" },
     { name: "Resources", path: "/resources" },
@@ -21,6 +23,7 @@ export const sidebarConfig: Record<string, { name: string; path: string }[]> = {
 
   Student: [
     { name: "Dashboard", path: "/dashboard" },
+    { name: "Bootcamps", path: "/bootcamps" },
     { name: "My Sessions", path: "/sessions" },
     { name: "Attendance", path: "/attendance" },
     { name: "Tasks", path: "/tasks" },

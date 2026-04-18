@@ -44,11 +44,6 @@ export const getAllUsers = async (req, res, next) => {
   }
 };
 
-/**
- * @desc    Get a single user by ID
- * @route   GET /api/users/:id
- * @access  Private (Admin, or the same user)
- */
 export const getUserById = async (req, res, next) => {
   try {
     const user = await userService.getUserById(req.params.id);

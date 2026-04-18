@@ -22,6 +22,12 @@ function Icon({ name }: { name: string }) {
           <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zM13 21h8V11h-8v10zM13 3v6h8V3h-8z" fill="currentColor" />
         </svg>
       );
+    case "Bootcamps":
+      return (
+        <svg className="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zm0 13L5 12.18v4.64L12 21l7-4.18v-4.64L12 16z" fill="currentColor" />
+        </svg>
+      );
     case "Groups":
       return (
         <svg className="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -73,7 +79,7 @@ export function Sidebar() {
   return (
     <aside className="w-64 bg-white border-r border-slate-200 min-h-screen p-6 flex flex-col">
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-11 h-11 rounded-md bg-gradient-to-br from-primary to-accent text-primary-foreground flex items-center justify-center font-bold shadow-md">
+        <div className="w-11 h-11 rounded-md bg-linear-to-br from-primary to-accent text-primary-foreground flex items-center justify-center font-bold shadow-md">
           {initials}
         </div>
         <div>

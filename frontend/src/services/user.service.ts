@@ -1,11 +1,6 @@
-import { useAuthStore } from "../stores/auth.store";
+import { getAuthorizationHeader } from "../lib/auth-storage";
 
 const API_BASE = "/api/users";
-
-function getAuthHeader() {
-  const token = useAuthStore.getState().accessToken;
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
 
 async function handleResponse(res: Response) {
   const contentType = res.headers.get("content-type") || "";
@@ -31,7 +26,7 @@ async function handleResponse(res: Response) {
 
 export async function getUsers() {
   console.debug("user.service.getUsers -> fetching", API_BASE);
-  const res = await fetch(API_BASE, { headers: { ...getAuthHeader() } });
+  const res = await fetch(API_BASE, { headers: { ...getAuthorizationHeader() } });
   console.debug("user.service.getUsers -> response status", res.status);
   return handleResponse(res);
 }
@@ -39,7 +34,7 @@ export async function getUsers() {
 export async function createUser(payload: { name: string; email: string; role: string; password?: string }) {
   const res = await fetch(API_BASE, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...getAuthHeader() },
+    headers: { "Content-Type": "application/json", ...getAuthorizationHeader() },
     body: JSON.stringify(payload),
   });
   return handleResponse(res);
@@ -48,7 +43,7 @@ export async function createUser(payload: { name: string; email: string; role: s
 export async function updateUser(id: string, payload: { name?: string; email?: string; role?: string }) {
   const res = await fetch(`${API_BASE}/${id}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json", ...getAuthHeader() },
+    headers: { "Content-Type": "application/json", ...getAuthorizationHeader() },
     body: JSON.stringify(payload),
   });
   return handleResponse(res);
@@ -57,7 +52,7 @@ export async function updateUser(id: string, payload: { name?: string; email?: s
 export async function deleteUser(id: string) {
   const res = await fetch(`${API_BASE}/${id}`, {
     method: "DELETE",
-    headers: { ...getAuthHeader() },
+    headers: { ...getAuthorizationHeader() },
   });
   return handleResponse(res);
 }

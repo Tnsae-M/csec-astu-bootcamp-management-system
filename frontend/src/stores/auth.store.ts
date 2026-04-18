@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import * as authService from "../services/auth.service";
+import { getStoredRefreshToken } from "../lib/auth-storage";
 
 interface UserData {
   id: string;
@@ -39,7 +40,7 @@ export const useAuthStore = create<AuthState>()(
         set({ user: null, accessToken: null, refreshToken: null, error: null });
       },
       refreshTokens: async () => {
-        const refreshToken = get().refreshToken;
+        const refreshToken = get().refreshToken || getStoredRefreshToken();
         if (!refreshToken) {
           throw new Error("Refresh token is missing.");
         }
