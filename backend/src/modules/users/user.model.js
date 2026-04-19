@@ -29,6 +29,15 @@ const userSchema = new mongoose.Schema(
       required: true,
       default: "active",
     },
+    bootcamps: [
+      {
+        bootcampId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Bootcamp",
+          required: true,
+        },
+      },
+    ],
     refreshToken: {
       type: String,
       default: null,
