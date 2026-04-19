@@ -1,58 +1,74 @@
 import { getAuthorizationHeader } from "../lib/auth-storage";
 
-const API_BASE = "/api/users";
+// ✅ MUST point to backend
+const API_BASE = "http://localhost:3000/api/users";
 
-async function handleResponse(res: Response) {
-  const contentType = res.headers.get("content-type") || "";
-  const isJson = contentType.includes("application/json");
+async function handleResponse(res) {
+  const isJson = res.headers.get("content-type")?.includes("application/json");
 
   if (res.ok) {
-    if (isJson) return res.json();
-    // If backend returns text (rare for success) return text
-    return res.text();
+    return isJson ? res.json() : res.text();
   }
 
-  // error paths: try to parse useful body
-  let bodyText: string;
+  let errorBody;
   try {
-    bodyText = isJson ? JSON.stringify(await res.json()) : await res.text();
-  } catch (e) {
-    bodyText = `<unable to read body: ${String(e)}>`;
+    errorBody = isJson ? await res.json() : await res.text();
+  } catch {
+    errorBody = "Unknown error";
   }
 
-  const message = `Request failed (${res.status} ${res.statusText}): ${bodyText}`;
-  throw new Error(message);
+  throw new Error(
+    `Request failed (${res.status}): ${JSON.stringify(errorBody)}`
+  );
 }
 
+// GET USERS
 export async function getUsers() {
-  console.debug("user.service.getUsers -> fetching", API_BASE);
-  const res = await fetch(API_BASE, { headers: { ...getAuthorizationHeader() } });
-  console.debug("user.service.getUsers -> response status", res.status);
+  const res = await fetch(API_BASE, {
+    headers: {
+      ...getAuthorizationHeader(),
+    },
+  });
+
   return handleResponse(res);
 }
 
-export async function createUser(payload: { name: string; email: string; role: string; password?: string }) {
+// CREATE USER
+export async function createUser(payload) {
   const res = await fetch(API_BASE, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...getAuthorizationHeader() },
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthorizationHeader(),
+    },
     body: JSON.stringify(payload),
   });
+
   return handleResponse(res);
 }
 
-export async function updateUser(id: string, payload: { name?: string; email?: string; role?: string }) {
+// UPDATE USER
+export async function updateUser(id, payload) {
   const res = await fetch(`${API_BASE}/${id}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json", ...getAuthorizationHeader() },
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthorizationHeader(),
+    },
     body: JSON.stringify(payload),
   });
+
   return handleResponse(res);
 }
 
-export async function deleteUser(id: string) {
+// DELETE USER
+export async function deleteUser(id) {
   const res = await fetch(`${API_BASE}/${id}`, {
     method: "DELETE",
-    headers: { ...getAuthorizationHeader() },
+    headers: {
+      ...getAuthorizationHeader(),
+    },
   });
+
   return handleResponse(res);
 }

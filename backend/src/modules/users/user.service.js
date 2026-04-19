@@ -52,3 +52,15 @@ export const updateUser = async (userId, updateData) => {
   
   return user;
 };
+
+export const deleteUser = async (userId) => {
+  const user = await User.findByIdAndDelete(userId);
+
+  if (!user) {
+    const error = new Error("User not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  return user;
+};
