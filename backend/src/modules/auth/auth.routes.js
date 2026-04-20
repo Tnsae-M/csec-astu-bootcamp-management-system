@@ -4,8 +4,8 @@ import { authRateLimiter } from "../../middleware/rateLimiter.middleware.js";
 import { authGuard, roleGuard } from "../../middleware/role.guard.js";
 
 const router = Router();
-
-router.post("/register", roleGuard("admin"), register);
+//, roleGuard("admin")
+router.post("/register", register);
 router.get("/me", authGuard, myUser);
 router.post("/login", authRateLimiter("login"), login);
 router.post("/refresh", refresh);

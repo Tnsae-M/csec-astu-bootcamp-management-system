@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuthStore } from "../stores/auth.store";
 import { AuthSuccessPage } from "../pages/AuthSuccessPage";
@@ -54,3 +55,17 @@ export default function AppRoutes() {
     </Routes>
   );
 }
+=======
+import { Routes, Route } from "react-router-dom";
+import Sessions from "../pages/Sessions";
+
+const AppRoutes = () => {
+    return (
+        <Routes>
+            <Route path="/sessions" element={<Sessions />} />
+        </Routes>
+    );
+};
+
+export default AppRoutes;
+>>>>>>> origin/session-feature
