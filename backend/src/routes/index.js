@@ -21,6 +21,8 @@ router.use("/bootcamps", bootcampRoutes);
 
 
 router.use("/attendance", attendanceRoutes);
+router.use("/sessions", sessionRoutes);
+
 //========================================
 //EXAMPLE
 /**
@@ -37,115 +39,114 @@ router.use("/attendance", attendanceRoutes);
 // const router = express.Router();
 
 // TEMP DATABASE (in-memory)
-let sessions = [];
-
-// GET all sessions
-router.get("/sessions", (req, res) => {
-  res.json(sessions); // MUST be array
-});
-
-// CREATE session
-router.post("/sessions", (req, res) => {
-  const newSession = {
-    id: Date.now().toString(),
-    title: req.body.title,
-  };
-
-  sessions.push(newSession);
-
-  res.status(201).json(newSession);
-});
-
-// DELETE session
-router.delete("/sessions/:id", (req, res) => {
-  const { id } = req.params;
-
-  sessions = sessions.filter((s) => s.id !== id);
-
-  res.json({ message: "Deleted successfully" });
-});
-
-// import express from "express";
-
-// const router = express.Router();
-
-// // TEMP in-memory storage
 // let sessions = [];
 
-// /* =========================
-//    CREATE (POST)
-// ========================= */
+// // GET all sessions
+// router.get("/sessions", (req, res) => {
+//   res.json(sessions); // MUST be array
+// });
+
+// // CREATE session
 // router.post("/sessions", (req, res) => {
 //   const newSession = {
-//     id: Date.now(),
-//     ...req.body,
+//     id: Date.now().toString(),
+//     title: req.body.title,
 //   };
 
 //   sessions.push(newSession);
 
-//   res.json({
-//     message: "Session created successfully",
-//     data: newSession,
-//   });
+//   res.status(201).json(newSession);
 // });
 
-// /* =========================
-//    READ ALL (GET)
-// ========================= */
-// router.get("/sessions", (req, res) => {
-//   res.json({
-//     message: "All sessions",
-//     data: sessions,
-//   });
-// });
-
-// /* =========================
-//    READ ONE (GET by ID)
-// ========================= */
-// router.get("/sessions/:id", (req, res) => {
-//   const session = sessions.find(s => s.id == req.params.id);
-
-//   if (!session) {
-//     return res.status(404).json({ message: "Session not found" });
-//   }
-
-//   res.json(session);
-// });
-
-// /* =========================
-//    UPDATE (PUT)
-// ========================= */
-// router.put("/sessions/:id", (req, res) => {
-//   const index = sessions.findIndex(s => s.id == req.params.id);
-
-//   if (index === -1) {
-//     return res.status(404).json({ message: "Session not found" });
-//   }
-
-//   sessions[index] = {
-//     ...sessions[index],
-//     ...req.body,
-//   };
-
-//   res.json({
-//     message: "Session updated",
-//     data: sessions[index],
-//   });
-// });
-
-// /* =========================
-//    DELETE
-// ========================= */
+// // DELETE session
 // router.delete("/sessions/:id", (req, res) => {
-//   sessions = sessions.filter(s => s.id != req.params.id);
+//   const { id } = req.params;
 
-//   res.json({
-//     message: "Session deleted",
-//   });
+//   sessions = sessions.filter((s) => s.id !== id);
+
+//   res.json({ message: "Deleted successfully" });
 // });
 
-// export default router; origin/session-feature
+// // import express from "express";
 
-router.use("/sessions", sessionRoutes);
+// // const router = express.Router();
+
+// // // TEMP in-memory storage
+// // let sessions = [];
+
+// // /* =========================
+// //    CREATE (POST)
+// // ========================= */
+// // router.post("/sessions", (req, res) => {
+// //   const newSession = {
+// //     id: Date.now(),
+// //     ...req.body,
+// //   };
+
+// //   sessions.push(newSession);
+
+// //   res.json({
+// //     message: "Session created successfully",
+// //     data: newSession,
+// //   });
+// // });
+
+// // /* =========================
+// //    READ ALL (GET)
+// // ========================= */
+// // router.get("/sessions", (req, res) => {
+// //   res.json({
+// //     message: "All sessions",
+// //     data: sessions,
+// //   });
+// // });
+
+// // /* =========================
+// //    READ ONE (GET by ID)
+// // ========================= */
+// // router.get("/sessions/:id", (req, res) => {
+// //   const session = sessions.find(s => s.id == req.params.id);
+
+// //   if (!session) {
+// //     return res.status(404).json({ message: "Session not found" });
+// //   }
+
+// //   res.json(session);
+// // });
+
+// // /* =========================
+// //    UPDATE (PUT)
+// // ========================= */
+// // router.put("/sessions/:id", (req, res) => {
+// //   const index = sessions.findIndex(s => s.id == req.params.id);
+
+// //   if (index === -1) {
+// //     return res.status(404).json({ message: "Session not found" });
+// //   }
+
+// //   sessions[index] = {
+// //     ...sessions[index],
+// //     ...req.body,
+// //   };
+
+// //   res.json({
+// //     message: "Session updated",
+// //     data: sessions[index],
+// //   });
+// // });
+
+// // /* =========================
+// //    DELETE
+// // ========================= */
+// // router.delete("/sessions/:id", (req, res) => {
+// //   sessions = sessions.filter(s => s.id != req.params.id);
+
+// //   res.json({
+// //     message: "Session deleted",
+// //   });
+// // });
+
+// // export default router; origin/session-feature
+
 
 export default router;

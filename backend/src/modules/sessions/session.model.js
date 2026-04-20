@@ -53,17 +53,29 @@ const sessionSchema = new mongoose.Schema(
 );
 
 // BUSINESS RULES
-sessionSchema.pre("save", function (next) {
+
+sessionSchema.pre("save", async function () {
   if (!this.location && !this.onlineLink) {
-    return next(new Error("Either location or onlineLink must be provided"));
+    throw new Error("Either location or onlineLink must be provided");
   }
 
   const duration = (this.endTime - this.startTime) / (1000 * 60);
-  if (duration < 30) {
-    return next(new Error("Session must be at least 30 minutes long"));
-  }
 
-  next();
+  if (duration < 30) {
+    throw new Error("Session must be at least 30 minutes long");
+  }
 });
+// sessionSchema.pre("save", function (next) {
+//   if (!this.location && !this.onlineLink) {
+//     return next(new Error("Either location or onlineLink must be provided"));
+//   }
+
+//   const duration = (this.endTime - this.startTime) / (1000 * 60);
+//   if (duration < 30) {
+//     return next(new Error("Session must be at least 30 minutes long"));
+//   }
+
+//   next();
+// });
 
 export default mongoose.model("Session", sessionSchema);
