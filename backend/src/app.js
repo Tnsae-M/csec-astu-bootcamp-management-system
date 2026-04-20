@@ -13,6 +13,7 @@ app.use(
 app.use(express.json());
 //routes
 app.use("/api", routes);
+//app.use("/api", mainRouter);
 
 //error handling middleware
 app.use(errorMiddleware);
