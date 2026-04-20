@@ -1,0 +1,103 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  --color-brand-primary: var(--brand-primary);
+  --color-brand-accent: var(--brand-accent);
+  --color-brand-muted: var(--brand-muted);
+  --color-brand-border: var(--brand-border);
+  --color-brand-card: var(--brand-card);
+  --color-brand-sidebar: var(--brand-sidebar);
+  --color-brand-header: var(--brand-header);
+  --color-text-main: var(--text-main);
+  --color-text-muted: var(--text-muted);
+}
+
+@layer base {
+  :root {
+    /* Professional Light Theme (Modern Dashboard Style) */
+    --brand-primary: #f9fbfe; /* Extremely soft bluish-white */
+    --brand-header: #ffffff;
+    --brand-sidebar: #ffffff; /* Clean white sidebar */
+    --brand-accent: #003366; /* Deep Scholar Navy */
+    --brand-muted: rgba(0, 51, 102, 0.05);
+    --brand-border: #eef2f6; /* Very soft gray-blue border */
+    --brand-card: #ffffff;
+
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-brand-primary text-text-main font-sans antialiased overflow-hidden;
+  }
+
+  /* Custom Scrollbar Styles */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #cbd5e1;
+  }
+
+  /* Hide scrollbar for specific elements while maintaining scrollability */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+@utility geo-border {
+  @apply border border-brand-border;
+}
+
+@utility geo-card {
+  @apply bg-brand-card border border-brand-border rounded-xl shadow-sm;
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+}
+
+@layer components {
+  .geo-table {
+    @apply w-full border-collapse text-[13px];
+  }
+
+  .geo-table th {
+    @apply text-left p-3 border-b border-brand-border text-text-muted font-semibold uppercase text-[11px] tracking-wider;
+  }
+
+  .geo-table td {
+    @apply p-4 border-b border-brand-border/50 text-text-main;
+  }
+}
