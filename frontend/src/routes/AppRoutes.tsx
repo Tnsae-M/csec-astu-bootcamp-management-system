@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuthStore } from "../stores/auth.store";
 import { AuthSuccessPage } from "../pages/AuthSuccessPage";
@@ -6,6 +5,7 @@ import { LoginPage } from "../pages/LoginPage";
 import UsersPage from "../pages/UsersPage";
 import BootcampsPage from "../pages/BootcampsPage";
 import DivisionsPage from "../pages/DivisionsPage";
+import Sessions from "../pages/Sessions";
 
 export default function AppRoutes() {
   const user = useAuthStore((state) => state.user);
@@ -52,20 +52,9 @@ export default function AppRoutes() {
         }
       />
       <Route path="*" element={<Navigate to="/login" replace />} />
+      <Routes>
+        <Route path="/sessions" element={<Sessions />} />
+      </Routes>
     </Routes>
   );
 }
-=======
-import { Routes, Route } from "react-router-dom";
-import Sessions from "../pages/Sessions";
-
-const AppRoutes = () => {
-    return (
-        <Routes>
-            <Route path="/sessions" element={<Sessions />} />
-        </Routes>
-    );
-};
-
-export default AppRoutes;
->>>>>>> origin/session-feature

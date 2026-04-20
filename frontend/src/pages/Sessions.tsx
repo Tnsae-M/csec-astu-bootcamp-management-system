@@ -3,78 +3,76 @@ import { useEffect, useState } from "react";
 const API = "http://localhost:3000/api/sessions";
 
 export default function Sessions() {
-    const [sessions, setSessions] = useState<any[]>([]);
-    const [title, setTitle] = useState("");
+  const [sessions, setSessions] = useState<[]>([]);
+  const [title, setTitle] = useState("");
 
-    // FETCH
-    const getSessions = async () => {
-        try {
-            const res = await fetch(API);
-            const data = await res.json();
+  // FETCH
+  const getSessions = async () => {
+    try {
+      const res = await fetch(API);
+      const data = await res.json();
 
-            // FIX: ensure array
-            if (Array.isArray(data)) {
-                setSessions(data);
-            } else {
-                setSessions([]);
-            }
-        } catch (err) {
-            console.error(err);
-            setSessions([]);
-        }
-    };
+      // FIX: ensure array
+      if (Array.isArray(data)) {
+        setSessions(data);
+      } else {
+        setSessions([]);
+      }
+    } catch (err) {
+      console.error(err);
+      setSessions([]);
+    }
+  };
 
-    useEffect(() => {
-        getSessions();
-    }, []);
+  useEffect(() => {
+    getSessions();
+  }, []);
 
-    // CREATE
-    const createSession = async () => {
-        if (!title.trim()) return;
+  // CREATE
+  const createSession = async () => {
+    if (!title.trim()) return;
 
-        await fetch(API, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title }),
-        });
+    await fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title }),
+    });
 
-        setTitle("");
-        getSessions();
-    };
+    setTitle("");
+    getSessions();
+  };
 
-    // DELETE
-    const deleteSession = async (id: string) => {
-        await fetch(`${API}/${id}`, {
-            method: "DELETE",
-        });
+  // DELETE
+  const deleteSession = async (id: string) => {
+    await fetch(`${API}/${id}`, {
+      method: "DELETE",
+    });
 
-        getSessions();
-    };
+    getSessions();
+  };
 
-    return (
-        <div style={{ padding: 20 }}>
-            <h2>Sessions</h2>
+  return (
+    <div style={{ padding: 20 }}>
+      <h2>Sessions</h2>
 
-            <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Session title"
-            />
-            <button onClick={createSession}>Add</button>
+      <input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Session title"
+      />
+      <button onClick={createSession}>Add</button>
 
-            <ul>
-                {Array.isArray(sessions) &&
-                    sessions.map((s: any) => (
-                        <li key={s.id}>
-                            {s.title}
-                            <button onClick={() => deleteSession(s.id)}>
-                                Delete
-                            </button>
-                        </li>
-                    ))}
-            </ul>
-        </div>
-    );
+      <ul>
+        {Array.isArray(sessions) &&
+          sessions.map((s: any) => (
+            <li key={s.id}>
+              {s.title}
+              <button onClick={() => deleteSession(s.id)}>Delete</button>
+            </li>
+          ))}
+      </ul>
+    </div>
+  );
 }
 // import { useEffect, useState } from "react";
 
