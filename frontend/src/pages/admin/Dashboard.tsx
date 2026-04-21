@@ -18,6 +18,18 @@ export default function AdminDashboard() {
   const { users } = useSelector((state: RootState) => state.users);
   const { divisions } = useSelector((state: RootState) => state.divisions);
   const { items: sessionItems } = useSelector((state: RootState) => state.sessions);
+  const { searchTerm } = useSelector((state: RootState) => state.ui);
+
+  const filteredSessions = sessionItems.filter((s) =>
+    s.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.division.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.instructor.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredDivisions = divisions.filter((d) => 
+    d.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    d.head.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const stats = [
     { label: 'Total Enrolled', value: users.length },
@@ -56,7 +68,7 @@ export default function AdminDashboard() {
               </tr>
             </thead>
             <tbody>
-              {sessionItems.slice(0, 4).map((row) => (
+              {filteredSessions.slice(0, 4).map((row) => (
                 <tr key={row.id} className="group hover:bg-brand-primary transition-colors border-b border-brand-border last:border-0 grow">
                   <td className="py-4">
                     <div className="font-bold text-sm text-text-main uppercase tracking-tight">{row.title}</div>
@@ -82,7 +94,7 @@ export default function AdminDashboard() {
           <div className="relative z-10">
             <h3 className="text-xl font-black text-brand-accent uppercase tracking-tighter mb-8">Division Roster</h3>
             <div className="flex flex-col gap-8">
-              {divisions.map((div) => (
+              {filteredDivisions.map((div) => (
                 <div key={div.id} className="flex flex-col group cursor-pointer hover:translate-x-2 transition-all">
                   <div className="flex justify-between items-center mb-2">
                     <span className="font-black text-xs text-text-main group-hover:text-brand-accent transition-colors uppercase tracking-widest">{div.name}</span>

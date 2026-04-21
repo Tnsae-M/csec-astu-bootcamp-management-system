@@ -6,6 +6,7 @@ import { RootState } from '../../app/store';
 
 export default function AttendancePage() {
   const { user } = useSelector((state: RootState) => state.auth);
+  const { searchTerm } = useSelector((state: RootState) => state.ui);
 
   const attendanceRecord = [
     { id: 1, date: '2026-04-15', session: 'System Architecture', status: 'PRESENT', time: '10:00 AM' },
@@ -13,6 +14,12 @@ export default function AttendancePage() {
     { id: 3, date: '2026-04-17', session: 'API Development', status: 'ABSENT', time: '-' },
     { id: 4, date: '2026-04-18', session: 'Security Fundamentals', status: 'PRESENT', time: '09:55 AM' },
   ];
+
+  const filteredRecord = attendanceRecord.filter((r) =>
+    r.session.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    r.date.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    r.status.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="space-y-8 selection:bg-brand-accent selection:text-white">
@@ -34,7 +41,7 @@ export default function AttendancePage() {
             </tr>
           </thead>
           <tbody>
-            {attendanceRecord.map((record) => (
+            {filteredRecord.map((record) => (
               <tr key={record.id} className="border-b border-brand-border hover:bg-brand-primary/30 transition-colors last:border-0 grow">
                 <td className="px-8 py-6">
                   <div className="flex items-center space-x-3">

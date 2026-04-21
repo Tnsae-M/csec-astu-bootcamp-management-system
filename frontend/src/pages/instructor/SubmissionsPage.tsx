@@ -2,14 +2,23 @@ import React from 'react';
 import { FileText, CheckCircle2, AlertCircle, Search, Filter } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Button } from '@/src/components/ui';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../app/store';
 
 export default function SubmissionsPage() {
+  const { searchTerm } = useSelector((state: RootState) => state.ui);
   const submissions = [
     { id: 'SUB-001', student: 'Henok Tadesse', task: 'Modular Architecture', status: 'PENDING', date: '2026-04-19' },
     { id: 'SUB-002', student: 'Biniam Yosef', task: 'React State Hooks', status: 'GRADED', date: '2026-04-18' },
     { id: 'SUB-003', student: 'Selamawit Kebede', task: 'Modular Architecture', status: 'PENDING', date: '2026-04-19' },
     { id: 'SUB-004', student: 'Dawit Mekonnen', task: 'Database Schema Design', status: 'GRADED', date: '2026-04-17' },
   ];
+
+  const filteredSubmissions = submissions.filter((s) =>
+    s.student.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.task.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.id.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="space-y-8 selection:bg-brand-accent selection:text-white">
@@ -26,17 +35,8 @@ export default function SubmissionsPage() {
       </div>
 
       <div className="geo-card overflow-hidden">
-        <div className="p-6 border-b border-brand-border bg-brand-primary/30 flex justify-between items-center">
-           <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                 <Search className="h-3 w-3 text-text-muted" />
-              </div>
-              <input 
-                className="pl-8 pr-4 py-2 bg-white border border-brand-border rounded-lg text-[11px] text-text-main focus:outline-none focus:ring-2 focus:ring-brand-accent/20 w-64 uppercase tracking-widest font-black"
-                placeholder="Search Identity ID..."
-              />
-           </div>
-           <span className="text-[10px] font-black uppercase tracking-[0.3em] text-text-muted">Lifecycle Queue: {submissions.length} Entities</span>
+        <div className="p-6 border-b border-brand-border bg-brand-primary/30 flex justify-end items-center">
+           <span className="text-[10px] font-black uppercase tracking-[0.3em] text-text-muted">Lifecycle Queue: {filteredSubmissions.length} Entities</span>
         </div>
         
         <table className="w-full text-left">
@@ -50,7 +50,7 @@ export default function SubmissionsPage() {
             </tr>
           </thead>
           <tbody>
-            {submissions.map((sub) => (
+            {filteredSubmissions.map((sub) => (
               <tr key={sub.id} className="border-b border-brand-border hover:bg-brand-primary/30 transition-colors last:border-0 grow">
                 <td className="px-8 py-6">
                   <div className="flex flex-col">

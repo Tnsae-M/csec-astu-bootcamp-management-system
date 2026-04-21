@@ -6,6 +6,12 @@ import { Users2, ShieldAlert, BadgeCheck } from 'lucide-react';
 export default function GroupsPage() {
   const { groups } = useSelector((state: RootState) => state.groups);
   const { user } = useSelector((state: RootState) => state.auth);
+  const { searchTerm } = useSelector((state: RootState) => state.ui);
+
+  const filteredGroups = groups.filter((g) =>
+    g.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    g.mentor.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="space-y-8 selection:bg-brand-accent selection:text-white">
@@ -15,7 +21,7 @@ export default function GroupsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {groups.map((g) => (
+        {filteredGroups.map((g) => (
           <div key={g.id} className="geo-card p-6 group hover:border-brand-accent/50 transition-all">
             <div className="flex justify-between items-center mb-6">
               <div className="w-10 h-10 bg-brand-primary border border-brand-border rounded-lg flex items-center justify-center text-brand-accent group-hover:bg-brand-accent group-hover:text-white transition-all shadow-sm">

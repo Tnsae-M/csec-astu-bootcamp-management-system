@@ -37,7 +37,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-brand-primary px-4 selection:bg-brand-accent selection:text-brand-primary">
+    <div className="min-h-screen flex items-center justify-center bg-brand-primary px-4 selection:bg-brand-accent selection:text-brand-primary overflow-y-auto">
       <div className="max-w-md w-full">
         <div className="text-center mb-10">
           <Link to="/" className="inline-block mb-3">

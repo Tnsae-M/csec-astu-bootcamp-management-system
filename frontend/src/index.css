@@ -34,7 +34,7 @@
 
 @layer base {
   body {
-    @apply bg-brand-primary text-text-main font-sans antialiased overflow-hidden;
+    @apply bg-brand-primary text-text-main font-sans antialiased;
   }
 
   /* Custom Scrollbar Styles */

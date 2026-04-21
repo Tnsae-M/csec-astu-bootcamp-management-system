@@ -15,6 +15,8 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
 
 export default function InstructorDashboard() {
+  const { searchTerm } = useSelector((state: RootState) => state.ui);
+
   const sessionItems = [
     { id: 'SES-01', title: 'Modular Backend Design', division: 'Software Development', status: 'LIVE' },
     { id: 'SES-02', title: 'React Hooks Deep Dive', division: 'Software Development', status: 'UPCOMING' },
@@ -26,6 +28,16 @@ export default function InstructorDashboard() {
     { id: 'TASK-02', title: 'Unit Testing Suite', submissions: 8 },
     { id: 'TASK-03', title: 'API Integration', submissions: 15 },
   ];
+
+  const filteredSessions = sessionItems.filter((s) =>
+    s.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.division.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredTasks = tasks.filter((t) =>
+    t.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    t.id.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="space-y-10 selection:bg-brand-accent selection:text-white">
@@ -54,7 +66,7 @@ export default function InstructorDashboard() {
               </tr>
             </thead>
             <tbody>
-              {sessionItems.map((session) => (
+              {filteredSessions.map((session) => (
                 <tr key={session.id} className="border-b border-brand-border grow last:border-0 hover:bg-brand-primary/50 transition-colors">
                   <td className="py-5">
                     <p className="font-bold text-sm text-text-main uppercase tracking-tight">{session.title}</p>
@@ -81,7 +93,7 @@ export default function InstructorDashboard() {
           <div className="geo-card p-8">
              <h3 className="text-sm font-black text-text-main uppercase tracking-widest mb-6">Evaluation Queue</h3>
              <div className="space-y-4">
-               {tasks.slice(0, 3).map((task) => (
+               {filteredTasks.slice(0, 3).map((task) => (
                  <div key={task.id} className="flex items-center justify-between p-4 bg-brand-primary border border-brand-border rounded-xl hover:border-brand-accent/30 transition-all group cursor-pointer shadow-sm">
                     <div>
                       <div className="font-black text-[11px] text-brand-accent uppercase tracking-widest">Assignment Code: {task.id}</div>

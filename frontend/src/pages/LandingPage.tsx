@@ -51,7 +51,7 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-brand-primary text-brand-accent selection:bg-brand-accent selection:text-brand-primary overflow-x-hidden">
+    <div className="min-h-screen bg-brand-primary text-brand-accent selection:bg-brand-accent selection:text-brand-primary overflow-y-auto overflow-x-hidden">
       {/* Navigation */}
       <nav className="fixed top-0 w-full z-50 border-b border-brand-border backdrop-blur-md bg-white/70">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">

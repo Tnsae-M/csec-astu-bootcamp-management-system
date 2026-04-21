@@ -18,9 +18,16 @@ export default function StudentDashboard() {
   const { user } = useSelector((state: RootState) => state.auth);
   const { items: sessionItems } = useSelector((state: RootState) => state.sessions);
   const { progress } = useSelector((state: RootState) => state);
+  const { searchTerm } = useSelector((state: RootState) => state.ui);
   
   const studentReports = progress.reports.filter(r => r.studentId === user?.id);
   const latestGrade = studentReports[studentReports.length - 1];
+
+  const filteredSessions = sessionItems.filter((s) =>
+    s.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.division.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.instructor.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const ongoingTask = {
     title: 'Advanced System Architecture',
@@ -79,7 +86,7 @@ export default function StudentDashboard() {
           <div className="geo-card p-8">
             <h3 className="text-xl font-black text-text-main uppercase tracking-tighter mb-8">Curriculum Spectrum</h3>
             <div className="space-y-4">
-              {sessionItems.slice(0, 3).map((session) => (
+              {filteredSessions.slice(0, 3).map((session) => (
                 <div key={session.id} className="flex items-center justify-between p-5 bg-brand-primary/30 border border-brand-border rounded-xl hover:bg-white hover:shadow-md hover:border-brand-accent/50 transition-all cursor-pointer group">
                   <div className="flex items-center">
                     <div className="w-12 h-12 bg-white border border-brand-border text-brand-accent rounded-lg flex items-center justify-center font-bold mr-6 group-hover:bg-brand-accent group-hover:text-white transition-all shadow-sm">

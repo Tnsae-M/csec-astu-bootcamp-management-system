@@ -5,7 +5,7 @@ import Logo from '../../components/common/Logo';
 
 export default function Register() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-brand-primary px-4 selection:bg-brand-accent selection:text-brand-primary">
+    <div className="min-h-screen flex items-center justify-center bg-brand-primary px-4 selection:bg-brand-accent selection:text-brand-primary overflow-y-auto">
       <div className="max-w-md w-full text-center">
         <div className="mb-10">
           <Link to="/" className="inline-block mb-3">
