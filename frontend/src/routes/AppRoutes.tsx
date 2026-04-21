@@ -15,18 +15,22 @@ export default function AppRoutes() {
     (Array.isArray(user.role)
       ? user.role.includes("admin")
       : user.role === "admin");
+
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/auth-success" element={<AuthSuccessPage />} />
+
       <Route
         path="/users"
         element={user ? <UsersPage /> : <Navigate to="/login" replace />}
       />
+
       <Route
         path="/bootcamps"
         element={user ? <BootcampsPage /> : <Navigate to="/login" replace />}
       />
+
       <Route
         path="/divisions"
         element={
@@ -41,6 +45,12 @@ export default function AppRoutes() {
           )
         }
       />
+
+      <Route
+        path="/sessions"
+        element={user ? <Sessions /> : <Navigate to="/login" replace />}
+      />
+
       <Route
         path="/"
         element={
@@ -51,10 +61,8 @@ export default function AppRoutes() {
           )
         }
       />
+
       <Route path="*" element={<Navigate to="/login" replace />} />
-      <Routes>
-        <Route path="/sessions" element={<Sessions />} />
-      </Routes>
     </Routes>
   );
 }
