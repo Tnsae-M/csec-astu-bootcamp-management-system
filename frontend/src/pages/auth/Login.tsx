@@ -76,6 +76,7 @@ export default function Login() {
                 required
                 className="w-full px-4 py-3 rounded-lg bg-brand-primary/50 border border-brand-border text-text-main focus:border-brand-accent focus:ring-4 focus:ring-brand-accent/5 outline-none transition-all font-medium text-sm"
                 placeholder="••••••••"
+                minLength={8}
               />
             </div>
 
