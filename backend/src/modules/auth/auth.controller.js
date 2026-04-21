@@ -3,6 +3,9 @@ import {
   refreshAuthToken,
   registerUser,
   currentUser,
+  verifyEmail,
+  forgotPassword,
+  resetPassword
 } from "./auth.service.js";
 
 export const login = async (req, res, next) => {
@@ -10,6 +13,7 @@ export const login = async (req, res, next) => {
     const { email, password } = req.body;
     const result = await loginUser(email, password);
     return res.status(200).json({
+      success:true,
       message: "Login successful",
       data: result,
     });
@@ -36,7 +40,8 @@ export const register = async (req, res, next) => {
     const { name, email, password, role } = req.body;
     const result = await registerUser(name, email, password, role);
     return res.status(201).json({
-      message: "Registration successful",
+      success:true,
+      message: "Registration successfully.please verify your email",
       data: result,
     });
   } catch (err) {
@@ -54,5 +59,36 @@ export const myUser = async (req, res, next) => {
     });
   } catch (err) {
     return next(err);
+  }
+};
+
+
+export const verifyEmailController = async (req, res, next) => {
+  try {
+    const data = await verifyEmail(req.params.token);
+    res.status(200).json(data);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const forgotPasswordController = async (req, res, next) => {
+  try {
+    const data = await forgotPassword(req.body.email);
+    res.status(200).json(data);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const resetPasswordController = async (req, res, next) => {
+  try {
+    const data = await resetPassword(
+      req.params.token,
+      req.body.password
+    );
+    res.status(200).json(data);
+  } catch (err) {
+    next(err);
   }
 };

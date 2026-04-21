@@ -16,5 +16,7 @@ app.use("/api", routes);
 //app.use("/api", mainRouter);
 
 //error handling middleware
+
+
 app.use(errorMiddleware);
 export default app;

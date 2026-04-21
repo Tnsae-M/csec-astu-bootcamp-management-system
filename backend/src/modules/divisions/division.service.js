@@ -22,24 +22,7 @@ export const getDivisions = async (name) => {
   }
   const items = await Division.find(filters);
   return items;
-  // const page = Number(query.page || 1);
-  // const limit = Number(query.limit || 10);
-  // const skip = (page - 1) * limit;
-  // const filters = buildFilters(query);
-
-  // const [items, total] = await Promise.all([
-  //   Division.find(filters).sort({ createdAt: -1 }).skip(skip).limit(limit),
-  // //   Division.countDocuments(filters),
-  //]);
-  // return {
-  //   items,
-  //   pagination: {
-  //     page,
-  //     limit,
-  //     total,
-  //     totalPages: Math.ceil(total / limit) || 1,
-  //   },
-  // };
+  
 };
 
 export const getDivisionById = async (divisionId) => {
