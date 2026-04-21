@@ -6,7 +6,7 @@ import bootcampRoutes from "../modules/bootcamps/bootcamp.route.js";
 import attendanceRoutes from "../modules/attendance/attendance.route.js";
 import authRoutes from "../modules/auth/auth.routes.js";
 import tasksRoutes from "../modules/tasks/tasks.routes.js";
-
+import feedbackRoutes from "../modules/feedback/feedback.routes.js";
 const router = Router();
 
 router.get("/health", (req, res) => {
@@ -20,4 +20,5 @@ router.use("/bootcamps", bootcampRoutes);
 router.use("/attendance", attendanceRoutes);
 router.use("/sessions", sessionRoutes);
 router.use("/tasks", tasksRoutes);
+router.use("/feedback", feedbackRoutes);
 export default router;
