@@ -1,36 +1,44 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 export interface User {
-  id: string;
+  _id: string;
   name: string;
   email: string;
-  role: 'ADMIN' | 'INSTRUCTOR' | 'STUDENT';
-  division: string;
-  status: 'ACTIVE' | 'INACTIVE';
+  role: string;
+  division?: string;
+  status: string;
 }
 
 interface UsersState {
   users: User[];
+  loading: boolean;
+  error: string | null;
 }
 
 const initialState: UsersState = {
-  users: [
-    { id: '1', name: 'Jerusalem', email: 'jerusalem@csec.astu', role: 'ADMIN', division: 'CSEC General', status: 'ACTIVE' },
-    { id: '2', name: 'Iman', email: 'iman@csec.astu', role: 'INSTRUCTOR', division: 'Software Development', status: 'ACTIVE' },
-    { id: '3', name: 'Tinsae', email: 'tinsae@student.csec.astu', role: 'STUDENT', division: 'Software Development', status: 'ACTIVE' },
-    { id: '4', name: 'Wogari', email: 'wogari@student.csec.astu', role: 'STUDENT', division: 'Cybersecurity', status: 'ACTIVE' },
-  ],
+  users: [],
+  loading: false,
+  error: null,
 };
 
 const usersSlice = createSlice({
   name: 'users',
   initialState,
   reducers: {
-    setUsers: (state, action: PayloadAction<User[]>) => {
+    setUsersStart: (state) => {
+      state.loading = true;
+      state.error = null;
+    },
+    setUsersSuccess: (state, action: PayloadAction<User[]>) => {
       state.users = action.payload;
+      state.loading = false;
+    },
+    setUsersFailure: (state, action: PayloadAction<string>) => {
+      state.error = action.payload;
+      state.loading = false;
     },
   },
 });
 
-export const { setUsers } = usersSlice.actions;
+export const { setUsersStart, setUsersSuccess, setUsersFailure } = usersSlice.actions;
 export default usersSlice.reducer;
