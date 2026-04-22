@@ -1,7 +1,9 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../app/store';
+import { setUser, logout, setInitializing } from '../features/auth/authSlice';
+import { authService } from '../services/auth.service';
 
 // Pages - Auth
 import Login from '../pages/auth/Login';
@@ -34,7 +36,11 @@ import SubmissionsPage from '../pages/instructor/SubmissionsPage';
 import SubmissionFormPage from '../pages/student/SubmissionFormPage';
 
 const ProtectedRoute = ({ children, role }: { children: React.ReactNode, role?: string }) => {
-  const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
+  const { isAuthenticated, user, isInitializing } = useSelector((state: RootState) => state.auth);
+
+  if (isInitializing) {
+    return <div className="min-h-screen flex items-center justify-center bg-brand-primary text-brand-accent font-black tracking-widest text-sm uppercase">Loading Profile...</div>;
+  }
 
   if (!isAuthenticated) return <Navigate to="/login" />;
   if (role && user?.role !== role) return <Navigate to="/dashboard" />;
@@ -43,7 +49,11 @@ const ProtectedRoute = ({ children, role }: { children: React.ReactNode, role?: 
 };
 
 const RoleBasedHome = () => {
-  const { user } = useSelector((state: RootState) => state.auth);
+  const { user, isInitializing } = useSelector((state: RootState) => state.auth);
+  
+  if (isInitializing) {
+    return <div className="min-h-screen flex items-center justify-center bg-brand-primary text-brand-accent font-black tracking-widest text-sm uppercase">Loading Session...</div>;
+  }
   
   if (user?.role === 'ADMIN') return <Navigate to="/dashboard/admin/dashboard" />;
   if (user?.role === 'INSTRUCTOR') return <Navigate to="/dashboard/instructor/dashboard" />;
@@ -53,6 +63,33 @@ const RoleBasedHome = () => {
 };
 
 export default function AppRouter() {
+  const dispatch = useDispatch();
+  const { token, user } = useSelector((state: RootState) => state.auth);
+
+  React.useEffect(() => {
+    if (token && !user) {
+      authService.getCurrentUser()
+        .then(response => {
+          const backendResponse = response.data || response;
+          const fetchedUser = backendResponse.data || backendResponse;
+          dispatch(setUser({
+            id: fetchedUser._id || fetchedUser.id,
+            name: fetchedUser.name,
+            email: fetchedUser.email,
+            role: fetchedUser.role ? fetchedUser.role.toUpperCase() : 'STUDENT'
+          }));
+        })
+        .catch(() => {
+          dispatch(logout());
+        })
+        .finally(() => {
+          dispatch(setInitializing(false));
+        });
+    } else if (!token) {
+      dispatch(setInitializing(false));
+    }
+  }, [token, user, dispatch]);
+
   return (
     <BrowserRouter>
       <Routes>

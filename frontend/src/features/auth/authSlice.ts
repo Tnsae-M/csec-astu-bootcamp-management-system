@@ -16,14 +16,19 @@ interface AuthState {
   isAuthenticated: boolean;
   loading: boolean;
   error: string | null;
+  isInitializing: boolean;
 }
+
+const rawToken = localStorage.getItem('token');
+const token = (rawToken && rawToken !== 'null' && rawToken !== 'undefined') ? rawToken : null;
 
 const initialState: AuthState = {
   user: null,
-  token: localStorage.getItem('token'),
-  isAuthenticated: !!localStorage.getItem('token'),
+  token: token,
+  isAuthenticated: !!token,
   loading: false,
   error: null,
+  isInitializing: !!token, // Wait for user fetch if token exists
 };
 
 const authSlice = createSlice({
@@ -49,13 +54,19 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
+      state.isInitializing = false;
       localStorage.removeItem('token');
     },
     setUser: (state, action: PayloadAction<User>) => {
       state.user = action.payload;
+      state.isAuthenticated = true;
+      state.isInitializing = false;
+    },
+    setInitializing: (state, action: PayloadAction<boolean>) => {
+      state.isInitializing = action.payload;
     }
   },
 });
 
-export const { loginStart, loginSuccess, loginFailure, logout, setUser } = authSlice.actions;
+export const { loginStart, loginSuccess, loginFailure, logout, setUser, setInitializing } = authSlice.actions;
 export default authSlice.reducer;
