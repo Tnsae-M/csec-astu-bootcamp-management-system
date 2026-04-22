@@ -9,7 +9,7 @@ const router = Router();
 //, roleGuard("admin")
 router.post("/register", register);
 router.get("/me", authGuard, myUser);
-router.post("/login", authRateLimiter("login"), login);
+router.post("/login",  login);//authRateLimiter("login"),
 router.post("/refresh", refresh);
 router.get("/verify/:token", verifyEmailController);
 // router.post("/forgot-password", forgotPasswordController);
