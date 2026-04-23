@@ -1,37 +1,42 @@
-import React from 'react';
-import { Card, Button } from '@/src/components/ui';
-import { 
-  BookOpen, 
-  Calendar, 
-  Star, 
+import React from "react";
+import { Card, Button } from "@/src/components/ui";
+import {
+  BookOpen,
+  Calendar,
+  Star,
   Clock,
   Terminal,
   Award,
-  ArrowRight
-} from 'lucide-react';
-import { motion } from 'motion/react';
-import { cn } from '../../lib/utils';
-import { useSelector } from 'react-redux';
-import { RootState } from '../../app/store';
+  ArrowRight,
+} from "lucide-react";
+import { motion } from "motion/react";
+import { cn } from "../../lib/utils";
+import { useSelector } from "react-redux";
+import { RootState } from "../../app/store";
 
 export default function StudentDashboard() {
   const { user } = useSelector((state: RootState) => state.auth);
-  const { items: sessionItems } = useSelector((state: RootState) => state.sessions);
+  const { items: sessionItems } = useSelector(
+    (state: RootState) => state.sessions,
+  );
   const { progress } = useSelector((state: RootState) => state);
   const { searchTerm } = useSelector((state: RootState) => state.ui);
-  
-  const studentReports = progress.reports.filter(r => r.studentId === user?.id);
+
+  const studentReports = progress.reports.filter(
+    (r) => r.studentId === user?.id,
+  );
   const latestGrade = studentReports[studentReports.length - 1];
 
-  const filteredSessions = sessionItems.filter((s) =>
-    s.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.division.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.instructor.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredSessions = sessionItems.filter(
+    (s) =>
+      s.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.division.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.instructor.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const ongoingTask = {
-    title: 'Advanced System Architecture',
-    deadline: '28 April, 2026',
+    title: "Advanced System Architecture",
+    deadline: "28 April, 2026",
     progress: 72,
   };
 
@@ -42,14 +47,16 @@ export default function StudentDashboard() {
           <h1 className="text-3xl font-black text-brand-accent tracking-tighter uppercase leading-none mb-2">
             Student Profile
           </h1>
-          <p className="text-text-muted text-[11px] font-bold uppercase tracking-widest leading-none">Operational Division: {user?.division || 'CSEC General'}</p>
+          <p className="text-text-muted text-[11px] font-bold uppercase tracking-widest leading-none">
+            Operational Division: {user?.division || "CSEC General"}
+          </p>
         </div>
-        <Button size="md" className="text-[10px] font-black uppercase tracking-widest px-6">Submit Feedback</Button>
+        {/* <Button size="md" className="text-[10px] font-black uppercase tracking-widest px-6">Submit Feedback</Button> */}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <div className="geo-card p-10 relative overflow-hidden group">
+          {/* <div className="geo-card p-10 relative overflow-hidden group">
              <div className="relative z-10">
                <span className="px-3 py-1 bg-brand-accent text-white text-[9px] font-black uppercase tracking-widest rounded mb-6 inline-block shadow-lg shadow-brand-accent/20">Active Enrollment</span>
                <h2 className="text-5xl font-black text-text-main tracking-tighter uppercase mb-4 leading-none">{ongoingTask.title}</h2>
@@ -77,13 +84,12 @@ export default function StudentDashboard() {
                  <ArrowRight size={14} className="ml-2 group-hover:translate-x-1 transition-transform" />
                </Button>
              </div>
-             
-             {/* Decorative Background Element */}
+  
              <div className="absolute right-0 top-0 w-1/3 h-full bg-gradient-to-l from-brand-accent/5 to-transparent pointer-events-none opacity-50" />
              <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-accent-blue opacity-[0.02] rounded-full blur-3xl pointer-events-none group-hover:opacity-[0.05] transition-opacity" />
-          </div>
+          </div> */}
 
-          <div className="geo-card p-8">
+          {/* <div className="geo-card p-8">
             <h3 className="text-xl font-black text-text-main uppercase tracking-tighter mb-8">Curriculum Spectrum</h3>
             <div className="space-y-4">
               {filteredSessions.slice(0, 3).map((session) => (
@@ -101,10 +107,10 @@ export default function StudentDashboard() {
                 </div>
               ))}
             </div>
-          </div>
+          </div> */}
         </div>
 
-        <div className="space-y-6">
+        {/* <div className="space-y-6">
            <div className="geo-card p-8 relative overflow-hidden">
               <h3 className="text-sm font-black text-text-muted uppercase tracking-[0.3em] mb-10">Performance Metrics</h3>
               <div className="space-y-8">
@@ -140,9 +146,8 @@ export default function StudentDashboard() {
                  ))}
               </div>
            </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );
 }
-
