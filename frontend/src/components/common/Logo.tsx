@@ -38,7 +38,7 @@ const Logo: React.FC<LogoProps> = ({ className, size = 'md', showText = false })
 
       {showText && (
         <div className="flex flex-col">
-          <span className="text-text-main font-black tracking-tighter uppercase text-xl block leading-none">CSEC ASTU Portal</span>
+          <span className="text-text-main font-black tracking-tighter uppercase text-xl block leading-none">CSEC ASTU BMS</span>
           <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted leading-none mt-1 block">Engineering Framework</span>
         </div>
       )}

@@ -4,8 +4,6 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { sendEmail } from "../../utils/email.js";
 
-
-
 const ACCESS_TOKEN_EXPIRES = process.env.JWT_ACCESS_EXPIRES || "15m";
 const REFRESH_TOKEN_EXPIRES = process.env.JWT_REFRESH_EXPIRES || "7d";
 
@@ -16,7 +14,6 @@ const sanitizeUser = (user) => ({
   role: user.role,
   status: user.status,
 });
-
 
 // const generateToken = () => {
 //   return crypto.randomBytes(32).toString("hex");
@@ -45,10 +42,7 @@ const generateTokens = (user) => {
   return { accessToken, refreshToken };
 };
 
-
 export const registerUser = async (name, email, password, role) => {
-
-  
   if (!name || !email || !password) {
     throw Object.assign(new Error("Name, email, and password are required."), {
       statusCode: 400,
@@ -92,20 +86,18 @@ export const registerUser = async (name, email, password, role) => {
   //  4. SEND EMAIL (REAL)
   const verifyURL = `http://localhost:3000/api/auth/verify-email/${verificationToken}`;
 
-//   await sendEmail({
-//   to: user.email,
-//   subject: "Verify your email",
-//   text: `Click this link: ${verifyURL}`,
-//   html: `
-//     <h2>Verify Your Email</h2>
-//     <p>Click below to verify your account:</p>
-//     <a href="${verifyURL}">Verify Email</a>
-//   `,
-// });
+  await sendEmail({
+    to: user.email,
+    subject: "Verify your email",
+    text: `Click this link: ${verifyURL}`,
+    html: `
+    <h2>Verify Your Email</h2>
+    <p>Click below to verify your account:</p>
+    <a href="${verifyURL}">Verify Email</a>
+  `,
+  });
   return sanitizeUser(user);
-  
 };
-
 
 export const loginUser = async (email, password) => {
   if (!email || !password) {
@@ -120,18 +112,16 @@ export const loginUser = async (email, password) => {
   }
 
   if (!user.isEmailVerified) {
-  throw Object.assign(new Error("Please verify your email first"), {
-    statusCode: 403,
-  });
-
-  if (user.status !== "active") {
-    throw Object.assign(new Error("Account is not active."), {
+    throw Object.assign(new Error("Please verify your email first"), {
       statusCode: 403,
     });
-  }
 
-  
-}
+    if (user.status !== "active") {
+      throw Object.assign(new Error("Account is not active."), {
+        statusCode: 403,
+      });
+    }
+  }
 
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) {
@@ -196,10 +186,7 @@ export const currentUser = async (userId) => {
 // Email verfication
 
 export const verifyEmail = async (token) => {
-  const hashedToken = crypto
-    .createHash("sha256")
-    .update(token)
-    .digest("hex");
+  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
   const user = await User.findOne({
     emailVerificationToken: hashedToken,
@@ -247,25 +234,21 @@ export const forgotPassword = async (email) => {
   // await sendEmail(user.email, "Reset Password", resetURL);
 
   await sendEmail({
-  to: user.email,
-  subject: "Reset Password",
-  text: `Click this link: ${resetURL}`,
-  html: `
+    to: user.email,
+    subject: "Reset Password",
+    text: `Click this link: ${resetURL}`,
+    html: `
     <h2>Reset Your Password</h2>
     <p>Click below to Reset your password:</p>
     <a href="${resetURL}">Verify Email</a>
   `,
-});
+  });
 
   return { message: "Reset link sent to email" };
 };
 
-
 export const resetPassword = async (token, newPassword) => {
-  const hashedToken = crypto
-    .createHash("sha256")
-    .update(token)
-    .digest("hex");
+  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
   const user = await User.findOne({
     passwordResetToken: hashedToken,
