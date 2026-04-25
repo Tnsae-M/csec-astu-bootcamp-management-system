@@ -10,7 +10,7 @@ import taskRoutes from "../modules/tasks/task.routes.js";
 import submissionRoutes from "../modules/submissions/submission.routes.js";
 import progressRoutes from "../modules/progress/progress.routes.js";
 import feedbackRoutes from "../modules/feedback/feedback.routes.js";
-
+import notificationRoutes from "../modules/notification/notification.routes.js";
 import groupRoutes from "../modules/groups/group.routes.js";
 
 import authRoutes from "../modules/auth/auth.routes.js";
@@ -38,9 +38,9 @@ router.use("/progress", progressRoutes);
 
 router.use("/feedback", feedbackRoutes);
 
-
 router.use("/groups", groupRoutes);
 
+router.use("/notifications", notificationRoutes);
 
 
 export default router;

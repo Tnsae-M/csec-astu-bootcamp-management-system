@@ -1,7 +1,5 @@
 import Bootcamp from "./bootcamp.model.js";
 import Division from "../divisions/division.model.js";
-import User from "../users/user.model.js";
-
 const buildError = (message, statusCode) => {
   const error = new Error(message);
   error.statusCode = statusCode;
