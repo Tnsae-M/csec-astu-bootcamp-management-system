@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import { type } from "os";
 const bootcampSchema = new mongoose.Schema({
   name: {
     type: String,
