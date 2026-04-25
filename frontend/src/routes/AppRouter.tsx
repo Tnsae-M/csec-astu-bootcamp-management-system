@@ -34,6 +34,9 @@ import ResourcesPage from '../pages/shared/ResourcesPage';
 import SettingsPage from '../pages/admin/SettingsPage';
 import SubmissionsPage from '../pages/instructor/SubmissionsPage';
 import SubmissionFormPage from '../pages/student/SubmissionFormPage';
+import BootcampsPage from '../pages/shared/BootcampsPage';
+import BootcampDetailPage from '../pages/shared/BootcampDetailPage';
+import SessionDetailPage from '../pages/sessions/SessionDetailPage';
 
 const ProtectedRoute = ({ children, role }: { children: React.ReactNode, role?: string }) => {
   const { isAuthenticated, user, isInitializing } = useSelector((state: RootState) => state.auth);
@@ -136,6 +139,11 @@ export default function AppRouter() {
           {/* Fallback Shared Routes (legacy/direct) */}
           <Route path="sessions" element={<Navigate to="sessions" replace />} />
           <Route path="tasks" element={<Navigate to="tasks" replace />} />
+
+          {/* New Hierarchical Drill-down Routes */}
+          <Route path=":role/divisions/:divisionId/bootcamps" element={<ProtectedRoute><BootcampsPage /></ProtectedRoute>} />
+          <Route path=":role/divisions/:divisionId/bootcamps/:bootcampId" element={<ProtectedRoute><BootcampDetailPage /></ProtectedRoute>} />
+          <Route path=":role/divisions/:divisionId/bootcamps/:bootcampId/sessions/:sessionId" element={<ProtectedRoute><SessionDetailPage /></ProtectedRoute>} />
         </Route>
       </Routes>
     </BrowserRouter>

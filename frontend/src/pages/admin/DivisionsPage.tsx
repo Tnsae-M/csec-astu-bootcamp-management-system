@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../app/store';
 import { Building2, Activity, Plus, Edit, Trash2 } from 'lucide-react';
 import { divisionsService } from '../../services/divisions.service';
 import { setDivisionsStart, setDivisionsSuccess, setDivisionsFailure } from '../../features/divisions/divisionsSlice';
 import { Modal, Button } from '../../components/ui';
+import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/card';
 
 export default function DivisionsPage() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { divisions, loading } = useSelector((state: RootState) => state.divisions);
   const { searchTerm } = useSelector((state: RootState) => state.ui);
 
@@ -94,9 +97,9 @@ export default function DivisionsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {filteredDivisions.map((d) => (
-          <div key={d._id} className="geo-card p-8 group hover:border-brand-accent/40 transition-all flex flex-col justify-between">
-            <div>
-              <div className="flex justify-between items-start mb-10">
+          <Card key={d._id} className="group hover:border-brand-accent/40 transition-all flex flex-col justify-between overflow-hidden bg-brand-primary border-brand-border shadow-md">
+            <CardHeader className="pb-4">
+              <div className="flex justify-between items-start mb-6">
                 <div className="w-14 h-14 rounded-2xl bg-brand-accent text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
                   <Building2 size={28} />
                 </div>
@@ -113,16 +116,16 @@ export default function DivisionsPage() {
                   </div>
                 </div>
               </div>
-
-              <h3 className="text-2xl font-black text-text-main uppercase tracking-tighter mb-2 group-hover:text-brand-accent transition-colors">{d.name}</h3>
-              <div className="space-y-4 mb-8 min-h-[40px]">
-                <p className="text-xs text-text-muted">{d.description || 'No description available for this division.'}</p>
-              </div>
-            </div>
-
-            <div className="pt-6 border-t border-brand-border flex gap-3 mt-auto">
+              <CardTitle className="text-2xl font-black text-text-main uppercase tracking-tighter group-hover:text-brand-accent transition-colors">
+                {d.name}
+              </CardTitle>
+              <CardDescription className="text-xs text-text-muted min-h-[40px] pt-2">
+                {d.description || 'No description available for this division.'}
+              </CardDescription>
+            </CardHeader>
+            <CardFooter className="pt-6 border-t border-brand-border flex gap-3 mt-auto bg-transparent px-6 pb-6">
               <button 
-                onClick={() => alert('Bootcamps page not connected yet.')}
+                onClick={() => navigate(`/dashboard/admin/divisions/${d._id}/bootcamps`)}
                 className="flex-1 bg-brand-primary border border-brand-border text-brand-accent hover:bg-brand-accent hover:text-white transition-all py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm"
               >
                 View Bootcamps
@@ -133,8 +136,8 @@ export default function DivisionsPage() {
               >
                 <Edit size={12} className="mr-2" /> Manage Unit
               </button>
-            </div>
-          </div>
+            </CardFooter>
+          </Card>
         ))}
         {filteredDivisions.length === 0 && (
           <div className="col-span-2 text-center py-10 text-text-muted font-black uppercase tracking-widest text-xs">

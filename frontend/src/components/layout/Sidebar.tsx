@@ -37,12 +37,12 @@ const menuConfig: Record<UserRole, any[]> = {
       icon: LayoutDashboard,
       label: "Dashboard",
     },
-    // { to: "/dashboard/admin/users", icon: UserCheck, label: "User Management" },
     {
       to: "/dashboard/admin/divisions",
       icon: Building2,
-      label: "Division Management",
+      label: "Divisions",
     },
+    { to: "/dashboard/admin/users", icon: UserCheck, label: "Users" }
     // { to: "/dashboard/admin/groups", icon: Users2, label: "Group Management" },
     // {
     //   to: "/dashboard/admin/sessions",
