@@ -25,7 +25,6 @@ import TasksPage from '../pages/tasks/TasksPage';
 
 // New Modular Pages
 import UsersPage from '../pages/admin/UsersPage';
-import DivisionsPage from '../pages/admin/DivisionsPage';
 import GroupsPage from '../pages/shared/GroupsPage';
 import FeedbackPage from '../pages/shared/FeedbackPage';
 import ProgressPage from '../pages/student/ProgressPage';
@@ -34,6 +33,7 @@ import ResourcesPage from '../pages/shared/ResourcesPage';
 import SettingsPage from '../pages/admin/SettingsPage';
 import SubmissionsPage from '../pages/instructor/SubmissionsPage';
 import SubmissionFormPage from '../pages/student/SubmissionFormPage';
+import DivisionsPage from '../pages/shared/DivisionsPage';
 import BootcampsPage from '../pages/shared/BootcampsPage';
 import BootcampDetailPage from '../pages/shared/BootcampDetailPage';
 import SessionDetailPage from '../pages/sessions/SessionDetailPage';
@@ -117,6 +117,7 @@ export default function AppRouter() {
           
           {/* Instructor Routes */}
           <Route path="instructor/dashboard" element={<ProtectedRoute role="INSTRUCTOR"><InstructorDashboard /></ProtectedRoute>} />
+          <Route path="instructor/divisions" element={<ProtectedRoute role="INSTRUCTOR"><DivisionsPage /></ProtectedRoute>} />
           <Route path="instructor/sessions" element={<ProtectedRoute role="INSTRUCTOR"><SessionPage /></ProtectedRoute>} />
           <Route path="instructor/attendance" element={<ProtectedRoute role="INSTRUCTOR"><AttendancePage /></ProtectedRoute>} />
           <Route path="instructor/resources" element={<ProtectedRoute role="INSTRUCTOR"><ResourcesPage /></ProtectedRoute>} />
@@ -127,6 +128,7 @@ export default function AppRouter() {
           
           {/* Student Routes */}
           <Route path="student/dashboard" element={<ProtectedRoute role="STUDENT"><StudentDashboard /></ProtectedRoute>} />
+          <Route path="student/divisions" element={<ProtectedRoute role="STUDENT"><DivisionsPage /></ProtectedRoute>} />
           <Route path="student/sessions" element={<ProtectedRoute role="STUDENT"><SessionPage /></ProtectedRoute>} />
           <Route path="student/attendance" element={<ProtectedRoute role="STUDENT"><AttendancePage /></ProtectedRoute>} />
           <Route path="student/resources" element={<ProtectedRoute role="STUDENT"><ResourcesPage /></ProtectedRoute>} />

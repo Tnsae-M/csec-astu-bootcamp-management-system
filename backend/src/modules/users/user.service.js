@@ -1,4 +1,5 @@
 import User from './user.model.js';
+import bcrypt from 'bcrypt';
 
 export const createUser = async (userData) => {
   const existingUser = await User.findOne({ email: userData.email });
@@ -6,6 +7,9 @@ export const createUser = async (userData) => {
     const error = new Error('Email already exists');
     error.statusCode = 409; // Conflict
     throw error;
+  }
+  if (userData.password) {
+    userData.password = await bcrypt.hash(userData.password, 10);
   }
   
   const user = new User(userData);

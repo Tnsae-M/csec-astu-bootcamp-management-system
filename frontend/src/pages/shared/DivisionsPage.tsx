@@ -13,6 +13,10 @@ export default function DivisionsPage() {
   const navigate = useNavigate();
   const { divisions, loading } = useSelector((state: RootState) => state.divisions);
   const { searchTerm } = useSelector((state: RootState) => state.ui);
+  const { user } = useSelector((state: RootState) => state.auth);
+
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER ADMIN';
+  const rolePath = user?.role ? user.role.toLowerCase() : 'student';
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -83,12 +87,14 @@ export default function DivisionsPage() {
           <h1 className="text-4xl font-black text-brand-accent uppercase tracking-tighter">Academic Divisions</h1>
           <p className="text-text-muted font-bold text-xs uppercase tracking-[0.2em] mt-2">Departmental Framework & Oversight</p>
         </div>
-        <button 
-          onClick={handleOpenCreate}
-          className="bg-brand-accent text-white px-6 py-3 rounded-lg font-black uppercase tracking-widest text-xs flex items-center hover:bg-brand-accent/90 transition-colors shadow-lg shadow-brand-accent/20"
-        >
-          <Plus size={16} className="mr-2" /> Add Division
-        </button>
+        {isAdmin && (
+          <button 
+            onClick={handleOpenCreate}
+            className="bg-brand-accent text-white px-6 py-3 rounded-lg font-black uppercase tracking-widest text-xs flex items-center hover:bg-brand-accent/90 transition-colors shadow-lg shadow-brand-accent/20"
+          >
+            <Plus size={16} className="mr-2" /> Add Division
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -104,13 +110,15 @@ export default function DivisionsPage() {
                   <Building2 size={28} />
                 </div>
                 <div className="flex space-x-2">
-                  <button 
-                    onClick={() => handleDelete(d._id, d.name)}
-                    className="p-2 text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded-full transition-colors"
-                    title="Delete Division"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  {isAdmin && (
+                    <button 
+                      onClick={() => handleDelete(d._id, d.name)}
+                      className="p-2 text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded-full transition-colors"
+                      title="Delete Division"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
                   <div className="flex items-center space-x-2 bg-green-100 text-green-700 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-green-200">
                     <Activity size={10} /> ACTIVE
                   </div>
@@ -125,17 +133,19 @@ export default function DivisionsPage() {
             </CardHeader>
             <CardFooter className="pt-6 border-t border-brand-border flex gap-3 mt-auto bg-transparent px-6 pb-6">
               <button 
-                onClick={() => navigate(`/dashboard/admin/divisions/${d._id}/bootcamps`)}
+                onClick={() => navigate(`/dashboard/${rolePath}/divisions/${d._id}/bootcamps`)}
                 className="flex-1 bg-brand-primary border border-brand-border text-brand-accent hover:bg-brand-accent hover:text-white transition-all py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm"
               >
                 View Bootcamps
               </button>
-              <button 
-                onClick={() => handleOpenEdit(d)}
-                className="flex-1 bg-brand-primary border border-brand-border text-text-main hover:bg-brand-primary/50 transition-all py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center justify-center group-hover:border-brand-accent/50"
-              >
-                <Edit size={12} className="mr-2" /> Manage Unit
-              </button>
+              {isAdmin && (
+                <button 
+                  onClick={() => handleOpenEdit(d)}
+                  className="flex-1 bg-brand-primary border border-brand-border text-text-main hover:bg-brand-primary/50 transition-all py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center justify-center group-hover:border-brand-accent/50"
+                >
+                  <Edit size={12} className="mr-2" /> Manage Unit
+                </button>
+              )}
             </CardFooter>
           </Card>
         ))}
