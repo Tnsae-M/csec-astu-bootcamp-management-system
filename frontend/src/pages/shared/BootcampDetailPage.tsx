@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../app/store';
 
 export default function BootcampDetailPage() {
   const { role, divisionId, bootcampId } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'groups' | 'sessions'>('sessions');
+  const { user } = useSelector((state: RootState) => state.auth);
 
   return (
     <div className="space-y-8">
@@ -13,6 +16,7 @@ export default function BootcampDetailPage() {
           <h1 className="text-4xl font-black text-brand-accent uppercase tracking-tighter">Bootcamp Dashboard</h1>
           <p className="text-text-muted font-bold text-xs uppercase tracking-[0.2em] mt-2">ID: {bootcampId}</p>
         </div>
+        {/* Creation controls removed from bootcamp detail — create actions live on Sessions and Groups pages */}
       </div>
 
       {/* Tabs */}
