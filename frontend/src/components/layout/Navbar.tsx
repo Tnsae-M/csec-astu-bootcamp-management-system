@@ -3,7 +3,8 @@ import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { RootState } from "../../app/store";
 import { setSearchTerm } from "../../features/ui/uiSlice";
-import { Bell, User, Search } from "lucide-react";
+import { Bell, User, Search, X } from "lucide-react";
+import { markAsRead, markAllAsRead } from "../../features/notifications/notificationSlice";
 import Logo from "../common/Logo";
 
 export default function Navbar() {
@@ -27,10 +28,31 @@ export default function Navbar() {
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
-  const handleNotificationClick = () => {
-    if (user?.role) {
-      navigate(`/dashboard/${user.role.toLowerCase()}/notifications`);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const containerRef = React.useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    function handleOutside(e: MouseEvent) {
+      if (!containerRef.current) return;
+      if (!(e.target instanceof Node)) return;
+      if (!containerRef.current.contains(e.target)) {
+        setShowNotifications(false);
+      }
     }
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, []);
+
+  const handleNotificationClick = () => {
+    // toggle inline dropdown instead of navigating to a page
+    setShowNotifications((s) => !s);
+  };
+
+  const handleMarkAsRead = (id: number) => {
+    dispatch(markAsRead(id));
+  };
+  const handleMarkAll = () => {
+    dispatch(markAllAsRead());
   };
 
   return (
@@ -52,17 +74,46 @@ export default function Navbar() {
       </div>
 
       <div className="flex items-center gap-6">
-        <button
-          onClick={handleNotificationClick}
-          className="text-text-muted hover:text-brand-accent transition-colors relative"
-        >
-          <Bell className="h-5 w-5" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-brand-header">
-              {unreadCount}
-            </span>
+        <div className="relative" ref={containerRef}>
+          <button
+            onClick={handleNotificationClick}
+            className="text-text-muted hover:text-brand-accent transition-colors relative"
+            aria-expanded={showNotifications}
+          >
+            <Bell className="h-5 w-5" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-brand-header">
+                {unreadCount}
+              </span>
+            )}
+          </button>
+
+          {showNotifications && (
+            <div className="absolute right-0 mt-2 w-[320px] bg-white rounded-xl shadow-2xl border border-brand-border z-50 overflow-hidden text-sm text-text-main">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-brand-border bg-brand-primary">
+                <div className="font-black uppercase tracking-wider">System Notifications</div>
+                <button onClick={() => setShowNotifications(false)} className="p-1 text-text-muted hover:text-red-600">
+                  <X />
+                </button>
+              </div>
+              <div className="max-h-64 overflow-y-auto">
+                {notifications.length === 0 && (
+                  <div className="p-4 text-center text-text-muted">No notifications</div>
+                )}
+                {notifications.map((n) => (
+                  <div key={n.id} className="px-4 py-3 border-b border-brand-border last:border-0 hover:bg-gray-50 cursor-pointer" onClick={() => handleMarkAsRead(n.id)}>
+                    <div className="font-bold">{n.title}</div>
+                    <div className="text-[13px] text-text-muted mt-1">{n.text}</div>
+                    <div className="text-[11px] text-text-muted mt-2">{n.time}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="px-4 py-3 text-center">
+                <button onClick={handleMarkAll} className="text-sm font-black text-brand-accent">MARK ALL AS READ</button>
+              </div>
+            </div>
           )}
-        </button>
+        </div>
 
         <div className="flex items-center gap-4">
           <div className="text-right">

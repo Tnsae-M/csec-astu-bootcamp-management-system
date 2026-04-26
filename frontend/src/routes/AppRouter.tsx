@@ -37,6 +37,7 @@ import SubmissionFormPage from '../pages/student/SubmissionFormPage';
 import BootcampsPage from '../pages/shared/BootcampsPage';
 import BootcampDetailPage from '../pages/shared/BootcampDetailPage';
 import SessionDetailPage from '../pages/sessions/SessionDetailPage';
+import ReportsPage from '../pages/admin/ReportsPage';
 
 const ProtectedRoute = ({ children, role }: { children: React.ReactNode, role?: string }) => {
   const { isAuthenticated, user, isInitializing } = useSelector((state: RootState) => state.auth);
@@ -109,7 +110,7 @@ export default function AppRouter() {
           <Route path="admin/divisions" element={<ProtectedRoute role="ADMIN"><DivisionsPage /></ProtectedRoute>} />
           <Route path="admin/groups" element={<ProtectedRoute role="ADMIN"><GroupsPage /></ProtectedRoute>} />
           <Route path="admin/sessions" element={<ProtectedRoute role="ADMIN"><SessionPage /></ProtectedRoute>} />
-          <Route path="admin/reports" element={<ProtectedRoute role="ADMIN"><ProgressPage /></ProtectedRoute>} />
+            <Route path="admin/reports" element={<ProtectedRoute role="ADMIN"><ReportsPage /></ProtectedRoute>} />
           <Route path="admin/feedback" element={<ProtectedRoute role="ADMIN"><FeedbackPage /></ProtectedRoute>} />
           <Route path="admin/notifications" element={<ProtectedRoute role="ADMIN"><NotificationsPage /></ProtectedRoute>} />
           <Route path="admin/settings" element={<ProtectedRoute role="ADMIN"><SettingsPage /></ProtectedRoute>} />

@@ -43,6 +43,7 @@ const menuConfig: Record<UserRole, any[]> = {
       label: "Divisions",
     },
     { to: "/dashboard/admin/users", icon: UserCheck, label: "Users" }
+    ,{ to: "/dashboard/admin/reports", icon: BarChart3, label: "Reports" }
     // { to: "/dashboard/admin/groups", icon: Users2, label: "Group Management" },
     // {
     //   to: "/dashboard/admin/sessions",
