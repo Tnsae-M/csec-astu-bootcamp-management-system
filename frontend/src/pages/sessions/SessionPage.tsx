@@ -1,22 +1,28 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/src/components/ui';
 import { Calendar, Filter, Plus } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
+import FeedbackForm from '@/src/components/feedback/FeedbackForm';
 
 export default function SessionPage() {
   const { searchTerm } = useSelector((state: RootState) => state.ui);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedSession, setSelectedSession] = useState<any>(null);
+
   const sessions = [
-    { id: 1, title: 'Introduction to Data Science', division: 'Data Science', date: '2026-04-20', time: '10:00 AM', status: 'UPCOMING' },
-    { id: 2, title: 'React State Management', division: 'Full Stack', date: '2026-04-21', time: '02:00 PM', status: 'UPCOMING' },
-    { id: 3, title: 'Network Security Basics', division: 'Cybersecurity', date: '2026-04-19', time: '09:00 AM', status: 'ONGOING' },
+    { id: 1, title: 'Introduction to Data Science', division: 'Data Science', date: '2026-04-20', time: '10:00 AM', status: 'UPCOMING', instructorId: 'instructor1', bootcampId: 'boot1' },
+    { id: 2, title: 'React State Management', division: 'Full Stack', date: '2026-04-21', time: '02:00 PM', status: 'UPCOMING', instructorId: 'instructor2', bootcampId: 'boot2' },
+    { id: 3, title: 'Network Security Basics', division: 'Cybersecurity', date: '2026-04-19', time: '09:00 AM', status: 'ONGOING', instructorId: 'instructor3', bootcampId: 'boot3' },
   ];
 
   const filteredSessions = sessions.filter((s) => 
     s.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     s.division.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const { user } = useSelector((state: RootState) => state.auth);
 
   return (
     <div className="space-y-8 selection:bg-brand-accent selection:text-white">
@@ -60,11 +66,24 @@ export default function SessionPage() {
                 <div className="text-xs font-black text-text-muted uppercase tracking-tighter">
                   {session.date} <span className="mx-1 text-brand-border">|</span> {session.time}
                 </div>
-                <Button variant="outline" size="sm" className="font-black text-[10px] px-6 uppercase tracking-widest border-brand-border text-text-muted hover:text-brand-accent hover:border-brand-accent transition-all">Details</Button>
+                <div className="flex items-center space-x-2">
+                  <Button variant="outline" size="sm" className="font-black text-[10px] px-6 uppercase tracking-widest border-brand-border text-text-muted hover:text-brand-accent hover:border-brand-accent transition-all">Details</Button>
+                  {(user?.role === 'STUDENT' || user?.role === 'student') && (
+                    <Button size="sm" onClick={() => { setSelectedSession(session); setModalOpen(true); }} className="font-black text-[10px] px-4 uppercase tracking-widest">Give Feedback</Button>
+                  )}
+                </div>
               </div>
             </div>
           ))}
         </div>
+
+        <FeedbackForm
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          sessionId={selectedSession?.id}
+          instructorId={selectedSession?.instructorId}
+          bootcampId={selectedSession?.bootcampId}
+        />
 
         <div className="absolute top-0 right-0 w-64 h-64 bg-brand-accent/5 rounded-full blur-[100px] -mr-32 -mt-32" />
       </div>

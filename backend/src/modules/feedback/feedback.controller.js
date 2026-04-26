@@ -21,8 +21,10 @@ export const createFeedback = async (req, res, next) => {
 // GET /feedback/bootcamp/:id
 export const getBootcampFeedback = async (req, res, next) => {
   try {
+    const viewerRole = (req.user?.role || '').toLowerCase();
     const data = await feedbackService.getBootcampFeedback(
-      req.params.id
+      req.params.id,
+      viewerRole
     );
 
     res.status(200).json({
@@ -37,8 +39,10 @@ export const getBootcampFeedback = async (req, res, next) => {
 // GET /feedback/instructor/:id
 export const getInstructorFeedback = async (req, res, next) => {
   try {
+    const viewerRole = (req.user?.role || '').toLowerCase();
     const data = await feedbackService.getInstructorFeedback(
-      req.params.id
+      req.params.id,
+      viewerRole
     );
 
     res.status(200).json({

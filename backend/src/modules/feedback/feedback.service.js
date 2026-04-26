@@ -9,7 +9,7 @@ const buildError = (msg, code = 400) => {
 
 //  Create feedback
 export const createFeedback = async (data, studentId) => {
-  const { bootcampId, sessionId, instructorId, rating } = data;
+  const { bootcampId, sessionId, instructorId, rating, isAnonymous = true } = data;
 
   //  Must be enrolled if bootcamp feedback
   if (bootcampId) {
@@ -41,19 +41,40 @@ export const createFeedback = async (data, studentId) => {
   return await Feedback.create({
     ...data,
     studentId,
+    isAnonymous,
   });
 };
 
 //  Get feedback for bootcamp
-export const getBootcampFeedback = async (bootcampId) => {
-  return await Feedback.find({ bootcampId })
+export const getBootcampFeedback = async (bootcampId, viewerRole = 'instructor') => {
+  const data = await Feedback.find({ bootcampId })
     .populate("studentId", "name")
     .sort({ createdAt: -1 });
+
+  return data.map((d) => ({
+    id: d._id,
+    sessionId: d.sessionId,
+    rating: d.rating,
+    comment: d.comment,
+    createdAt: d.createdAt,
+    isAnonymous: d.isAnonymous,
+    studentName: viewerRole === 'admin' ? d.studentId?.name || null : (d.isAnonymous ? 'Anonymous' : d.studentId?.name || null),
+  }));
 };
 
 //  Get feedback for instructor
-export const getInstructorFeedback = async (instructorId) => {
-  return await Feedback.find({ instructorId })
+export const getInstructorFeedback = async (instructorId, viewerRole = 'instructor') => {
+  const data = await Feedback.find({ instructorId })
     .populate("studentId", "name")
     .sort({ createdAt: -1 });
+
+  return data.map((d) => ({
+    id: d._id,
+    sessionId: d.sessionId,
+    rating: d.rating,
+    comment: d.comment,
+    createdAt: d.createdAt,
+    isAnonymous: d.isAnonymous,
+    studentName: viewerRole === 'admin' ? d.studentId?.name || null : (d.isAnonymous ? 'Anonymous' : d.studentId?.name || null),
+  }));
 };
