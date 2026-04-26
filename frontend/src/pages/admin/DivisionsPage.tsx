@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../app/store';
 import { Building2, Activity, Plus, Edit, Trash2 } from 'lucide-react';
 import { divisionsService } from '../../services/divisions.service';
+import { bootcampService } from '@/src/services/bootcamp.service';
 import { setDivisionsStart, setDivisionsSuccess, setDivisionsFailure } from '../../features/divisions/divisionsSlice';
 import { Modal, Button } from '../../components/ui';
 
@@ -18,6 +19,27 @@ export default function DivisionsPage() {
     name: '',
     description: ''
   });
+
+  const [selectedDivision, setSelectedDivision] = useState<any>(null);
+const [bootcamps, setBootcamps] = useState<any[]>([]);
+const [bootcampModal, setBootcampModal] = useState(false);
+const [bootcampForm, setBootcampForm] = useState({
+  name: "",
+  startDate: "",
+  endDate: "",
+});
+const [editingBootcampId, setEditingBootcampId] = useState<string | null>(null);
+
+
+
+const fetchBootcamps = async (divisionId: string) => {
+  try {
+    const res = await bootcampService.getByDivision(divisionId);
+    setBootcamps(res.data.data || []);
+  } catch (err: any) {
+    alert(err.message);
+  }
+};
 
   const fetchDivisions = () => {
     dispatch(setDivisionsStart());
@@ -73,6 +95,46 @@ export default function DivisionsPage() {
     }
   };
 
+
+  const handleBootcampSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  try {
+    if (editingBootcampId) {
+      await bootcampService.update(editingBootcampId, bootcampForm);
+    } else {
+      await bootcampService.create(selectedDivision._id, bootcampForm);
+    }
+
+    setBootcampModal(false);
+    fetchBootcamps(selectedDivision._id);
+    setBootcampForm({ name: "", startDate: "", endDate: "" });
+    setEditingBootcampId(null);
+  } catch (err: any) {
+    alert(err.response?.data?.message || err.message);
+  }
+};
+
+const handleBootcampDelete = async (id: string) => {
+  if (!window.confirm("Delete this bootcamp?")) return;
+
+  try {
+    await bootcampService.delete(id);
+    fetchBootcamps(selectedDivision._id);
+  } catch (err: any) {
+    alert(err.message);
+  }
+};
+
+const handleBootcampEdit = (b: any) => {
+  setEditingBootcampId(b._id);
+  setBootcampForm({
+    name: b.name,
+    startDate: b.startDate?.slice(0, 10),
+    endDate: b.endDate?.slice(0, 10),
+  });
+};
+
   return (
     <div className="space-y-8 selection:bg-brand-accent selection:text-white">
       <div className="flex justify-between items-center pr-4">
@@ -121,10 +183,21 @@ export default function DivisionsPage() {
             </div>
 
             <div className="pt-6 border-t border-brand-border flex gap-3 mt-auto">
-              <button 
+              {/* <button 
                 onClick={() => alert('Bootcamps page not connected yet.')}
                 className="flex-1 bg-brand-primary border border-brand-border text-brand-accent hover:bg-brand-accent hover:text-white transition-all py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm"
               >
+                View Bootcamps
+              </button> */}
+
+              <button 
+                 onClick={() => {
+                  setSelectedDivision(d);
+                  fetchBootcamps(d._id);
+                  setBootcampModal(true);
+                 }}
+                className="flex-1 bg-brand-primary border border-brand-border text-brand-accent hover:bg-brand-accent hover:text-white transition-all py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm"
+                >
                 View Bootcamps
               </button>
               <button 
@@ -191,6 +264,175 @@ export default function DivisionsPage() {
         </form>
       </Modal>
 
+   <Modal 
+  isOpen={bootcampModal} 
+  onClose={() => setBootcampModal(false)} 
+  title={`Bootcamps — ${selectedDivision?.name || ""}`}
+>
+  <div className="bg-white px-6 py-6 space-y-8">
+
+    {/* HEADER */}
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+          Division Programs
+        </p>
+        <h2 className="text-lg font-semibold text-black mt-1">
+          Manage Bootcamps
+        </h2>
+      </div>
+
+      <button
+        onClick={() => {
+          setEditingBootcampId(null);
+          setBootcampForm({ name: "", startDate: "", endDate: "" });
+        }}
+        className="text-xs font-semibold uppercase tracking-wide 
+                   text-white bg-brand-accent px-4 py-2 rounded-md 
+                   hover:opacity-90 transition"
+      >
+        New Bootcamp
+      </button>
+    </div>
+
+    {/* LIST */}
+    <div className="space-y-3">
+      {bootcamps.length === 0 && (
+        <div className="text-center py-10">
+          <p className="text-sm text-gray-400">
+            No bootcamps yet
+          </p>
+        </div>
+      )}
+
+      {bootcamps.map((b) => (
+        <div 
+          key={b._id}
+          className="flex items-center justify-between 
+                     px-4 py-4 rounded-lg border border-gray-200 
+                     hover:border-brand-accent transition"
+        >
+          {/* LEFT */}
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-black">
+              {b.name}
+            </p>
+
+            <p className="text-xs text-gray-500">
+              {new Date(b.startDate).toLocaleDateString()} —{" "}
+              {new Date(b.endDate).toLocaleDateString()}
+            </p>
+          </div>
+
+          {/* RIGHT */}
+          <div className="flex items-center gap-6">
+
+            {/* STATUS */}
+            <span
+              className={`text-xs font-medium capitalize
+                ${
+                  b.status === "active"
+                    ? "text-brand-accent"
+                    : b.status === "completed"
+                    ? "text-gray-400"
+                    : "text-yellow-500"
+                }
+              `}
+            >
+              {b.status}
+            </span>
+
+            {/* ACTIONS */}
+            <div className="flex items-center gap-3 text-xs">
+              <button
+                onClick={() => handleBootcampEdit(b)}
+                className="text-gray-500 hover:text-brand-accent"
+              >
+                Edit
+              </button>
+
+              <button
+                onClick={() => handleBootcampDelete(b._id)}
+                className="text-gray-500 hover:text-red-500"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    {/* FORM */}
+    <div className="pt-6 border-t border-gray-200">
+      <form onSubmit={handleBootcampSubmit} className="space-y-4">
+
+        <div className="space-y-1">
+          <label className="text-xs font-semibold text-gray-500">
+            Bootcamp Name
+          </label>
+          <input
+            required
+            value={bootcampForm.name}
+            onChange={(e) =>
+              setBootcampForm({ ...bootcampForm, name: e.target.value })
+            }
+            className="w-full px-3 py-2 border border-gray-300 rounded-md 
+                       text-sm text-black 
+                       focus:border-brand-accent outline-none"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-gray-500">
+              Start Date
+            </label>
+            <input
+              type="date"
+              required
+              value={bootcampForm.startDate}
+              onChange={(e) =>
+                setBootcampForm({
+                  ...bootcampForm,
+                  startDate: e.target.value,
+                })
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-md 
+                         text-sm text-black 
+                         focus:border-brand-accent outline-none"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-gray-500">
+              End Date
+            </label>
+            <input
+              type="date"
+              required
+              value={bootcampForm.endDate}
+              onChange={(e) =>
+                setBootcampForm({
+                  ...bootcampForm,
+                  endDate: e.target.value,
+                })
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-md 
+                         text-sm text-black 
+                         focus:border-brand-accent outline-none"
+            />
+          </div>
+        </div>
+
+        <Button type="submit" className="w-full mt-2">
+          {editingBootcampId ? "Update Bootcamp" : "Create Bootcamp"}
+        </Button>
+      </form>
+    </div>
+
+  </div>
+</Modal>
     </div>
   );
 }

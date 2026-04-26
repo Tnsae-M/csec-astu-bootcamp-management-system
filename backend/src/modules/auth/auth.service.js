@@ -90,18 +90,18 @@ export const registerUser = async (name, email, password, role) => {
   await user.save();
 
   //  4. SEND EMAIL (REAL)
-  const verifyURL = `http://localhost:3000/api/auth/verify-email/${verificationToken}`;
+  const verifyURL = `${process.env.CLIENT_URL}/verify-email/${verificationToken}`;
 
-//   await sendEmail({
-//   to: user.email,
-//   subject: "Verify your email",
-//   text: `Click this link: ${verifyURL}`,
-//   html: `
-//     <h2>Verify Your Email</h2>
-//     <p>Click below to verify your account:</p>
-//     <a href="${verifyURL}">Verify Email</a>
-//   `,
-// });
+  await sendEmail({
+  to: user.email,
+  subject: "Verify your email",
+  text: `Click this link: ${verifyURL}`,
+  html: `
+    <h2>Verify Your Email</h2>
+    <p>Click below to verify your account:</p>
+    <a href="${verifyURL}">Verify Email</a>
+  `,
+});
   return sanitizeUser(user);
   
 };
@@ -195,21 +195,30 @@ export const currentUser = async (userId) => {
 
 // Email verfication
 
+// BACKEND: auth.service.js
 export const verifyEmail = async (token) => {
   const hashedToken = crypto
     .createHash("sha256")
     .update(token)
     .digest("hex");
 
-  const user = await User.findOne({
-    emailVerificationToken: hashedToken,
-    emailVerificationExpires: { $gt: Date.now() },
-  });
+  let user = await User.findOne({ emailVerificationToken: hashedToken });
 
+  //  NEW: If no user, check if already verified
   if (!user) {
-    throw Object.assign(new Error("Invalid or expired token"), {
-      statusCode: 400,
+    const alreadyVerifiedUser = await User.findOne({
+      isEmailVerified: true
     });
+
+    if (alreadyVerifiedUser) {
+      return { message: "Email already verified" };
+    }
+
+    throw Object.assign(new Error("Token is invalid"), { statusCode: 400 });
+  }
+
+  if (user.emailVerificationExpires < Date.now()) {
+    throw Object.assign(new Error("Token expired"), { statusCode: 400 });
   }
 
   user.isEmailVerified = true;
@@ -220,6 +229,31 @@ export const verifyEmail = async (token) => {
 
   return { message: "Email verified successfully" };
 };
+// export const verifyEmail = async (token) => {
+//   const hashedToken = crypto
+//     .createHash("sha256")
+//     .update(token)
+//     .digest("hex");
+
+//   const user = await User.findOne({
+//     emailVerificationToken: hashedToken,
+//     emailVerificationExpires: { $gt: Date.now() },
+//   });
+
+//   if (!user) {
+//     throw Object.assign(new Error("Invalid or expired token"), {
+//       statusCode: 400,
+//     });
+//   }
+
+//   user.isEmailVerified = true;
+//   user.emailVerificationToken = undefined;
+//   user.emailVerificationExpires = undefined;
+
+//   await user.save();
+
+//   return { message: "Email verified successfully" };
+// };
 
 export const forgotPassword = async (email) => {
   const user = await User.findOne({ email });
@@ -242,7 +276,7 @@ export const forgotPassword = async (email) => {
 
   await user.save();
 
-  const resetURL = `http://localhost:3000/api/auth/reset-password/${resetToken}`;
+  const resetURL = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
 
   // await sendEmail(user.email, "Reset Password", resetURL);
 
@@ -253,7 +287,7 @@ export const forgotPassword = async (email) => {
   html: `
     <h2>Reset Your Password</h2>
     <p>Click below to Reset your password:</p>
-    <a href="${resetURL}">Verify Email</a>
+    <a href="${resetURL}">Reset_Password</a>
   `,
 });
 

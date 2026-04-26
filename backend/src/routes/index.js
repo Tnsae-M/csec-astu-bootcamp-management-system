@@ -10,6 +10,8 @@ import taskRoutes from "../modules/tasks/task.routes.js";
 import submissionRoutes from "../modules/submissions/submission.routes.js";
 import progressRoutes from "../modules/progress/progress.routes.js";
 import feedbackRoutes from "../modules/feedback/feedback.routes.js";
+import resourceRoutes from "../modules/resources/resource.routes.js";
+
 
 import groupRoutes from "../modules/groups/group.routes.js";
 
@@ -42,5 +44,6 @@ router.use("/feedback", feedbackRoutes);
 router.use("/groups", groupRoutes);
 
 
+router.use("/resources", resourceRoutes);
 
 export default router;

@@ -17,6 +17,12 @@ const divisionSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    status: {
+      type: String,
+      enum: ["active", "inactive"],
+      required: true,
+      default: "active",
+    },
   },
   { timestamps: true },
 );
