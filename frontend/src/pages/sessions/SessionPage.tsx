@@ -11,11 +11,16 @@ export default function SessionPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState<any>(null);
 
-  const sessions = [
+  const [sessions, setSessions] = useState<any[]>([
     { id: 1, title: 'Introduction to Data Science', division: 'Data Science', date: '2026-04-20', time: '10:00 AM', status: 'UPCOMING', instructorId: 'instructor1', bootcampId: 'boot1' },
     { id: 2, title: 'React State Management', division: 'Full Stack', date: '2026-04-21', time: '02:00 PM', status: 'UPCOMING', instructorId: 'instructor2', bootcampId: 'boot2' },
     { id: 3, title: 'Network Security Basics', division: 'Cybersecurity', date: '2026-04-19', time: '09:00 AM', status: 'ONGOING', instructorId: 'instructor3', bootcampId: 'boot3' },
-  ];
+  ]);
+
+  const [creating, setCreating] = useState(false);
+  const [newSessionTitle, setNewSessionTitle] = useState('');
+  const [newSessionDate, setNewSessionDate] = useState('');
+  const [newSessionTime, setNewSessionTime] = useState('');
 
   const filteredSessions = sessions.filter((s) => 
     s.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -26,14 +31,41 @@ export default function SessionPage() {
 
   return (
     <div className="space-y-8 selection:bg-brand-accent selection:text-white">
-      <div className="flex justify-between items-end">
+        <div className="flex justify-between items-end">
         <div>
           <h1 className="text-4xl font-black text-brand-accent uppercase tracking-tighter">Academic Sessions</h1>
           <p className="text-text-muted font-bold text-xs uppercase tracking-[0.2em] mt-2">Manage and view bootcamp schedules</p>
         </div>
-        <Button className="font-black uppercase tracking-[0.2em] text-[11px] px-8 py-4 shadow-lg shadow-brand-accent/20">
-          <Plus className="mr-2 h-4 w-4" /> Add Session
-        </Button>
+          {user?.role === 'INSTRUCTOR' && (
+            <>
+              <Button onClick={() => setCreating(true)} className="font-black uppercase tracking-[0.2em] text-[11px] px-8 py-4 shadow-lg shadow-brand-accent/20">
+                <Plus className="mr-2 h-4 w-4" /> Add Session
+              </Button>
+
+              {creating && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                  <div className="fixed inset-0 bg-black/40" onClick={() => setCreating(false)} />
+                  <div className="bg-white rounded-xl p-6 z-10 w-full max-w-lg shadow-lg">
+                    <h3 className="text-lg font-bold mb-4">Create Session</h3>
+                    <div className="space-y-3">
+                      <input value={newSessionTitle} onChange={(e)=>setNewSessionTitle(e.target.value)} placeholder="Session Title" className="w-full border px-3 py-2 rounded-md" />
+                      <input type="date" value={newSessionDate} onChange={(e)=>setNewSessionDate(e.target.value)} className="w-full border px-3 py-2 rounded-md" />
+                      <input type="time" value={newSessionTime} onChange={(e)=>setNewSessionTime(e.target.value)} className="w-full border px-3 py-2 rounded-md" />
+                    </div>
+                    <div className="flex justify-end mt-4 space-x-2">
+                      <Button variant="ghost" onClick={() => setCreating(false)}>Cancel</Button>
+                      <Button onClick={() => {
+                        const id = sessions.length ? Math.max(...sessions.map(s=>s.id)) + 1 : 1;
+                        const created = { id, title: newSessionTitle || `Session ${id}`, division: 'General', date: newSessionDate || new Date().toISOString().slice(0,10), time: newSessionTime || '10:00', status: 'UPCOMING', instructorId: user?.id || 'instructor', bootcampId: 'general' };
+                        setSessions([created, ...sessions]);
+                        setNewSessionTitle(''); setNewSessionDate(''); setNewSessionTime(''); setCreating(false);
+                      }}>Create</Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
       </div>
 
       <div className="geo-card p-10 relative overflow-hidden">

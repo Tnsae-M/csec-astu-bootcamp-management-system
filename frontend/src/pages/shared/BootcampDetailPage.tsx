@@ -41,6 +41,7 @@ export default function BootcampDetailPage() {
           <h1 className="text-4xl font-black text-brand-accent uppercase tracking-tighter">Bootcamp Hub</h1>
           <p className="text-text-muted font-bold text-xs uppercase tracking-[0.2em] mt-2">Manage Groups & Sessions</p>
         </div>
+        {/* Creation controls removed from bootcamp detail — create actions live on Sessions and Groups pages */}
       </div>
 
       {/* Tabs */}

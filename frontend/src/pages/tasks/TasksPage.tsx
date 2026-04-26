@@ -21,12 +21,14 @@ export default function TasksPage({ sessionId, bootcampId }: TasksPageProps) {
     // If we only have sessionId, we might need a different endpoint or fetch bootcampId first.
     // For now, assuming bootcampId is either passed or we fetch tasks.
     const fetchTasks = async () => {
+      if (!bootcampId) {
+        dispatch(setTasksSuccess([]));
+        return;
+      }
+      
       dispatch(setTasksStart());
       try {
-        // Fallback to a default bootcampId if not provided for demo purposes
-        // or handle the case where we need to fetch tasks globally.
-        const idToUse = bootcampId || 'default'; 
-        const response = await tasksService.getTasksByBootcamp(idToUse);
+        const response = await tasksService.getTasksByBootcamp(bootcampId);
         dispatch(setTasksSuccess(response.data || []));
       } catch (error: any) {
         dispatch(setTasksFailure(error.message));

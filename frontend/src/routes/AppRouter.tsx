@@ -24,6 +24,10 @@ import SessionPage from '../pages/sessions/SessionPage';
 import TasksPage from '../pages/tasks/TasksPage';
 
 // New Modular Pages
+
+
+
+
 import UsersPage from '../pages/admin/UsersPage';
 import GroupsPage from '../pages/shared/GroupsPage';
 import FeedbackPage from '../pages/shared/FeedbackPage';
@@ -33,6 +37,8 @@ import ResourcesPage from '../pages/shared/ResourcesPage';
 import SettingsPage from '../pages/admin/SettingsPage';
 import SubmissionsPage from '../pages/instructor/SubmissionsPage';
 import SubmissionFormPage from '../pages/student/SubmissionFormPage';
+
+
 import DivisionsPage from '../pages/shared/DivisionsPage';
 import BootcampsPage from '../pages/shared/BootcampsPage';
 import BootcampDetailPage from '../pages/shared/BootcampDetailPage';
@@ -80,7 +86,8 @@ export default function AppRouter() {
             id: fetchedUser._id || fetchedUser.id,
             name: fetchedUser.name,
             email: fetchedUser.email,
-            role: fetchedUser.role ? fetchedUser.role.toUpperCase() : 'STUDENT'
+            role: fetchedUser.role ? fetchedUser.role.toUpperCase() : 'STUDENT',
+            groupId: fetchedUser.groupId || fetchedUser.group || undefined
           }));
         })
         .catch(() => {
@@ -117,7 +124,10 @@ export default function AppRouter() {
           
           {/* Instructor Routes */}
           <Route path="instructor/dashboard" element={<ProtectedRoute role="INSTRUCTOR"><InstructorDashboard /></ProtectedRoute>} />
+
+
           <Route path="instructor/divisions" element={<ProtectedRoute role="INSTRUCTOR"><DivisionsPage /></ProtectedRoute>} />
+          <Route path="instructor/groups" element={<ProtectedRoute role="INSTRUCTOR"><GroupsPage /></ProtectedRoute>} />
           <Route path="instructor/sessions" element={<ProtectedRoute role="INSTRUCTOR"><SessionPage /></ProtectedRoute>} />
           <Route path="instructor/attendance" element={<ProtectedRoute role="INSTRUCTOR"><AttendancePage /></ProtectedRoute>} />
           <Route path="instructor/resources" element={<ProtectedRoute role="INSTRUCTOR"><ResourcesPage /></ProtectedRoute>} />
@@ -136,6 +146,8 @@ export default function AppRouter() {
           <Route path="student/submit" element={<ProtectedRoute role="STUDENT"><SubmissionFormPage /></ProtectedRoute>} />
           <Route path="student/feedback" element={<ProtectedRoute role="STUDENT"><FeedbackPage /></ProtectedRoute>} />
           <Route path="student/group" element={<ProtectedRoute role="STUDENT"><GroupsPage /></ProtectedRoute>} />
+          {/* Shared groups page accessible to any authenticated role */}
+          <Route path="groups" element={<ProtectedRoute><GroupsPage /></ProtectedRoute>} />
           <Route path="student/progress" element={<ProtectedRoute role="STUDENT"><ProgressPage /></ProtectedRoute>} />
           <Route path="student/notifications" element={<ProtectedRoute role="STUDENT"><NotificationsPage /></ProtectedRoute>} />
           

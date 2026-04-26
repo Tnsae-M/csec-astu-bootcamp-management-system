@@ -8,6 +8,7 @@ interface User {
   email: string;
   role: UserRole;
   division?: string;
+  groupId?: string;
 }
 
 interface AuthState {

@@ -75,32 +75,13 @@ const menuConfig: Record<UserRole, any[]> = {
       icon: Building2,
       label: "Divisions",
     },
-    // {
-    //   to: "/dashboard/instructor/attendance",
-    //   icon: ClipboardList,
-    //   label: "Attendance",
-    // },
-    // {
-    //   to: "/dashboard/instructor/resources",
-    //   icon: BookOpen,
-    //   label: "Resources",
-    // },
-    // { to: "/dashboard/instructor/tasks", icon: CheckSquare, label: "Tasks" },
-    // {
-    //   to: "/dashboard/instructor/submissions",
-    //   icon: FileText,
-    //   label: "Submissions Review",
-    // },
-    // {
-    //   to: "/dashboard/instructor/feedback",
-    //   icon: MessageCircle,
-    //   label: "Feedback Overview",
-    // },
-    // {
-    //   to: "/dashboard/instructor/notifications",
-    //   icon: Bell,
-    //   label: "Notifications",
-    // },
+    {
+      to: "/dashboard/instructor/sessions",
+      icon: Calendar,
+      label: "Sessions",
+    },
+    { to: "/dashboard/instructor/tasks", icon: CheckSquare, label: "Tasks" },
+    { to: "/dashboard/instructor/groups", icon: Users2, label: "Groups" },
   ],
   STUDENT: [
     {
@@ -128,6 +109,8 @@ const menuConfig: Record<UserRole, any[]> = {
     //   label: "Feedback",
     // },
     { to: "/dashboard/student/group", icon: Users, label: "My Group" },
+    { to: "/dashboard/student/sessions", icon: Calendar, label: "My Sessions" },
+    { to: "/dashboard/student/tasks", icon: CheckSquare, label: "My Tasks" },
     {
       to: "/dashboard/student/progress",
       icon: PieChart,

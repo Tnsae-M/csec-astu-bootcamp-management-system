@@ -4,18 +4,26 @@ import TasksPage from '../tasks/TasksPage';
 import SubmissionsPage from '../instructor/SubmissionsPage';
 import AttendancePage from '../shared/AttendancePage';
 import ResourcesPage from '../shared/ResourcesPage';
+import FeedbackPage from '../shared/FeedbackPage';
+import FeedbackForm from '../../components/feedback/FeedbackForm';
+import { RootState } from '@/src/app/store';
+import { useSelector } from 'react-redux';
 
-type TabType = 'tasks' | 'submissions' | 'attendance' | 'resources';
+type TabType = 'tasks' | 'submissions' | 'attendance' | 'resources' | 'feedback';
 
 export default function SessionDetailPage() {
   const { sessionId, bootcampId } = useParams<{ sessionId: string, bootcampId: string }>();
   const [activeTab, setActiveTab] = useState<TabType>('tasks');
+  const { feedbacks } = useSelector((state: RootState) => state.feedback);
+  const { user } = useSelector((state: RootState) => state.auth);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const tabs: { id: TabType, label: string }[] = [
     { id: 'tasks', label: 'Tasks' },
     { id: 'submissions', label: 'Submissions' },
     { id: 'attendance', label: 'Attendance' },
-    { id: 'resources', label: 'Resources' }
+    { id: 'resources', label: 'Resources' },
+    { id: 'feedback', label: 'Feedback' }
   ];
 
   return (
@@ -44,11 +52,36 @@ export default function SessionDetailPage() {
 
       {/* Tab Content */}
       <div className="pt-6">
-        {activeTab === 'tasks' && <TasksPage sessionId={sessionId} />}
+        {activeTab === 'tasks' && <TasksPage sessionId={sessionId} bootcampId={bootcampId} />}
         {activeTab === 'submissions' && <SubmissionsPage sessionId={sessionId} />}
         {activeTab === 'attendance' && <AttendancePage sessionId={sessionId} bootcampId={bootcampId} />}
         {activeTab === 'resources' && <ResourcesPage sessionId={sessionId} />}
+        {activeTab === 'feedback' && (
+          <div className="space-y-6">
+            <div className="flex justify-end">
+              {user?.role === 'STUDENT' && (
+                <button 
+                  onClick={() => setModalOpen(true)}
+                  className="bg-brand-accent text-white px-6 py-2 rounded-lg font-black uppercase text-xs tracking-widest hover:bg-brand-accent/90 transition-all shadow-lg"
+                >
+                  Give Feedback
+                </button>
+              )}
+            </div>
+            <FeedbackPage sessionId={sessionId} />
+          </div>
+        )}
       </div>
+
+      {/* Modals */}
+      {modalOpen && (
+        <FeedbackForm 
+          open={modalOpen} 
+          onClose={() => setModalOpen(false)} 
+          sessionId={sessionId}
+          bootcampId={bootcampId}
+        />
+      )}
     </div>
   );
 }

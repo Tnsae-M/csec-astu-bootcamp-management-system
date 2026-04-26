@@ -1,5 +1,5 @@
-import React from 'react';
-import { useSelector } from 'react-redux';
+import React, { useState } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../app/store';
 import { Users2, BadgeCheck } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/card';
@@ -9,10 +9,24 @@ export default function GroupsPage() {
   const { user } = useSelector((state: RootState) => state.auth);
   const { searchTerm } = useSelector((state: RootState) => state.ui);
 
-  const filteredGroups = groups.filter((g) =>
+  let filteredGroups = groups.filter((g) =>
     g.name.toLowerCase().includes((searchTerm || '').toLowerCase()) ||
     (g.mentor?.name && g.mentor.name.toLowerCase().includes((searchTerm || '').toLowerCase()))
   );
+
+  // If student, restrict to their own group only
+  if (user?.role === 'STUDENT') {
+    if (user.groupId) {
+      filteredGroups = groups.filter(g => g.id === user.groupId);
+    } else {
+      filteredGroups = [];
+    }
+  }
+
+  const dispatch = useDispatch();
+  const [creating, setCreating] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newMentor, setNewMentor] = useState('');
 
   return (
     <div className="space-y-8 selection:bg-brand-accent selection:text-white">
