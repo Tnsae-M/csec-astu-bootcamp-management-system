@@ -101,50 +101,50 @@ export default function DivisionsPage() {
         <div className="text-center text-text-muted font-bold uppercase py-10">Loading Divisions...</div>
       ) : (
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredDivisions.map((d) => (
-          <Card key={d._id} className="group hover:border-brand-accent/40 transition-all flex flex-col justify-between overflow-hidden bg-brand-primary border-brand-border shadow-md">
-            <CardHeader className="pb-4">
-              <div className="flex justify-between items-start mb-6">
-                <div className="w-14 h-14 rounded-2xl bg-brand-accent text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                  <Building2 size={28} />
+          <Card key={d._id} className="flex flex-col h-full hover:border-brand-accent transition-colors shadow-sm">
+            <CardHeader className="flex flex-col space-y-1.5 pb-4">
+              <div className="flex justify-between items-start mb-2">
+                <div className="w-10 h-10 rounded-lg bg-brand-accent/10 text-brand-accent flex items-center justify-center">
+                  <Building2 size={20} />
                 </div>
-                <div className="flex space-x-2">
-                  {isAdmin && (
-                    <button 
-                      onClick={() => handleDelete(d._id, d.name)}
-                      className="p-2 text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded-full transition-colors"
-                      title="Delete Division"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  )}
-                  <div className="flex items-center space-x-2 bg-green-100 text-green-700 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-green-200">
-                    <Activity size={10} /> ACTIVE
-                  </div>
+                <div className="flex items-center space-x-1 bg-green-100 text-green-700 px-2 py-0.5 rounded text-[10px] font-semibold">
+                  <Activity size={10} /> <span>ACTIVE</span>
                 </div>
               </div>
-              <CardTitle className="text-2xl font-black text-text-main uppercase tracking-tighter group-hover:text-brand-accent transition-colors">
+              <CardTitle className="text-xl font-bold">
                 {d.name}
               </CardTitle>
-              <CardDescription className="text-xs text-text-muted min-h-[40px] pt-2">
+              <CardDescription className="line-clamp-2 text-sm text-text-muted mt-1">
                 {d.description || 'No description available for this division.'}
               </CardDescription>
             </CardHeader>
-            <CardFooter className="pt-6 border-t border-brand-border flex gap-3 mt-auto bg-transparent px-6 pb-6">
-              <button 
+            <CardFooter className="mt-auto pt-4 flex gap-2">
+              <Button 
+                variant="outline"
+                className="flex-1 text-xs h-9 bg-transparent border-brand-border text-brand-accent hover:bg-brand-accent hover:text-white"
                 onClick={() => navigate(`/dashboard/${rolePath}/divisions/${d._id}/bootcamps`)}
-                className="flex-1 bg-brand-primary border border-brand-border text-brand-accent hover:bg-brand-accent hover:text-white transition-all py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm"
               >
                 View Bootcamps
-              </button>
+              </Button>
               {isAdmin && (
-                <button 
-                  onClick={() => handleOpenEdit(d)}
-                  className="flex-1 bg-brand-primary border border-brand-border text-text-main hover:bg-brand-primary/50 transition-all py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center justify-center group-hover:border-brand-accent/50"
-                >
-                  <Edit size={12} className="mr-2" /> Manage Unit
-                </button>
+                <>
+                  <Button 
+                    variant="outline"
+                    className="w-10 h-9 p-0 flex-shrink-0 bg-transparent border-brand-border hover:bg-brand-primary/50 text-text-main"
+                    onClick={() => handleOpenEdit(d)}
+                  >
+                    <Edit size={14} />
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    className="w-10 h-9 p-0 flex-shrink-0 bg-transparent border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600"
+                    onClick={() => handleDelete(d._id, d.name)}
+                  >
+                    <Trash2 size={14} />
+                  </Button>
+                </>
               )}
             </CardFooter>
           </Card>

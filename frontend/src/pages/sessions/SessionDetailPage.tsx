@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
+import TasksPage from '../tasks/TasksPage';
+import SubmissionsPage from '../instructor/SubmissionsPage';
+import AttendancePage from '../shared/AttendancePage';
+import ResourcesPage from '../shared/ResourcesPage';
 
 type TabType = 'tasks' | 'submissions' | 'attendance' | 'resources';
 
 export default function SessionDetailPage() {
-  const { sessionId } = useParams();
+  const { sessionId, bootcampId } = useParams<{ sessionId: string, bootcampId: string }>();
   const [activeTab, setActiveTab] = useState<TabType>('tasks');
 
   const tabs: { id: TabType, label: string }[] = [
@@ -40,9 +44,10 @@ export default function SessionDetailPage() {
 
       {/* Tab Content */}
       <div className="pt-6">
-        <div className="text-text-muted font-bold uppercase text-xs">
-          [{tabs.find(t => t.id === activeTab)?.label} Placeholder - Integrated content will appear here]
-        </div>
+        {activeTab === 'tasks' && <TasksPage sessionId={sessionId} />}
+        {activeTab === 'submissions' && <SubmissionsPage sessionId={sessionId} />}
+        {activeTab === 'attendance' && <AttendancePage sessionId={sessionId} bootcampId={bootcampId} />}
+        {activeTab === 'resources' && <ResourcesPage sessionId={sessionId} />}
       </div>
     </div>
   );

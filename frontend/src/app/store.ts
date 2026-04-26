@@ -11,6 +11,7 @@ import progressReducer from '../features/progress/progressSlice';
 import feedbackReducer from '../features/feedback/feedbackSlice';
 import notificationReducer from '../features/notifications/notificationSlice';
 import uiReducer from '../features/ui/uiSlice';
+import bootcampsReducer from '../features/bootcamps/bootcampsSlice';
 
 export const store = configureStore({
   reducer: {
@@ -26,6 +27,7 @@ export const store = configureStore({
     feedback: feedbackReducer,
     notifications: notificationReducer,
     ui: uiReducer,
+    bootcamps: bootcampsReducer,
   },
 });
 
