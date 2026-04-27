@@ -133,6 +133,8 @@ export default function BootcampsPage() {
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         title="Establish New Bootcamp"
+        subtitle="Create a new program track under this division."
+        icon={<BookOpen />}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

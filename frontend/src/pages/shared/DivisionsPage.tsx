@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { divisionsService } from '../../services/divisions.service';
 import { setDivisionsStart, setDivisionsSuccess, setDivisionsFailure } from '../../features/divisions/divisionsSlice';
 import { Modal, Button } from '../../components/ui';
+import { Building2 as BuildingIcon } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/card';
 
 export default function DivisionsPage() {
@@ -16,7 +17,7 @@ export default function DivisionsPage() {
   const { searchTerm } = useSelector((state: RootState) => state.ui);
   const { user } = useSelector((state: RootState) => state.auth);
   const roles = user?.roles || [];
-  const isAdmin = roles.includes('ADMIN') || roles.includes('SUPER ADMIN');
+  const isSuperAdmin = roles.includes('SUPER ADMIN');
   const rolePath = roles.includes('INSTRUCTOR') ? 'instructor' : 'student';
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -95,14 +96,25 @@ export default function DivisionsPage() {
           <h1 className="text-4xl font-black text-brand-accent uppercase tracking-tighter">Academic Divisions</h1>
           <p className="text-text-muted font-bold text-xs uppercase tracking-[0.2em] mt-2">Departmental Framework & Oversight</p>
         </div>
-        {isAdmin && (
-          <button 
-            onClick={handleOpenCreate}
-            className="bg-brand-accent text-white px-6 py-3 rounded-lg font-black uppercase tracking-widest text-xs flex items-center hover:bg-brand-accent/90 transition-colors shadow-lg shadow-brand-accent/20"
-          >
-            <Plus size={16} className="mr-2" /> Add Division
-          </button>
-        )}
+        <div className="flex flex-col items-end">
+          {isSuperAdmin ? (
+            <button 
+              onClick={handleOpenCreate}
+              className="bg-brand-accent text-white px-6 py-3 rounded-lg font-black uppercase tracking-widest text-xs flex items-center hover:bg-brand-accent/90 transition-colors shadow-lg shadow-brand-accent/20"
+            >
+              <Plus size={16} className="mr-2" /> Add Division
+            </button>
+          ) : (
+            <button disabled title={user ? 'Only Super Admins can manage divisions' : 'Login as Super Admin to manage divisions'} className="px-6 py-3 rounded-lg border border-dashed border-brand-border bg-brand-primary/30 text-text-muted text-xs font-black uppercase flex items-center gap-2 cursor-not-allowed">
+              <Plus size={16} /> Add Division
+            </button>
+          )}
+          {!isSuperAdmin && (
+            <div className="text-[11px] text-text-muted mt-2 text-right">
+              {user ? <span className="font-bold">Super Admin only:</span> : <span className="font-bold">Login required:</span>} <span className="ml-1">Division creation and management is restricted to Super Admins.</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {loading ? (
@@ -136,7 +148,7 @@ export default function DivisionsPage() {
               >
                 View Bootcamps
               </Button>
-              {isAdmin && (
+              {isSuperAdmin && (
                 <>
                   <Button 
                     variant="outline"
@@ -170,6 +182,8 @@ export default function DivisionsPage() {
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         title={editingId ? "Modify Academic Division" : "Establish New Division"}
+        subtitle={editingId ? "Edit division details and description." : "Create a new academic division to organize bootcamps."}
+        icon={<BuildingIcon />}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
