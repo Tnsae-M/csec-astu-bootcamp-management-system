@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../app/store';
-import { Building2, Activity, Plus, Edit, Trash2 } from 'lucide-react';
+import { Building2, Activity, Plus, Edit, Trash2, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import { divisionsService } from '../../services/divisions.service';
 import { setDivisionsStart, setDivisionsSuccess, setDivisionsFailure } from '../../features/divisions/divisionsSlice';
 import { Modal, Button } from '../../components/ui';
@@ -14,9 +15,9 @@ export default function DivisionsPage() {
   const { divisions, loading } = useSelector((state: RootState) => state.divisions);
   const { searchTerm } = useSelector((state: RootState) => state.ui);
   const { user } = useSelector((state: RootState) => state.auth);
-
-  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER ADMIN';
-  const rolePath = user?.role ? user.role.toLowerCase() : 'student';
+  const roles = user?.roles || [];
+  const isAdmin = roles.includes('ADMIN') || roles.includes('SUPER ADMIN');
+  const rolePath = roles.includes('INSTRUCTOR') ? 'instructor' : 'student';
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -76,7 +77,14 @@ export default function DivisionsPage() {
       setIsModalOpen(false);
       fetchDivisions();
     } catch (err: any) {
-      alert(err.response?.data?.message || err.message);
+      const errorMsg = err.response?.data?.message || err.message;
+      if (errorMsg.toLowerCase().includes('exist') || errorMsg.toLowerCase().includes('duplicate')) {
+        toast.error('Division already exists', {
+          icon: <AlertCircle className="w-4 h-4" />
+        });
+      } else {
+        toast.error(errorMsg);
+      }
     }
   };
 

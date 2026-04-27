@@ -4,9 +4,11 @@ export interface Group {
   _id: string;
   id?: string;
   name: string;
-  bootcamp: string | any;
-  members: any[];
+  bootcamp?: string | any;
+  bootcampId?: string | any;
   mentor?: any;
+  mentorId?: string | any;
+  members: string[] | any[];
 }
 
 interface GroupsState {
@@ -30,12 +32,12 @@ const groupsSlice = createSlice({
       state.error = null;
     },
     setGroupsSuccess: (state, action: PayloadAction<Group[]>) => {
-      state.loading = false;
       state.groups = action.payload;
+      state.loading = false;
     },
     setGroupsFailure: (state, action: PayloadAction<string>) => {
-      state.loading = false;
       state.error = action.payload;
+      state.loading = false;
     },
   },
 });

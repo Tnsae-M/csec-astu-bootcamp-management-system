@@ -4,12 +4,15 @@ export interface Session {
   _id: string;
   id?: string;
   title: string;
-  bootcamp: string | any;
+  description?: string;
+  bootcamp?: string | any;
   instructor?: string | any;
   date?: string;
   startTime?: string;
   endTime?: string;
-  status?: string;
+  durationH?: number;
+  location?: string;
+  status?: 'UPCOMING' | 'ONGOING' | 'COMPLETED' | 'CANCELLED' | string;
 }
 
 interface SessionState {
@@ -33,8 +36,9 @@ const sessionSlice = createSlice({
       state.error = null;
     },
     setSessionsSuccess: (state, action: PayloadAction<Session[]>) => {
-      state.loading = false;
+
       state.items = action.payload;
+      state.loading = false;
     },
     setSessionsFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;

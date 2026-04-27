@@ -5,6 +5,7 @@ import taskReducer from '../features/tasks/taskSlice';
 import attendanceReducer from '../features/attendance/attendanceSlice';
 import usersReducer from '../features/users/usersSlice';
 import divisionsReducer from '../features/divisions/divisionsSlice';
+import bootcampsReducer from '../features/bootcamps/bootcampsSlice';
 import groupsReducer from '../features/groups/groupsSlice';
 import enrollmentsReducer from '../features/enrollments/enrollmentsSlice';
 import progressReducer from '../features/progress/progressSlice';
@@ -21,6 +22,7 @@ export const store = configureStore({
     attendance: attendanceReducer,
     users: usersReducer,
     divisions: divisionsReducer,
+    bootcamps: bootcampsReducer,
     groups: groupsReducer,
     enrollments: enrollmentsReducer,
     progress: progressReducer,

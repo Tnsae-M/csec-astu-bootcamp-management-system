@@ -4,19 +4,21 @@ export interface Task {
   _id: string;
   id?: string;
   title: string;
-  description: string;
-  deadline: string;
-  division: string;
-  instructor: string;
+  description?: string;
+  bootcampId: string | any;
+  sessionId?: string | any;
+  dueDate: string;
+  maxScore: number;
+  createdBy: string | any;
 }
 
 export interface Submission {
   _id: string;
   id?: string;
-  taskId: string;
-  studentId: string;
+  taskId: string | any;
+  studentId: string | any;
   fileUrl?: string;
-  githubUrl: string;
+  githubUrl?: string;
   status: 'PENDING' | 'GRADED' | 'RETURNED';
   grade?: number;
   feedback?: string;
@@ -45,8 +47,9 @@ const taskSlice = createSlice({
       state.error = null;
     },
     setTasksSuccess: (state, action: PayloadAction<Task[]>) => {
-      state.loading = false;
+
       state.tasks = action.payload;
+      state.loading = false;
     },
     setTasksFailure: (state, action: PayloadAction<string>) => {
       state.loading = false;
@@ -55,11 +58,23 @@ const taskSlice = createSlice({
     setSubmissions: (state, action: PayloadAction<Submission[]>) => {
       state.submissions = action.payload;
     },
+    setSubmissionsStart: (state) => {
+      state.loading = true;
+      state.error = null;
+    },
+    setSubmissionsSuccess: (state, action: PayloadAction<Submission[]>) => {
+      state.submissions = action.payload;
+      state.loading = false;
+    },
+    setSubmissionsFailure: (state, action: PayloadAction<string>) => {
+      state.error = action.payload;
+      state.loading = false;
+    },
     addSubmission: (state, action: PayloadAction<Submission>) => {
       state.submissions.push(action.payload);
-    }
+    },
   },
 });
 
-export const { setTasksStart, setTasksSuccess, setTasksFailure, setSubmissions, addSubmission } = taskSlice.actions;
+export const { setTasksStart, setTasksSuccess, setTasksFailure, setSubmissions, setSubmissionsStart, setSubmissionsSuccess, setSubmissionsFailure, addSubmission } = taskSlice.actions;
 export default taskSlice.reducer;
