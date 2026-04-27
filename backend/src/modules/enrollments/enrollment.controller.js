@@ -62,7 +62,7 @@ export const updateStatus = async (req, res, next) => {
       status
     );
 
-    res.status(200).json({
+    res.status(200).json({ 
       success: true,
       message: "Enrollment updated",
       data: updated,
