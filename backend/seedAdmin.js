@@ -17,6 +17,7 @@ const seed = async () => {
     let user = await User.findOne({ email });
     if (user) {
       user.role = "admin";
+      
       user.password = hashedPassword;
       await user.save();
       console.log("Updated existing user to admin with email: " + email);

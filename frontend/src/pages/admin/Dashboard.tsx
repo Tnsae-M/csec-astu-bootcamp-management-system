@@ -12,7 +12,7 @@ import {
 import { motion } from 'motion/react';
 import { cn } from '../../lib/utils';
 import { useSelector } from 'react-redux';
-import { RootState } from '../../app/store';
+import { RootState } from '../../app/store'; 
 
 export default function AdminDashboard() {
   const { users } = useSelector((state: RootState) => state.users);
@@ -26,6 +26,7 @@ export default function AdminDashboard() {
     s.instructor.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  
   const filteredDivisions = divisions.filter((d) => 
     d.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     d.head.toLowerCase().includes(searchTerm.toLowerCase())
