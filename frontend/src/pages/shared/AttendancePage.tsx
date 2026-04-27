@@ -49,6 +49,24 @@ export default function AttendancePage({ sessionId, bootcampId }: AttendancePage
     }
   }, [dispatch, sessionId, bootcampId, isInstructor]);
 
+  const handleMarkAttendance = async (userId: string) => {
+    if (!sessionId) return;
+    try {
+      await attendanceService.markAttendance({
+        userId,
+        sessionId,
+        status: 'present'
+      });
+      // Refresh local state
+      dispatch(setAttendanceStart());
+      attendanceService.getSessionAttendance(sessionId)
+        .then(res => dispatch(setAttendanceSuccess(res.data || [])))
+        .catch(err => dispatch(setAttendanceFailure(err.message)));
+    } catch (error: any) {
+      console.error("Failed to mark attendance", error);
+    }
+  };
+
   const getStatus = (studentId: string) => {
     const record = records.find(r => (r.user?._id || r.user) === studentId);
     return record?.status || 'PENDING';
@@ -86,7 +104,8 @@ export default function AttendancePage({ sessionId, bootcampId }: AttendancePage
               </thead>
               <tbody>
                 {enrollments.map((enrollment) => {
-                  const status = getStatus(enrollment.user?._id || enrollment.user);
+                  const studentId = enrollment.user?._id || enrollment.user;
+                  const status = getStatus(studentId);
                   return (
                     <tr key={enrollment._id} className="border-b border-brand-border hover:bg-brand-primary/30 transition-colors last:border-0">
                       <td className="px-8 py-6 font-black text-text-main uppercase tracking-tight text-sm">
@@ -98,15 +117,24 @@ export default function AttendancePage({ sessionId, bootcampId }: AttendancePage
                       <td className="px-8 py-6">
                         <div className={cn(
                           "inline-flex items-center space-x-2 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm",
-                          status === 'PRESENT' ? "bg-green-100 text-green-700" : 
-                          status === 'ABSENT' ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"
+                          status.toLowerCase() === 'present' ? "bg-green-100 text-green-700" : 
+                          status.toLowerCase() === 'absent' ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"
                         )}>
-                          {status === 'PRESENT' ? <CheckCircle2 size={10} /> : status === 'ABSENT' ? <XCircle size={10} /> : <Clock size={10} />}
+                          {status.toLowerCase() === 'present' ? <CheckCircle2 size={10} /> : status.toLowerCase() === 'absent' ? <XCircle size={10} /> : <Clock size={10} />}
                           <span>{status}</span>
                         </div>
                       </td>
                       <td className="px-8 py-6">
-                         <button className="text-[10px] font-black uppercase text-brand-accent hover:underline">Mark Present</button>
+                         <button 
+                           onClick={() => handleMarkAttendance(studentId)}
+                           disabled={status.toLowerCase() === 'present'}
+                           className={cn(
+                             "text-[10px] font-black uppercase tracking-widest",
+                             status.toLowerCase() === 'present' ? "text-text-muted cursor-not-allowed" : "text-brand-accent hover:underline"
+                           )}
+                         >
+                           {status.toLowerCase() === 'present' ? 'Verified' : 'Mark Present'}
+                         </button>
                       </td>
                     </tr>
                   );

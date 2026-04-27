@@ -38,11 +38,15 @@ export default function TasksPage({ sessionId, bootcampId }: TasksPageProps) {
     fetchTasks();
   }, [dispatch, bootcampId]);
 
-  const filteredTasks = tasks.filter((t) => 
-    t.title.toLowerCase().includes((searchTerm || '').toLowerCase()) ||
-    (t.division && t.division.toLowerCase().includes((searchTerm || '').toLowerCase())) ||
-    (t.instructor && t.instructor.toLowerCase().includes((searchTerm || '').toLowerCase()))
-  );
+  const filteredTasks = tasks.filter((t) => {
+    const matchesSearch = t.title.toLowerCase().includes((searchTerm || '').toLowerCase()) ||
+      (t.division && t.division.toLowerCase().includes((searchTerm || '').toLowerCase())) ||
+      (t.instructor && t.instructor.toLowerCase().includes((searchTerm || '').toLowerCase()));
+    
+    const matchesSession = sessionId ? (t.sessionId?._id === sessionId || t.sessionId === sessionId) : true;
+    
+    return matchesSearch && matchesSession;
+  });
 
   if (loading) {
     return <div className="text-center py-10 font-bold uppercase text-text-muted">Loading Tasks...</div>;

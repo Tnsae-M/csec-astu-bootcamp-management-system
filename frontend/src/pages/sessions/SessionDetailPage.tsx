@@ -19,9 +19,9 @@ export default function SessionDetailPage() {
   const [modalOpen, setModalOpen] = useState(false);
 
   const tabs: { id: TabType, label: string }[] = [
+    { id: 'attendance', label: 'Attendance' },
     { id: 'tasks', label: 'Tasks' },
     { id: 'submissions', label: 'Submissions' },
-    { id: 'attendance', label: 'Attendance' },
     { id: 'resources', label: 'Resources' },
     { id: 'feedback', label: 'Feedback' }
   ];
@@ -53,7 +53,7 @@ export default function SessionDetailPage() {
       {/* Tab Content */}
       <div className="pt-6">
         {activeTab === 'tasks' && <TasksPage sessionId={sessionId} bootcampId={bootcampId} />}
-        {activeTab === 'submissions' && <SubmissionsPage sessionId={sessionId} />}
+        {activeTab === 'submissions' && <SubmissionsPage sessionId={sessionId} bootcampId={bootcampId} />}
         {activeTab === 'attendance' && <AttendancePage sessionId={sessionId} bootcampId={bootcampId} />}
         {activeTab === 'resources' && <ResourcesPage sessionId={sessionId} />}
         {activeTab === 'feedback' && (

@@ -34,15 +34,71 @@ export default function BootcampDetailPage() {
       .catch(err => dispatch(setSessionsFailure(err.message)));
   }, [bootcampId, dispatch]);
 
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
+  const handleCreate = async () => {
+    alert(`Creation logic for ${activeTab} would trigger here. Ready for module expansion.`);
+    setShowCreateModal(false);
+  };
+
   return (
-    <div className="space-y-8 selection:bg-brand-accent selection:text-white">
+    <div className="space-y-8 selection:bg-brand-accent selection:text-white relative">
       <div className="flex justify-between items-center pr-4">
         <div>
           <h1 className="text-4xl font-black text-brand-accent uppercase tracking-tighter">Bootcamp Hub</h1>
           <p className="text-text-muted font-bold text-xs uppercase tracking-[0.2em] mt-2">Manage Groups & Sessions</p>
         </div>
-        {/* Creation controls removed from bootcamp detail — create actions live on Sessions and Groups pages */}
+        {(role === 'admin' || role === 'instructor') && (
+          <div className="flex gap-4">
+            <Button 
+              onClick={() => { setActiveTab('groups'); setShowCreateModal(true); }}
+              className="bg-brand-accent text-white text-[10px] font-black uppercase tracking-widest px-6 h-10 hover:bg-brand-accent/90 shadow-lg shadow-brand-accent/20"
+            >
+              Add Group
+            </Button>
+            <Button 
+              onClick={() => { setActiveTab('sessions'); setShowCreateModal(true); }}
+              className="bg-brand-primary border border-brand-accent text-brand-accent text-[10px] font-black uppercase tracking-widest px-6 h-10 hover:bg-brand-accent/5"
+            >
+              Add Session
+            </Button>
+          </div>
+        )}
       </div>
+
+      {/* Creation Modal Placeholder */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-brand-primary/80 backdrop-blur-md z-[100] flex items-center justify-center p-6">
+          <Card className="w-full max-w-md border-brand-accent shadow-2xl shadow-brand-accent/20">
+            <CardHeader>
+              <CardTitle className="uppercase tracking-tighter font-black text-brand-accent">Initialize New {activeTab === 'groups' ? 'Group' : 'Session'}</CardTitle>
+              <CardDescription className="text-[10px] font-bold uppercase tracking-widest">Provide the metadata for this deployment.</CardDescription>
+            </CardHeader>
+            <div className="p-6 space-y-4">
+               <div className="space-y-1">
+                 <label className="text-[10px] font-black uppercase tracking-widest text-text-muted">Entity Title</label>
+                 <input type="text" className="w-full bg-brand-primary border border-brand-border rounded px-3 py-2 text-xs focus:border-brand-accent outline-none" placeholder={`New ${activeTab.slice(0, -1)} name...`} />
+               </div>
+               {activeTab === 'sessions' && (
+                 <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-text-muted">Date</label>
+                      <input type="date" className="w-full bg-brand-primary border border-brand-border rounded px-3 py-2 text-xs focus:border-brand-accent outline-none" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-text-muted">Time</label>
+                      <input type="time" className="w-full bg-brand-primary border border-brand-border rounded px-3 py-2 text-xs focus:border-brand-accent outline-none" />
+                    </div>
+                 </div>
+               )}
+            </div>
+            <CardFooter className="flex gap-4">
+               <Button onClick={() => setShowCreateModal(false)} variant="outline" className="flex-1 text-[10px] font-black uppercase tracking-widest">Cancel</Button>
+               <Button onClick={handleCreate} className="flex-1 bg-brand-accent text-white text-[10px] font-black uppercase tracking-widest">Confirm Creation</Button>
+            </CardFooter>
+          </Card>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex border-b border-brand-border space-x-8">

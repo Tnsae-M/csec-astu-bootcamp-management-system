@@ -1,24 +1,64 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { FileText, CheckCircle2, AlertCircle, Filter } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Button } from '@/src/components/ui';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../app/store';
+import { submissionsService } from '../../services/submissions.service';
+import { tasksService } from '../../services/tasks.service';
 
 interface SubmissionsPageProps {
   sessionId?: string;
+  bootcampId?: string;
 }
 
-export default function SubmissionsPage({ sessionId }: SubmissionsPageProps) {
+export default function SubmissionsPage({ sessionId, bootcampId }: SubmissionsPageProps) {
   const { searchTerm } = useSelector((state: RootState) => state.ui);
-  // Using an empty array initially as we transition to API fetching
-  const submissions: any[] = []; 
+  const [submissions, setSubmissions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!sessionId || !bootcampId) return;
+      setLoading(true);
+      try {
+        // 1. Get all tasks for this bootcamp
+        const tasksRes = await tasksService.getTasksByBootcamp(bootcampId);
+        const allTasks = tasksRes.data || [];
+        
+        // 2. Filter tasks that belong to this session
+        const sessionTasks = allTasks.filter((t: any) => 
+          (t.sessionId?._id || t.sessionId) === sessionId
+        );
+
+        // 3. For each task, fetch submissions
+        const submissionsPromises = sessionTasks.map((t: any) => 
+          submissionsService.getSubmissionsByTask(t._id || t.id)
+        );
+        
+        const submissionsResults = await Promise.all(submissionsPromises);
+        
+        // 4. Flatten the results
+        const allSubmissions = submissionsResults.flatMap(res => res.data || []);
+        setSubmissions(allSubmissions);
+      } catch (error) {
+        console.error("Failed to fetch submissions", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [sessionId, bootcampId]);
 
   const filteredSubmissions = submissions.filter((s) =>
-    s.student?.toLowerCase().includes((searchTerm || '').toLowerCase()) ||
-    s.task?.toLowerCase().includes((searchTerm || '').toLowerCase()) ||
-    s.id?.toLowerCase().includes((searchTerm || '').toLowerCase())
+    s.studentId?.name?.toLowerCase().includes((searchTerm || '').toLowerCase()) ||
+    s.taskId?.title?.toLowerCase().includes((searchTerm || '').toLowerCase())
   );
+
+  if (loading) {
+    return <div className="text-center py-10 font-black uppercase text-brand-accent animate-pulse tracking-[0.2em]">Aggregating Submission Data...</div>;
+  }
 
   return (
     <div className="space-y-8 selection:bg-brand-accent selection:text-white">
@@ -56,21 +96,23 @@ export default function SubmissionsPage({ sessionId }: SubmissionsPageProps) {
             </thead>
             <tbody>
               {filteredSubmissions.map((sub) => (
-                <tr key={sub.id} className="border-b border-brand-border hover:bg-brand-primary/30 transition-colors last:border-0 grow">
+                <tr key={sub._id} className="border-b border-brand-border hover:bg-brand-primary/30 transition-colors last:border-0 grow">
                   <td className="px-8 py-6">
                     <div className="flex flex-col">
-                      <span className="text-sm font-black text-text-main uppercase tracking-tight">{sub.student}</span>
-                      <span className="text-[9px] font-bold text-text-muted uppercase tracking-widest mt-0.5">{sub.id}</span>
+                      <span className="text-sm font-black text-text-main uppercase tracking-tight">{sub.studentId?.name || 'Anonymous Entity'}</span>
+                      <span className="text-[9px] font-bold text-text-muted uppercase tracking-widest mt-0.5">{sub._id}</span>
                     </div>
                   </td>
                   <td className="px-8 py-6">
                     <div className="flex items-center space-x-2">
                       <FileText size={14} className="text-brand-accent" />
-                      <span className="text-xs font-bold text-text-main uppercase tracking-widest">{sub.task}</span>
+                      <span className="text-xs font-bold text-text-main uppercase tracking-widest">{sub.taskId?.title || 'Unknown Task'}</span>
                     </div>
                   </td>
                   <td className="px-8 py-6">
-                    <span className="text-xs font-medium text-text-muted">{sub.date}</span>
+                    <span className="text-xs font-medium text-text-muted">
+                      {new Date(sub.submittedAt || sub.createdAt).toLocaleDateString()}
+                    </span>
                   </td>
                   <td className="px-8 py-6">
                     <div className={cn(
