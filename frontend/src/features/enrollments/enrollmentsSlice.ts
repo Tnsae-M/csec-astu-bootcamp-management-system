@@ -2,18 +2,14 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 export interface Enrollment {
   _id: string;
-<<<<<<< Updated upstream
   id?: string;
-  user: any; // User object containing name, email etc.
-  bootcamp: string | any;
+  user?: any; // User object containing name, email etc.
+  studentId?: string | any;
+  bootcamp?: string | any;
+  bootcampId?: string | any;
   status: 'PENDING' | 'APPROVED' | 'COMPLETED' | 'DROPPED';
-  enrolledAt: string;
-=======
-  studentId: string | any;
-  bootcampId: string | any;
-  status: 'PENDING' | 'APPROVED' | 'COMPLETED' | 'DROPPED';
-  createdAt: string;
->>>>>>> Stashed changes
+  enrolledAt?: string;
+  createdAt?: string;
 }
 
 interface EnrollmentsState {
@@ -37,20 +33,12 @@ const enrollmentsSlice = createSlice({
       state.error = null;
     },
     setEnrollmentsSuccess: (state, action: PayloadAction<Enrollment[]>) => {
-<<<<<<< Updated upstream
-      state.loading = false;
-=======
->>>>>>> Stashed changes
       state.enrollments = action.payload;
       state.loading = false;
     },
     setEnrollmentsFailure: (state, action: PayloadAction<string>) => {
       state.error = action.payload;
       state.loading = false;
-    },
-    setEnrollmentsFailure: (state, action: PayloadAction<string>) => {
-      state.loading = false;
-      state.error = action.payload;
     },
   },
 });

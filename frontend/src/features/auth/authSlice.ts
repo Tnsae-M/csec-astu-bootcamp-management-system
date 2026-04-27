@@ -6,7 +6,7 @@ interface User {
   id: string;
   name: string;
   email: string;
-  role: UserRole;
+  roles: string[];
   division?: string;
   groupId?: string;
 }

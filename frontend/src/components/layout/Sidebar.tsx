@@ -26,11 +26,11 @@ import {
 } from "lucide-react";
 import Logo from "../common/Logo";
 import { RootState } from "../../app/store";
-import { logout, UserRole } from "../../features/auth/authSlice";
+import { logout } from "../../features/auth/authSlice";
 import { cn } from "../../lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 
-const menuConfig: Record<UserRole, any[]> = {
+const menuConfig: Record<string, any[]> = {
   ADMIN: [
     { type: 'separator', label: 'Operations' },
     { to: "/dashboard/admin/dashboard", icon: LayoutDashboard, label: "Overview" },
@@ -50,6 +50,7 @@ const menuConfig: Record<UserRole, any[]> = {
   INSTRUCTOR: [
     { type: 'separator', label: 'Shortcuts' },
     { to: "/dashboard/instructor/dashboard", icon: Activity, label: "Active Pulse" },
+    { to: "/dashboard/instructor/bootcamps", icon: BookOpen, label: "Bootcamps" },
     { type: 'separator', label: 'Daily Activity' },
     { to: "/dashboard/instructor/divisions", icon: Building2, label: "My Divisions" },
     { to: "/dashboard/instructor/sessions", icon: Calendar, label: "Session Hub" },
@@ -59,6 +60,7 @@ const menuConfig: Record<UserRole, any[]> = {
   STUDENT: [
     { type: 'separator', label: 'Shortcuts' },
     { to: "/dashboard/student/dashboard", icon: LayoutDashboard, label: "Learning Portal" },
+    { to: "/dashboard/student/bootcamps", icon: BookOpen, label: "Bootcamps" },
     { type: 'separator', label: 'Daily Activity' },
     { to: "/dashboard/student/divisions", icon: Building2, label: "Enrollments" },
     { to: "/dashboard/student/group", icon: Users, label: "My Squad" },
@@ -76,8 +78,11 @@ export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  const role = user?.role || "STUDENT";
-  const links = menuConfig[role];
+  const roles = user?.roles || ["STUDENT"];
+  
+  // Combine links for all roles the user possesses and remove duplicates
+  const allLinks = roles.flatMap(role => menuConfig[role as keyof typeof menuConfig] || []);
+  const links = Array.from(new Set(allLinks));
 
   const handleLogout = () => {
     dispatch(logout());

@@ -4,7 +4,8 @@ import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../app/store';
 import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/card';
 import { Button, Modal } from '../../components/ui';
-import { Plus, Activity, BookOpen } from 'lucide-react';
+import { Plus, Activity, BookOpen, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import { bootcampsService } from '../../services/bootcamps.service';
 import { setBootcampsStart, setBootcampsSuccess, setBootcampsFailure } from '../../features/bootcamps/bootcampsSlice';
 
@@ -16,8 +17,8 @@ export default function BootcampsPage() {
   const { bootcamps, loading } = useSelector((state: RootState) => state.bootcamps);
   const { user } = useSelector((state: RootState) => state.auth);
   const { searchTerm } = useSelector((state: RootState) => state.ui);
-
-  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER ADMIN';
+  const roles = user?.roles || [];
+  const isAdmin = roles.includes('ADMIN') || roles.includes('SUPER ADMIN');
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -52,7 +53,14 @@ export default function BootcampsPage() {
       setFormData({ name: '', description: '', status: 'ACTIVE' });
       fetchBootcamps();
     } catch (err: any) {
-      alert(err.response?.data?.message || err.message);
+      const errorMsg = err.response?.data?.message || err.message;
+      if (errorMsg.toLowerCase().includes('exist') || errorMsg.toLowerCase().includes('duplicate')) {
+        toast.error('Bootcamp already exists', {
+          icon: <AlertCircle className="w-4 h-4" />
+        });
+      } else {
+        toast.error(errorMsg);
+      }
     }
   };
 

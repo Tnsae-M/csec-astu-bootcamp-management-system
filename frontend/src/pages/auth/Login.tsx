@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
-import { loginStart, loginSuccess, loginFailure, UserRole } from '../../features/auth/authSlice';
+import { loginStart, loginSuccess, loginFailure } from '../../features/auth/authSlice';
 import { Button, Card } from '@/src/components/ui';
 import { RootState } from '../../app/store';
 import Logo from '../../components/common/Logo';
@@ -27,14 +27,14 @@ export default function Login() {
       const user = actualData.user;
       const token = actualData.accessToken || actualData.token || 'fake-token';
       
-      const role: UserRole = user?.role ? user.role.toUpperCase() : 'STUDENT';
+      const roles: string[] = user?.roles ? user.roles.map((r: string) => r.toUpperCase()) : (user?.role ? [user.role.toUpperCase()] : ['STUDENT']);
 
       dispatch(loginSuccess({
         user: {
           id: user._id || user.id,
           name: user.name,
           email: user.email,
-          role: role,
+          roles: roles,
         },
         token: token
       }));
