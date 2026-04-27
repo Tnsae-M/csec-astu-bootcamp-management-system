@@ -63,6 +63,20 @@ const menuConfig: Record<UserRole, any[]> = {
     // { to: '/dashboard/admin/notifications', icon: Bell, label: 'Notifications' },
     // { to: '/dashboard/admin/settings', icon: Settings, label: 'System Settings' },
   ],
+  "SUPER ADMIN": [
+    {
+      to: "/dashboard/admin/dashboard",
+      icon: LayoutDashboard,
+      label: "Dashboard",
+    },
+    {
+      to: "/dashboard/admin/divisions",
+      icon: Building2,
+      label: "Divisions",
+    },
+    { to: "/dashboard/admin/users", icon: UserCheck, label: "Users" },
+    { to: "/dashboard/admin/reports", icon: BarChart3, label: "Reports" },
+  ],
   INSTRUCTOR: [
     {
       to: "/dashboard/instructor/dashboard",

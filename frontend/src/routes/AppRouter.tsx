@@ -53,7 +53,13 @@ const ProtectedRoute = ({ children, role }: { children: React.ReactNode, role?: 
   }
 
   if (!isAuthenticated) return <Navigate to="/login" />;
-  if (role && user?.role !== role) return <Navigate to="/dashboard" />;
+
+  if (role) {
+    // Allow SUPER ADMIN to access ADMIN routes as a superset
+    if (user?.role !== role && !(role === 'ADMIN' && user?.role === 'SUPER ADMIN')) {
+      return <Navigate to="/dashboard" />;
+    }
+  }
 
   return <>{children}</>;
 };
@@ -64,11 +70,12 @@ const RoleBasedHome = () => {
   if (isInitializing) {
     return <div className="min-h-screen flex items-center justify-center bg-brand-primary text-brand-accent font-black tracking-widest text-sm uppercase">Loading Session...</div>;
   }
-  
+
+  if (user?.role === 'SUPER ADMIN') return <Navigate to="/dashboard/admin/dashboard" />;
   if (user?.role === 'ADMIN') return <Navigate to="/dashboard/admin/dashboard" />;
   if (user?.role === 'INSTRUCTOR') return <Navigate to="/dashboard/instructor/dashboard" />;
   if (user?.role === 'STUDENT') return <Navigate to="/dashboard/student/dashboard" />;
-  
+
   return <Navigate to="/login" />;
 };
 
