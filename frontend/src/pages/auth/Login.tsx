@@ -2,10 +2,17 @@ import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
 import { loginStart, loginSuccess, loginFailure } from '../../features/auth/authSlice';
-import { Button, Card } from '@/src/components/ui';
+import { 
+  Button, 
+  Card, 
+  FormField, 
+  Input 
+} from '@/components/ui';
 import { RootState } from '../../app/store';
 import Logo from '../../components/common/Logo';
 import { authService } from '../../services/auth.service';
+import { ShieldCheck, ArrowRight, Lock, Mail } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -20,13 +27,11 @@ export default function Login() {
 
     try {
       const response = await authService.login({ email, password });
-      
-      const backendResponse = response.data || response; // Gets { success: true, data: { accessToken, user } }
-      const actualData = backendResponse.data || backendResponse; // Extracts { accessToken, user }
+      const backendResponse = response.data || response;
+      const actualData = backendResponse.data || backendResponse;
       
       const user = actualData.user;
       const token = actualData.accessToken || actualData.token || 'fake-token';
-      
       const roles: string[] = user?.roles ? user.roles.map((r: string) => r.toUpperCase()) : (user?.role ? [user.role.toUpperCase()] : ['STUDENT']);
 
       dispatch(loginSuccess({
@@ -38,82 +43,102 @@ export default function Login() {
         },
         token: token
       }));
+      toast.success(`Welcome back, ${user.name}!`);
       navigate('/dashboard');
     } catch (err: any) {
-      dispatch(loginFailure(err.response?.data?.message || err.message || 'Login failed'));
+      const errorMsg = err.response?.data?.message || err.message || 'Authentication failed';
+      dispatch(loginFailure(errorMsg));
+      toast.error(errorMsg);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-brand-primary px-4 selection:bg-brand-accent selection:text-brand-primary overflow-y-auto">
-      <div className="max-w-md w-full">
+    <div className="min-h-screen flex items-center justify-center bg-brand-primary px-4 relative overflow-hidden">
+      {/* BACKGROUND DECORATION */}
+      <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-brand-accent blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-brand-accent blur-[120px]" />
+      </div>
+
+      <div className="max-w-md w-full relative z-10">
         <div className="text-center mb-10">
-          <Link to="/" className="inline-block mb-3">
-            <Logo size="lg" className="mx-auto" />
-          </Link>
-          <h1 className="text-3xl font-black text-text-main tracking-tighter uppercase">
-            CSEC Portal
+          <div className="inline-flex p-4 rounded-3xl bg-white shadow-xl shadow-brand-accent/10 mb-6 border border-brand-border/50">
+            <Logo size="lg" />
+          </div>
+          <h1 className="text-3xl font-black text-text-main tracking-tight uppercase leading-none">
+            Digital Identity Portal
           </h1>
-          <p className="text-text-muted mt-2 font-bold uppercase tracking-widest text-xs">Division Learning Platform</p>
+          <p className="text-[10px] text-text-muted mt-3 font-black uppercase tracking-[0.3em] italic">
+            CSEC-ASTU Bootcamp Management System
+          </p>
         </div>
 
-        <div className="geo-card p-10">
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div>
-              <label className="block text-xs font-black text-text-muted mb-2 uppercase tracking-[0.2em]">
-                Educational Email
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full px-4 py-3 rounded-lg bg-brand-primary/50 border border-brand-border text-text-main focus:border-brand-accent focus:ring-4 focus:ring-brand-accent/5 outline-none transition-all font-medium text-sm"
-                placeholder="student@scholar.astu"
-              />
-            </div>
+        <Card className="p-8 md:p-10 border-none bg-white/80 backdrop-blur-md shadow-2xl shadow-brand-accent/5">
+          <form onSubmit={handleLogin} className="space-y-5">
+            <FormField label="Scholastic Email" required>
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="pl-12"
+                  placeholder="name@astu.edu.et"
+                />
+              </div>
+            </FormField>
 
-            <div>
-              <label className="block text-xs font-black text-text-muted mb-2 uppercase tracking-[0.2em]">
-                Identity Key
+            <FormField label="Security Key" required>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="pl-12"
+                  placeholder="••••••••"
+                  minLength={8}
+                />
+              </div>
+            </FormField>
+
+            <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-widest px-1">
+              <label className="flex items-center gap-2 cursor-pointer text-text-muted hover:text-text-main transition-colors">
+                <input type="checkbox" className="rounded border-brand-border text-brand-accent focus:ring-brand-accent" />
+                Stay Synchronized
               </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full px-4 py-3 rounded-lg bg-brand-primary/50 border border-brand-border text-text-main focus:border-brand-accent focus:ring-4 focus:ring-brand-accent/5 outline-none transition-all font-medium text-sm"
-                placeholder="••••••••"
-                minLength={8}
-              />
+              <Link to="/forgot-password" className="text-brand-accent hover:underline decoration-2 underline-offset-4">
+                Lost Key?
+              </Link>
             </div>
 
             <Button
               type="submit"
-              isLoading={loading}
-              className="w-full py-4 text-sm font-black uppercase tracking-widest shadow-lg shadow-brand-accent/20"
+              disabled={loading}
+              className="w-full py-6 text-sm font-black uppercase tracking-widest shadow-xl shadow-brand-accent/20 group"
             >
-              Sign In to Dashboard
+              {loading ? "Authenticating..." : (
+                <>
+                  Establish Connection
+                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </>
+              )}
             </Button>
           </form>
 
-          {error && <p className="text-red-600 text-xs mt-4 text-center font-bold uppercase tracking-wider">{error}</p>}
-
-          <div className="mt-8 pt-6 border-t border-brand-border space-y-4 text-center">
+          <div className="mt-8 pt-6 border-t border-brand-border text-center">
             <p className="text-[11px] text-text-muted font-bold uppercase tracking-widest">
-              New Researcher? <Link to="/register" className="text-brand-accent hover:underline decoration-2 underline-offset-4">Register here</Link>
+              New Researcher? <Link to="/register" className="text-brand-accent font-black hover:underline decoration-2 underline-offset-4">Register here</Link>
             </p>
-            <div>
-              <Link to="/" className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] hover:text-brand-accent transition-colors">
-                ← Back to Portal
-              </Link>
-            </div>
           </div>
-        </div>
+        </Card>
 
-        <div className="mt-8 p-4 text-center">
-          <div className="flex justify-center space-x-2 text-[9px] font-bold uppercase tracking-[0.3em] text-text-muted/40">
-            <span>ADMIN</span> | <span>INSTRUCTOR</span> | <span>STUDENT</span>
+        <div className="mt-10 flex flex-col items-center gap-4">
+          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/50 border border-brand-border/50 text-[9px] font-black uppercase tracking-[0.2em] text-text-muted shadow-sm">
+            <ShieldCheck className="h-3 w-3 text-emerald-500" />
+            Secured via CSEC Protocol v2.4
           </div>
         </div>
       </div>

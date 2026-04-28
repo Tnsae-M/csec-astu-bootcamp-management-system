@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
+import { cva } from "class-variance-authority";
 
 export function Table({ className, ...props }: React.HTMLAttributes<HTMLTableElement>) {
   return (
@@ -33,7 +34,7 @@ export function TableHead({ className, ...props }: React.ThHTMLAttributes<HTMLTa
   return (
     <th
       className={cn(
-        "h-12 px-4 text-left align-middle text-[10px] font-black uppercase tracking-widest text-text-muted",
+        "h-12 px-4 text-left align-middle text-[11px] font-semibold uppercase tracking-wider text-text-muted",
         className
       )}
       {...props}

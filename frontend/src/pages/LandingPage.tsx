@@ -17,10 +17,10 @@ import {
   ClipboardList
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Button } from '@/src/components/ui';
+import { Button } from '@/components/ui';
 import Logo from '../components/common/Logo';
 
-import landingImg from '@/src/assets/images/landing.jpg';
+import landingImg from '@/assets/images/landing.jpg';
 
 export default function LandingPage() {
   const divisions = [

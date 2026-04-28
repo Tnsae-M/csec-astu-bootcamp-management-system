@@ -6,7 +6,7 @@ import AttendancePage from '../shared/AttendancePage';
 import ResourcesPage from '../shared/ResourcesPage';
 import FeedbackPage from '../shared/FeedbackPage';
 import FeedbackForm from '../../components/feedback/FeedbackForm';
-import { RootState } from '@/src/app/store';
+import { RootState } from '@/app/store';
 import { useSelector } from 'react-redux';
 
 type TabType = 'tasks' | 'submissions' | 'attendance' | 'resources' | 'feedback';

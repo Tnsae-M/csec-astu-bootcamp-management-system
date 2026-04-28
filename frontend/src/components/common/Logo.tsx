@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import logoImg from '@/src/assets/images/logo.jpg';
-import { cn } from '@/src/lib/utils';
+import logoImg from '@/assets/images/logo.jpg';
+import { cn } from '@/lib/utils';
 
 interface LogoProps {
   className?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl' | 'auto';
   showText?: boolean;
+  inverse?: boolean;
 }
 
-const Logo: React.FC<LogoProps> = ({ className, size = 'md', showText = false }) => {
+const Logo: React.FC<LogoProps> = ({ className, size = 'md', showText = false, inverse = false }) => {
   const [error, setError] = useState(false);
 
   const sizeStyles = {
@@ -31,15 +32,25 @@ const Logo: React.FC<LogoProps> = ({ className, size = 'md', showText = false })
           />
         ) : (
           <div className="h-full px-3 bg-brand-accent text-white flex items-center justify-center font-black text-xs uppercase tracking-tighter shadow-inner">
-            PharmaLink
+            CSEC
           </div>
         )}
       </div>
 
       {showText && (
         <div className="flex flex-col">
-          <span className="text-text-main font-black tracking-tighter uppercase text-xl block leading-none">CSEC ASTU BMS</span>
-          <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted leading-none mt-1 block">Engineering Framework</span>
+          <span className={cn(
+            "font-black tracking-tighter uppercase text-xl block leading-[0.8] mb-0.5",
+            inverse ? "text-white" : "text-text-main"
+          )}>
+            CSEC ASTU
+          </span>
+          <span className={cn(
+            "text-[9px] font-black uppercase tracking-[0.3em] leading-none block opacity-70",
+            inverse ? "text-white" : "text-brand-accent"
+          )}>
+            Engineering Hub
+          </span>
         </div>
       )}
     </div>

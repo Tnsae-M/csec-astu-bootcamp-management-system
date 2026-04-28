@@ -1,27 +1,50 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { Card, Button, Modal } from "@/src/components/ui";
-import { Users, Calendar, CheckCircle2, Briefcase } from "lucide-react";
+import { 
+  Button, 
+  Modal, 
+  StatCard, 
+  Card, 
+  FormField, 
+  Input, 
+  Skeleton 
+} from "@/components/ui";
+import { cn } from "@/lib/utils";
+import { 
+  Users, 
+  Calendar, 
+  CheckCircle2, 
+  Briefcase, 
+  Plus, 
+  UserPlus, 
+  BarChart3, 
+  Clock,
+  ArrowUpRight,
+  TrendingUp
+} from "lucide-react";
 import {
   BarChart,
   Bar,
   XAxis,
   YAxis,
-  Tooltip,
+  Tooltip as ChartTooltip,
   ResponsiveContainer,
+  CartesianGrid,
+  Cell
 } from "recharts";
-import { usersService } from "@/src/services/users.service";
-import { divisionsService } from "@/src/services/divisions.service";
-import { sessionsService } from "@/src/services/sessions.service";
-import { bootcampsService } from "@/src/services/bootcamps.service";
+import { usersService } from "@/services/users.service";
+import { divisionsService } from "@/services/divisions.service";
+import { sessionsService } from "@/services/sessions.service";
+import { bootcampsService } from "@/services/bootcamps.service";
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
 import { useNavigate } from 'react-router-dom';
+import { toast } from "sonner";
 
 export default function AdminDashboard() {
   const [totalUsers, setTotalUsers] = useState<number | null>(null);
   const [totalBootcamps, setTotalBootcamps] = useState<number | null>(null);
   const [activeSessions, setActiveSessions] = useState<number | null>(null);
-  const [avgAttendance, setAvgAttendance] = useState<number>(0);
+  const [avgAttendance, setAvgAttendance] = useState<number>(92);
 
   const [divisions, setDivisions] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
@@ -31,410 +54,325 @@ export default function AdminDashboard() {
   const [bootcampsList, setBootcampsList] = useState<any[]>([]);
 
   const [activeTab, setActiveTab] = useState("sessions");
+  const [loading, setLoading] = useState(true);
 
   const [showAddBootcamp, setShowAddBootcamp] = useState(false);
   const [showAddSession, setShowAddSession] = useState(false);
-  const [creatingSession, setCreatingSession] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const [bootcampForm, setBootcampForm] = useState({ divisionId: "", name: "", startDate: "", endDate: "" });
   const [sessionForm, setSessionForm] = useState({ title: '', bootcampId: '', date: '', time: '', instructorId: '', instructorName: '' });
-  const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState({ divisionId: "", name: "", startDate: "", endDate: "" });
+
   const navigate = useNavigate();
   const { user } = useSelector((state: RootState) => state.auth);
 
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      // Parallel loading for better performance
+      const [usersRes, divRes, sessRes, bcRes] = await Promise.all([
+        usersService.getUsers(),
+        divisionsService.getDivisions(),
+        sessionsService.getSessions(),
+        bootcampsService.getBootcamps()
+      ]);
+
+      const usersArr = Array.isArray(usersRes.data) ? usersRes.data : usersRes.data?.data ?? [];
+      const instructors = usersArr.filter((u: any) => u.roles?.includes('INSTRUCTOR') || u.role === 'INSTRUCTOR');
+      
+      setUsersList(usersArr);
+      setInstructorsList(instructors);
+      setTotalUsers(usersRes.count || usersArr.length);
+
+      const divArr = Array.isArray(divRes.data) ? divRes.data : divRes.data?.data ?? [];
+      setDivisions(divArr);
+
+      const sessArr = Array.isArray(sessRes.data) ? sessRes.data : sessRes.data?.data ?? [];
+      setSessions(sessArr);
+      setActiveSessions(sessArr.length);
+
+      const bcArr = Array.isArray(bcRes.data) ? bcRes.data : bcRes.data?.data ?? [];
+      setBootcampsList(bcArr);
+      setTotalBootcamps(bcArr.length);
+
+      // Map bootcamps per division for charts
+      const map: Record<string, number> = {};
+      divArr.forEach((d: any) => {
+        map[d.name] = bcArr.filter((b: any) => (b.divisionId?._id || b.divisionId || b.division) === (d._id || d.id)).length;
+      });
+      setBootcampsPerDivision(map);
+
+    } catch (error) {
+      console.error("Dashboard Load Error:", error);
+      toast.error("Failed to sync dashboard metrics");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const load = async () => {
-      try {
-        // users and instructors
-        const usersRes = await usersService.getUsers();
-        const usersPayload = usersRes.data ?? usersRes;
-        const usersArray = Array.isArray(usersPayload) ? usersPayload : usersPayload?.data ?? [];
-        setUsersList(usersArray);
-        setTotalUsers(usersRes.count ?? usersArray.length ?? 0);
-
-        const instructorsRes = await usersService.getUsers('INSTRUCTOR');
-        const instructorsPayload = instructorsRes.data ?? instructorsRes;
-        const instructorsArray = Array.isArray(instructorsPayload) ? instructorsPayload : instructorsPayload?.data ?? [];
-        setInstructorsList(instructorsArray);
-
-        // divisions
-        const divRes = await divisionsService.getDivisions();
-        const divs = divRes.data ?? divRes;
-        const divArray = Array.isArray(divs) ? divs : divs?.data ?? [];
-        setDivisions(divArray);
-
-        // sessions
-        const sessRes = await sessionsService.getSessions();
-        const sessPayload = sessRes.data ?? sessRes;
-        const sessArray = Array.isArray(sessPayload) ? sessPayload : sessPayload?.data ?? [];
-        setSessions(sessArray);
-        setActiveSessions(sessArray.length ?? 0);
-
-        // bootcamps list for admin session creation
-        try {
-          const allBcs = await bootcampsService.getBootcamps();
-          const bcPayload = allBcs.data ?? allBcs;
-          const bcArr = Array.isArray(bcPayload) ? bcPayload : bcPayload?.data ?? [];
-          setBootcampsList(bcArr);
-        } catch (e) {
-          setBootcampsList([]);
-        }
-
-        // avg attendance (backend endpoint can be added later)
-        setAvgAttendance(92);
-
-        // compute bootcamps per division and total bootcamps
-        try {
-          const counts = await Promise.all(divArray.map(async (d: any) => {
-            const bres = await bootcampsService.getBootcampsByDivision(d._id || d.id);
-            const items = bres.data ?? bres;
-            const list = Array.isArray(items) ? items : items?.data ?? [];
-            return list.length;
-          }));
-          const sum = counts.reduce((s, n) => s + n, 0);
-          setTotalBootcamps(sum);
-          const map: Record<string, number> = {};
-          divArray.forEach((d: any, i: number) => { map[d.name] = counts[i] ?? 0; });
-          setBootcampsPerDivision(map);
-        } catch (e) {
-          setTotalBootcamps(null);
-          setBootcampsPerDivision({});
-        }
-      } catch (error) {
-        console.error(error);
-      }
-    };
-    load();
+    loadData();
   }, []);
 
   const chartData = useMemo(() => {
-    // Group everything by division name (sessions, users, instructors, bootcamps)
-    const nameMap: Record<string, number> = {};
-    // Initialize with known divisions
-    divisions.forEach((d) => {
-      const name = d.name || 'Unknown';
-      nameMap[name] = 0;
-    });
-    nameMap['Unknown'] = 0;
-
-    const getDivisionNameFromId = (id: any) => {
-      if (!id) return null;
-      const sid = String(id);
-      const found = divisions.find((d) => String(d._id || d.id) === sid);
-      return found ? found.name : null;
-    };
-
+    const data: { name: string, value: number }[] = [];
+    
     if (activeTab === 'sessions') {
-      sessions.forEach((s) => {
-        let name: string | null = null;
-        if (s.bootcamp) {
-          const divRef = s.bootcamp.divisionId || s.bootcamp.division || null;
-          if (divRef) {
-            if (typeof divRef === 'string') name = getDivisionNameFromId(divRef) || divRef;
-            else if (divRef._id || divRef.id) name = getDivisionNameFromId(divRef._id || divRef.id);
-            else if (divRef.name) name = divRef.name;
-          }
-        }
-        // fallback: session may include division-related fields
-        if (!name) {
-          name = s.divisionName || s.division || s.divisionId || null;
-          if (name) {
-            const found = getDivisionNameFromId(name);
-            if (found) name = found;
-          }
-        }
-        if (!name) name = 'Unknown';
-        nameMap[name] = (nameMap[name] || 0) + 1;
+      const sessMap: Record<string, number> = {};
+      divisions.forEach(d => sessMap[d.name] = 0);
+      sessions.forEach(s => {
+        const divId = s.bootcampId?.divisionId?._id || s.bootcampId?.divisionId || s.bootcampId?.division;
+        const div = divisions.find(d => (d._id || d.id) === divId);
+        if (div) sessMap[div.name]++;
       });
-      return Object.keys(nameMap).map((k) => ({ name: k, value: nameMap[k] }));
+      return Object.entries(sessMap).map(([name, value]) => ({ name, value }));
     }
 
     if (activeTab === 'bootcamps') {
-      // bootcampsPerDivision keys are division names already
-      const map: Record<string, number> = { ...nameMap };
-      Object.keys(bootcampsPerDivision).forEach((k) => {
-        map[k] = bootcampsPerDivision[k] || 0;
-      });
-      return Object.keys(map).map((k) => ({ name: k, value: map[k] }));
+      return Object.entries(bootcampsPerDivision).map(([name, value]) => ({ name, value }));
     }
 
     if (activeTab === 'users') {
-      const map = { ...nameMap };
-      usersList.forEach((u) => {
-        let key = u.divisionName || u.division || u.divisionId || null;
-        if (key) {
-          const found = getDivisionNameFromId(key);
-          if (found) key = found;
-        }
-        if (!key) key = 'Unknown';
-        map[key] = (map[key] || 0) + 1;
+      const userMap: Record<string, number> = {};
+      divisions.forEach(d => userMap[d.name] = 0);
+      usersList.forEach(u => {
+        const div = divisions.find(d => (d._id || d.id) === (u.divisionId || u.division));
+        if (div) userMap[div.name]++;
       });
-      return Object.keys(map).map((k) => ({ name: k, value: map[k] }));
+      return Object.entries(userMap).map(([name, value]) => ({ name, value }));
     }
 
-    if (activeTab === 'instructors') {
-      const map = { ...nameMap };
-      instructorsList.forEach((u) => {
-        let key = u.divisionName || u.division || u.divisionId || null;
-        if (key) {
-          const found = getDivisionNameFromId(key);
-          if (found) key = found;
-        }
-        if (!key) key = 'Unknown';
-        map[key] = (map[key] || 0) + 1;
-      });
-      return Object.keys(map).map((k) => ({ name: k, value: map[k] }));
-    }
-
-    return [];
-  }, [activeTab, divisions, sessions, usersList, instructorsList, bootcampsPerDivision]);
+    return data;
+  }, [activeTab, divisions, sessions, usersList, bootcampsPerDivision]);
 
   const handleCreateBootcamp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.divisionId || !form.name) return;
-    setCreating(true);
+    if (!bootcampForm.divisionId || !bootcampForm.name) return;
+    setSubmitting(true);
     try {
-      await bootcampsService.createBootcamp(form.divisionId, {
-        name: form.name,
-        startDate: form.startDate,
-        endDate: form.endDate,
+      await bootcampsService.createBootcamp(bootcampForm.divisionId, {
+        name: bootcampForm.name,
+        startDate: bootcampForm.startDate,
+        endDate: bootcampForm.endDate,
       });
-      // refresh counts
-      const divRes = await divisionsService.getDivisions();
-      const divs = divRes.data ?? divRes;
-      setDivisions(Array.isArray(divs) ? divs : []);
-      // recompute bootcamp totals
-      const counts = await Promise.all((Array.isArray(divs) ? divs : []).map(async (d: any) => {
-        const bres = await bootcampsService.getBootcampsByDivision(d._id || d.id);
-        const items = bres.data ?? bres;
-        return Array.isArray(items) ? items.length : 0;
-      }));
-      setTotalBootcamps(counts.reduce((s, n) => s + n, 0));
+      toast.success("Bootcamp established successfully");
       setShowAddBootcamp(false);
-      setForm({ divisionId: "", name: "", startDate: "", endDate: "" });
+      loadData();
     } catch (err) {
-      console.error(err);
+      toast.error("Failed to create bootcamp");
     } finally {
-      setCreating(false);
+      setSubmitting(false);
     }
   };
 
   const handleCreateSession = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!sessionForm.title || !sessionForm.bootcampId || !sessionForm.date || !sessionForm.time) return;
-    setCreatingSession(true);
+    setSubmitting(true);
     try {
-      const payload: any = {
-        title: sessionForm.title,
-        bootcampId: sessionForm.bootcampId,
-        date: sessionForm.date,
-        time: sessionForm.time,
-      };
-      if (sessionForm.instructorId) payload.instructorId = sessionForm.instructorId;
-      if (sessionForm.instructorName) payload.instructorName = sessionForm.instructorName;
-      await sessionsService.createSession(payload);
-      // refresh sessions
-      const sessRes = await sessionsService.getSessions();
-      const sessPayload = sessRes.data ?? sessRes;
-      const sessArray = Array.isArray(sessPayload) ? sessPayload : sessPayload?.data ?? [];
-      setSessions(sessArray);
-      setActiveSessions(sessArray.length ?? 0);
+      await sessionsService.createSession(sessionForm);
+      toast.success("Session scheduled");
       setShowAddSession(false);
-      setSessionForm({ title: '', bootcampId: '', date: '', time: '', instructorId: '', instructorName: '' });
-    } catch (err: any) {
-      alert(err.response?.data?.message || err.message || 'Failed to create session');
+      loadData();
+    } catch (err) {
+      toast.error("Failed to schedule session");
     } finally {
-      setCreatingSession(false);
+      setSubmitting(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between">
+    <div className="space-y-8">
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-text-main">Admin Dashboard</h1>
-          <p className="text-text-muted mt-1">Global system health and engagement overview.</p>
+          <h1 className="text-3xl font-black text-text-main uppercase tracking-tight">System Overview</h1>
+          <p className="text-sm text-text-muted mt-1 font-medium italic">Administrative control center and global metrics</p>
         </div>
 
-        <div>
-            <div className="flex items-center gap-3">
-              {user?.role === 'SUPER ADMIN' && (
-                <Button onClick={() => navigate('/dashboard/admin/users?createAdmin=true')} className="shadow-lg bg-indigo-600 text-white px-4 py-2 rounded-full">Add Admin</Button>
-              )}
-              {user?.role === 'ADMIN' && (
-                <Button onClick={() => setShowAddSession(true)} className="shadow-lg bg-indigo-600 text-white px-4 py-2 rounded-full">+ Session</Button>
-              )}
-              <Button onClick={() => setShowAddBootcamp(true)} className="shadow-lg bg-brand-accent text-white px-4 py-2 rounded-full">+ Bootcamp</Button>
-            </div>
+        <div className="flex items-center gap-3">
+          {user?.roles?.includes('SUPER ADMIN') && (
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/dashboard/admin/users?createAdmin=true')}
+              className="border-brand-accent/20 text-brand-accent hover:bg-brand-accent hover:text-white"
+            >
+              <UserPlus className="mr-2 h-4 w-4" /> Provision Admin
+            </Button>
+          )}
+          <Button onClick={() => setShowAddBootcamp(true)} className="shadow-lg shadow-brand-accent/20">
+            <Plus className="mr-2 h-4 w-4" /> New Bootcamp
+          </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="p-6">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-md bg-blue-50">
-                <Users className="text-blue-600" />
-              </div>
-              <div>
-                <div className="text-[13px] text-text-muted">Total Users</div>
-                <div className="text-2xl font-black">{totalUsers ?? '—'}</div>
-                <div className="text-xs text-text-muted">Active this month</div>
-              </div>
-            </div>
-            <div className="text-green-600 font-bold">+12%</div>
-          </div>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-md bg-blue-50">
-                <Briefcase className="text-blue-600" />
-              </div>
-              <div>
-                <div className="text-[13px] text-text-muted">Total Bootcamps</div>
-                <div className="text-2xl font-black">{totalBootcamps ?? '—'}</div>
-                <div className="text-xs text-text-muted">3 Upcoming</div>
-              </div>
-            </div>
-            <div className="text-text-muted font-bold">&nbsp;</div>
-          </div>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-md bg-blue-50">
-                <Calendar className="text-blue-600" />
-              </div>
-              <div>
-                <div className="text-[13px] text-text-muted">Active Sessions</div>
-                <div className="text-2xl font-black">{activeSessions ?? '—'}</div>
-                <div className="text-xs text-text-muted">Live today</div>
-              </div>
-            </div>
-            <div className="text-text-muted font-bold">&nbsp;</div>
-          </div>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-md bg-blue-50">
-                <CheckCircle2 className="text-blue-600" />
-              </div>
-              <div>
-                <div className="text-[13px] text-text-muted">Avg Attendance</div>
-                <div className="text-2xl font-black">{avgAttendance}%</div>
-                <div className="text-xs text-text-muted">Across all divisions</div>
-              </div>
-            </div>
-            <div className="text-green-600 font-bold">+4%</div>
-          </div>
-        </Card>
+      {/* STATS GRID */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard 
+          label="Total Identity Base" 
+          value={totalUsers || 0} 
+          icon={<Users />} 
+          trend={{ value: 12, isPositive: true }}
+        />
+        <StatCard 
+          label="Active Bootcamps" 
+          value={totalBootcamps || 0} 
+          icon={<Briefcase />} 
+          trend={{ value: 3, isPositive: true }}
+        />
+        <StatCard 
+          label="Scheduled Sessions" 
+          value={activeSessions || 0} 
+          icon={<Calendar />} 
+        />
+        <StatCard 
+          label="Global Attendance" 
+          value={avgAttendance} 
+          suffix="%"
+          icon={<CheckCircle2 />} 
+          trend={{ value: 4, isPositive: true }}
+        />
       </div>
 
-      <Card className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-black uppercase tracking-wide">Activity Metrics</h3>
-          <div className="flex items-center gap-2">
-            {['users','instructors','sessions','bootcamps'].map((t) => (
+      {/* CHARTS SECTION */}
+      <Card className="overflow-visible border-none bg-white p-6 md:p-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-2xl bg-brand-primary text-brand-accent">
+              <BarChart3 className="h-6 w-6" />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-text-main uppercase">Engagement Analytics</h3>
+              <p className="text-xs text-text-muted font-bold tracking-widest uppercase">Cross-Division Distribution</p>
+            </div>
+          </div>
+
+          <div className="flex p-1 bg-brand-primary/50 rounded-xl">
+            {['sessions', 'bootcamps', 'users'].map((t) => (
               <button
                 key={t}
                 onClick={() => setActiveTab(t)}
-                className={`px-4 py-2 rounded-full text-sm ${activeTab===t? 'bg-white text-text-main shadow':''} text-text-muted`}
+                className={cn(
+                  "px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all",
+                  activeTab === t ? "bg-white text-brand-accent shadow-sm" : "text-text-muted hover:text-text-main"
+                )}
               >
-                {t.charAt(0).toUpperCase()+t.slice(1)}
+                {t}
               </button>
             ))}
           </div>
         </div>
 
-        <div style={{ height: 300 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-              <XAxis dataKey="name" tick={{ fill: '#6b7280' }} />
-              <YAxis tick={{ fill: '#6b7280' }} />
-              <Tooltip />
-              <Bar dataKey="value" fill="#1e40af" radius={[6,6,0,0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="h-[350px] w-full">
+          {loading ? (
+            <Skeleton className="w-full h-full rounded-2xl" />
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                <XAxis 
+                  dataKey="name" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }}
+                  dy={10}
+                />
+                <YAxis 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }}
+                />
+                <ChartTooltip 
+                  cursor={{ fill: '#f8fafc' }}
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', padding: '12px' }}
+                />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={40}>
+                  {chartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#1e40af' : '#6366f1'} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </Card>
 
-      <Modal isOpen={showAddBootcamp} onClose={() => setShowAddBootcamp(false)} title="Create Bootcamp">
-        <form onSubmit={handleCreateBootcamp} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-text-muted">Division</label>
-            <select value={form.divisionId} onChange={(e) => setForm({...form, divisionId: e.target.value})} className="w-full mt-2 p-2 bg-transparent border rounded-md">
-              <option value="">Select Division</option>
+      {/* CREATE BOOTCAMP MODAL */}
+      <Modal isOpen={showAddBootcamp} onClose={() => setShowAddBootcamp(false)} title="New Bootcamp" subtitle="Initialize a new curriculum unit." icon={<Plus />}>
+        <form onSubmit={handleCreateBootcamp} className="space-y-5">
+          <FormField label="Target Division" required>
+            <select 
+              value={bootcampForm.divisionId} 
+              onChange={(e) => setBootcampForm({...bootcampForm, divisionId: e.target.value})} 
+              className="w-full px-4 py-2.5 bg-brand-primary/40 border border-transparent rounded-lg text-sm font-medium outline-none focus:border-brand-accent appearance-none"
+            >
+              <option value="">Select Division Unit</option>
               {divisions.map(d => (
                 <option key={d._id || d.id} value={d._id || d.id}>{d.name}</option>
               ))}
             </select>
+          </FormField>
+
+          <FormField label="Bootcamp Name" required>
+            <Input 
+              value={bootcampForm.name} 
+              onChange={(e) => setBootcampForm({...bootcampForm, name: e.target.value})} 
+              placeholder="e.g. Advanced Cybersecurity"
+            />
+          </FormField>
+
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="Launch Date" required>
+              <Input type="date" value={bootcampForm.startDate} onChange={(e) => setBootcampForm({...bootcampForm, startDate: e.target.value})} />
+            </FormField>
+            <FormField label="Conclusion Date" required>
+              <Input type="date" value={bootcampForm.endDate} onChange={(e) => setBootcampForm({...bootcampForm, endDate: e.target.value})} />
+            </FormField>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-text-muted">Bootcamp Name</label>
-            <input value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} className="w-full mt-2 p-2 bg-transparent border rounded-md" />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-text-muted">Start Date</label>
-              <input type="date" value={form.startDate} onChange={(e) => setForm({...form, startDate: e.target.value})} className="w-full mt-2 p-2 bg-transparent border rounded-md" />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-text-muted">End Date</label>
-              <input type="date" value={form.endDate} onChange={(e) => setForm({...form, endDate: e.target.value})} className="w-full mt-2 p-2 bg-transparent border rounded-md" />
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setShowAddBootcamp(false)}>Cancel</Button>
-            <Button type="submit" disabled={creating}>{creating ? 'Creating...' : 'Create Bootcamp'}</Button>
+          <div className="flex gap-3 pt-4">
+            <Button variant="outline" className="flex-1" onClick={() => setShowAddBootcamp(false)}>Cancel</Button>
+            <Button type="submit" className="flex-1" disabled={submitting}>{submitting ? 'Processing...' : 'Establish Bootcamp'}</Button>
           </div>
         </form>
       </Modal>
-      <Modal isOpen={showAddSession} onClose={() => setShowAddSession(false)} title="Create Session">
+
+      {/* CREATE SESSION MODAL */}
+      <Modal isOpen={showAddSession} onClose={() => setShowAddSession(false)} title="Schedule Session" icon={<Clock />}>
         <form onSubmit={handleCreateSession} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-text-muted">Title</label>
-            <input value={sessionForm.title} onChange={(e)=>setSessionForm({...sessionForm, title: e.target.value})} className="w-full mt-2 p-2 bg-transparent border rounded-md" />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-text-muted">Bootcamp</label>
-            <select value={sessionForm.bootcampId} onChange={(e)=>setSessionForm({...sessionForm, bootcampId: e.target.value})} className="w-full mt-2 p-2 bg-transparent border rounded-md">
-              <option value="">Select Bootcamp</option>
+          <FormField label="Session Title" required>
+            <Input value={sessionForm.title} onChange={(e)=>setSessionForm({...sessionForm, title: e.target.value})} placeholder="e.g. Introduction to Malware Analysis" />
+          </FormField>
+          
+          <FormField label="Parent Bootcamp" required>
+            <select value={sessionForm.bootcampId} onChange={(e)=>setSessionForm({...sessionForm, bootcampId: e.target.value})} className="w-full px-4 py-2.5 bg-brand-primary/40 border border-transparent rounded-lg text-sm font-medium outline-none focus:border-brand-accent">
+              <option value="">Select Target Bootcamp</option>
               {bootcampsList.map(b => (<option key={b._id||b.id} value={b._id||b.id}>{b.title||b.name}</option>))}
             </select>
+          </FormField>
+
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="Date" required>
+              <Input type="date" value={sessionForm.date} onChange={(e)=>setSessionForm({...sessionForm, date: e.target.value})} />
+            </FormField>
+            <FormField label="Time" required>
+              <Input type="time" value={sessionForm.time} onChange={(e)=>setSessionForm({...sessionForm, time: e.target.value})} />
+            </FormField>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-text-muted">Date</label>
-              <input type="date" value={sessionForm.date} onChange={(e)=>setSessionForm({...sessionForm, date: e.target.value})} className="w-full mt-2 p-2 bg-transparent border rounded-md" />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-text-muted">Time</label>
-              <input type="time" value={sessionForm.time} onChange={(e)=>setSessionForm({...sessionForm, time: e.target.value})} className="w-full mt-2 p-2 bg-transparent border rounded-md" />
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-text-muted">Instructor</label>
+
+          <FormField label="Lead Instructor">
             <select value={sessionForm.instructorId} onChange={(e)=>{
               const selectedId = e.target.value;
               const found = instructorsList.find(i=> (i._id||i.id) === selectedId);
-              setSessionForm({...sessionForm, instructorId: selectedId, instructorName: found ? (found.name || found.fullName || '') : ''});
-            }} className="w-full mt-2 p-2 bg-transparent border rounded-md">
-              <option value="">Select Instructor</option>
-              {instructorsList.map((ins:any)=>(<option key={ins._id||ins.id} value={ins._id||ins.id}>{ins.name || ins.fullName || ins.email}</option>))}
+              setSessionForm({...sessionForm, instructorId: selectedId, instructorName: found ? (found.name || '') : ''});
+            }} className="w-full px-4 py-2.5 bg-brand-primary/40 border border-transparent rounded-lg text-sm font-medium outline-none focus:border-brand-accent">
+              <option value="">Auto-Assign Later</option>
+              {instructorsList.map((ins:any)=>(<option key={ins._id||ins.id} value={ins._id||ins.id}>{ins.name || ins.email}</option>))}
             </select>
-            <div className="text-[11px] text-text-muted mt-2">You can also type a name below if instructor is not in the list.</div>
-            <input placeholder="Instructor name (optional)" value={sessionForm.instructorName} onChange={(e)=>setSessionForm({...sessionForm, instructorName: e.target.value})} className="w-full mt-2 p-2 bg-transparent border rounded-md" />
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={()=>setShowAddSession(false)}>Cancel</Button>
-            <Button type="submit" disabled={creatingSession}>{creatingSession ? 'Creating...' : 'Create Session'}</Button>
+          </FormField>
+
+          <div className="flex gap-3 pt-4">
+            <Button variant="outline" className="flex-1" onClick={()=>setShowAddSession(false)}>Cancel</Button>
+            <Button type="submit" className="flex-1" disabled={submitting}>{submitting ? 'Scheduling...' : 'Confirm Session'}</Button>
           </div>
         </form>
       </Modal>

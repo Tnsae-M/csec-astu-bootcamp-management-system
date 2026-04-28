@@ -93,11 +93,11 @@ export default function Sidebar() {
     <div className="flex flex-col h-full">
       <div
         className={cn(
-          "flex items-center mb-10 transition-all duration-300",
+          "flex items-center mb-8 transition-all duration-300",
           isCollapsed ? "justify-center" : "px-2",
         )}
       >
-        <Logo showText={!isCollapsed} size={isCollapsed ? "sm" : "md"} />
+        <Logo showText={!isCollapsed} size={isCollapsed ? "sm" : "md"} inverse />
       </div>
 
       <nav className="flex-1 overflow-y-auto no-scrollbar">
@@ -105,13 +105,13 @@ export default function Sidebar() {
           {links.map((link, idx) => {
             if (link.type === 'separator') {
               return (
-                <li key={`sep-${idx}`} className={cn("mt-6 mb-2 px-4", isCollapsed && "px-0 flex justify-center")}>
+                <li key={`sep-${idx}`} className={cn("mt-5 mb-1 px-4", isCollapsed && "px-0 flex justify-center")}>
                    {!isCollapsed ? (
-                     <span className="text-[9px] font-black uppercase tracking-[0.3em] text-brand-accent/60 block">
+                     <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted/60 block">
                        {link.label}
                      </span>
                    ) : (
-                     <div className="w-6 h-px bg-brand-border" />
+                     <div className="w-6 h-px bg-brand-border/50" />
                    )}
                 </li>
               );
@@ -123,29 +123,35 @@ export default function Sidebar() {
                   to={link.to}
                   className={({ isActive }) =>
                     cn(
-                      "flex items-center px-4 py-3 rounded-md transition-all duration-200 group relative",
+                      "flex items-center px-4 py-2.5 rounded-xl transition-all duration-300 group relative overflow-hidden",
                       isActive
-                        ? "bg-brand-accent text-white shadow-lg shadow-brand-accent/20"
-                        : "text-text-muted hover:bg-brand-accent/5 hover:text-brand-accent",
+                        ? "bg-brand-accent text-white shadow-lg shadow-brand-accent/25"
+                        : "text-text-muted hover:bg-brand-accent/10 hover:text-brand-accent",
                       isCollapsed && "justify-center px-0",
                     )
                   }
                 >
+                  {/* Active Indicator Bar */}
+                  <div className={cn(
+                    "absolute left-0 top-0 bottom-0 w-1 bg-white/20 transition-transform duration-300",
+                    "group-[.active]:translate-x-0 -translate-x-full"
+                  )} />
+
                   <link.icon
                     className={cn(
-                      "shrink-0",
+                      "shrink-0 transition-transform duration-300 group-hover:scale-110",
                       isCollapsed ? "h-5 w-5" : "mr-3 h-4 w-4",
                     )}
                   />
                   {!isCollapsed && (
-                    <span className="text-[11px] font-bold uppercase tracking-widest truncate">
+                    <span className="text-[10px] font-black uppercase tracking-[0.15em] truncate">
                       {link.label}
                     </span>
                   )}
 
                   {/* Tooltip for collapsed state */}
                   {isCollapsed && (
-                    <div className="absolute left-full ml-4 px-2 py-1 bg-brand-accent text-white text-[10px] font-black uppercase tracking-widest rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap border border-brand-primary">
+                    <div className="absolute left-full ml-4 px-3 py-1.5 bg-brand-accent text-white text-[10px] font-black uppercase tracking-widest rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 z-50 whitespace-nowrap shadow-xl translate-x-2 group-hover:translate-x-0">
                       {link.label}
                     </div>
                   )}

@@ -2,13 +2,21 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../app/store';
-import { Building2, Activity, Plus, Edit, Trash2, AlertCircle } from 'lucide-react';
+import { Building2, Activity, Plus, Edit, Trash2, AlertCircle, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
-import { divisionsService } from '../../services/divisions.service';
-import { setDivisionsStart, setDivisionsSuccess, setDivisionsFailure } from '../../features/divisions/divisionsSlice';
-import { Modal, Button } from '../../components/ui';
-import { Building2 as BuildingIcon } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/card';
+import { divisionsService } from '@/services/divisions.service';
+import { setDivisionsStart, setDivisionsSuccess, setDivisionsFailure } from '@/features/divisions/divisionsSlice';
+import { 
+  Modal, 
+  Button, 
+  Card, 
+  Badge, 
+  EmptyState, 
+  FormField, 
+  Input, 
+  Textarea, 
+  Skeleton 
+} from '@/components/ui';
 
 export default function DivisionsPage() {
   const dispatch = useDispatch();
@@ -16,6 +24,7 @@ export default function DivisionsPage() {
   const { divisions, loading } = useSelector((state: RootState) => state.divisions);
   const { searchTerm } = useSelector((state: RootState) => state.ui);
   const { user } = useSelector((state: RootState) => state.auth);
+  
   const roles = user?.roles || [];
   const isSuperAdmin = roles.includes('SUPER ADMIN');
   const rolePath = roles.includes('INSTRUCTOR') ? 'instructor' : 'student';
@@ -61,8 +70,9 @@ export default function DivisionsPage() {
       try {
         await divisionsService.deleteDivision(id);
         fetchDivisions();
+        toast.success('Division deleted successfully');
       } catch (err: any) {
-        alert(err.response?.data?.message || err.message);
+        toast.error(err.response?.data?.message || err.message);
       }
     }
   };
@@ -72,160 +82,131 @@ export default function DivisionsPage() {
     try {
       if (editingId) {
         await divisionsService.updateDivision(editingId, formData);
+        toast.success('Division updated successfully');
       } else {
         await divisionsService.createDivision(formData);
+        toast.success('Division created successfully');
       }
       setIsModalOpen(false);
       fetchDivisions();
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || err.message;
-      if (errorMsg.toLowerCase().includes('exist') || errorMsg.toLowerCase().includes('duplicate')) {
-        toast.error('Division already exists', {
-          icon: <AlertCircle className="w-4 h-4" />
-        });
-      } else {
-        toast.error(errorMsg);
-      }
+      toast.error(errorMsg);
     }
   };
 
   return (
-    <div className="space-y-8 selection:bg-brand-accent selection:text-white">
-      <div className="flex justify-between items-center pr-4">
+    <div className="space-y-8">
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-black text-brand-accent uppercase tracking-tighter">Academic Divisions</h1>
-          <p className="text-text-muted font-bold text-xs uppercase tracking-[0.2em] mt-2">Departmental Framework & Oversight</p>
+          <h1 className="text-3xl font-black text-text-main uppercase tracking-tight">Academic Divisions</h1>
+          <p className="text-sm text-text-muted mt-1 font-medium italic">High-level departmental grouping for bootcamp management</p>
         </div>
-        <div className="flex flex-col items-end">
-          {isSuperAdmin ? (
-            <button 
-              onClick={handleOpenCreate}
-              className="bg-brand-accent text-white px-6 py-3 rounded-lg font-black uppercase tracking-widest text-xs flex items-center hover:bg-brand-accent/90 transition-colors shadow-lg shadow-brand-accent/20"
-            >
-              <Plus size={16} className="mr-2" /> Add Division
-            </button>
-          ) : (
-            <button disabled title={user ? 'Only Super Admins can manage divisions' : 'Login as Super Admin to manage divisions'} className="px-6 py-3 rounded-lg border border-dashed border-brand-border bg-brand-primary/30 text-text-muted text-xs font-black uppercase flex items-center gap-2 cursor-not-allowed">
-              <Plus size={16} /> Add Division
-            </button>
-          )}
-          {!isSuperAdmin && (
-            <div className="text-[11px] text-text-muted mt-2 text-right">
-              {user ? <span className="font-bold">Super Admin only:</span> : <span className="font-bold">Login required:</span>} <span className="ml-1">Division creation and management is restricted to Super Admins.</span>
-            </div>
-          )}
-        </div>
-      </div>
 
-      {loading ? (
-        <div className="text-center text-text-muted font-bold uppercase py-10">Loading Divisions...</div>
-      ) : (
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredDivisions.map((d) => (
-          <Card key={d._id} className="flex flex-col h-full hover:border-brand-accent transition-colors shadow-sm">
-            <CardHeader className="flex flex-col space-y-1.5 pb-4">
-              <div className="flex justify-between items-start mb-2">
-                <div className="w-10 h-10 rounded-lg bg-brand-accent/10 text-brand-accent flex items-center justify-center">
-                  <Building2 size={20} />
-                </div>
-                <div className="flex items-center space-x-1 bg-green-100 text-green-700 px-2 py-0.5 rounded text-[10px] font-semibold">
-                  <Activity size={10} /> <span>ACTIVE</span>
-                </div>
-              </div>
-              <CardTitle className="text-xl font-bold">
-                {d.name}
-              </CardTitle>
-              <CardDescription className="line-clamp-2 text-sm text-text-muted mt-1">
-                {d.description || 'No description available for this division.'}
-              </CardDescription>
-            </CardHeader>
-            <CardFooter className="mt-auto pt-4 flex gap-2">
-              <Button 
-                variant="outline"
-                className="flex-1 text-xs h-9 bg-transparent border-brand-border text-brand-accent hover:bg-brand-accent hover:text-white"
-                onClick={() => navigate(`/dashboard/${rolePath}/divisions/${d._id}/bootcamps`)}
-              >
-                View Bootcamps
-              </Button>
-              {isSuperAdmin && (
-                <>
-                  <Button 
-                    variant="outline"
-                    className="w-10 h-9 p-0 flex-shrink-0 bg-transparent border-brand-border hover:bg-brand-primary/50 text-text-main"
-                    onClick={() => handleOpenEdit(d)}
-                  >
-                    <Edit size={14} />
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    className="w-10 h-9 p-0 flex-shrink-0 bg-transparent border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600"
-                    onClick={() => handleDelete(d._id, d.name)}
-                  >
-                    <Trash2 size={14} />
-                  </Button>
-                </>
-              )}
-            </CardFooter>
-          </Card>
-        ))}
-        {filteredDivisions.length === 0 && (
-          <div className="col-span-2 text-center py-10 text-text-muted font-black uppercase tracking-widest text-xs">
-            No divisions found.
-          </div>
+        {isSuperAdmin && (
+          <Button onClick={handleOpenCreate} className="shadow-lg shadow-brand-accent/20">
+            <Plus className="mr-2 h-4 w-4" /> Add Division
+          </Button>
         )}
       </div>
+
+      {/* CONTENT GRID */}
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-48 rounded-2xl" />)}
+        </div>
+      ) : filteredDivisions.length === 0 ? (
+        <EmptyState 
+          title="No Divisions Found" 
+          description="There are no academic divisions matching your search. Create one to organize your learning units."
+          icon={<Building2 />}
+          action={isSuperAdmin ? { label: "Create First Division", onClick: handleOpenCreate } : undefined}
+        />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredDivisions.map((d) => (
+            <Card key={d._id} className="group h-full overflow-visible border-none bg-white">
+              <div className="p-6 h-full flex flex-col">
+                <div className="flex justify-between items-start mb-6">
+                  <div className="p-3 rounded-xl bg-brand-primary text-brand-accent shadow-sm group-hover:bg-brand-accent group-hover:text-white transition-colors duration-300">
+                    <Building2 size={24} />
+                  </div>
+                  
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {isSuperAdmin && (
+                      <>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-text-muted hover:text-brand-accent" onClick={() => handleOpenEdit(d)}>
+                          <Edit size={14} />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-text-muted hover:text-red-500" onClick={() => handleDelete(d._id, d.name)}>
+                          <Trash2 size={14} />
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <h3 className="text-xl font-bold text-text-main group-hover:text-brand-accent transition-colors leading-tight mb-2">
+                  {d.name}
+                </h3>
+                
+                <p className="text-sm text-text-muted line-clamp-2 mb-6">
+                  {d.description || 'Dedicated academic division for specialized technical training and mentorship.'}
+                </p>
+
+                <div className="mt-auto pt-4 border-t border-brand-border flex items-center justify-between">
+                  <Button 
+                    className="w-full justify-between group/btn"
+                    onClick={() => navigate(`/dashboard/${rolePath}/divisions/${d._id}/bootcamps`)}
+                  >
+                    View Bootcamps
+                    <ArrowRight className="h-4 w-4 ml-2 group-hover/btn:translate-x-1 transition-transform" />
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
       )}
 
       {/* CREATE / EDIT MODAL */}
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
-        title={editingId ? "Modify Academic Division" : "Establish New Division"}
-        subtitle={editingId ? "Edit division details and description." : "Create a new academic division to organize bootcamps."}
-        icon={<BuildingIcon />}
+        title={editingId ? "Edit Division" : "New Division"}
+        subtitle="Organize your curriculum under a specific departmental unit."
+        icon={<Building2 />}
       >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Division Name</label>
-            <input 
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <FormField label="Division Name" required>
+            <Input 
               required 
-              type="text" 
               value={formData.name} 
               onChange={e => setFormData({...formData, name: e.target.value})}
-              className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm font-medium focus:border-brand-accent outline-none transition-colors" 
-              placeholder="e.g. Software Development" 
+              placeholder="e.g. Frontend Engineering" 
             />
-          </div>
-          <div>
-            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Framework Description</label>
-            <textarea 
+          </FormField>
+
+          <FormField label="Description">
+            <Textarea 
               rows={4}
               value={formData.description} 
               onChange={e => setFormData({...formData, description: e.target.value})}
-              className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm font-medium focus:border-brand-accent outline-none transition-colors resize-none" 
-              placeholder="Describe the department's core focus and activities..." 
+              placeholder="Describe the department's core focus..." 
             />
-          </div>
+          </FormField>
           
-          <div className="pt-6 mt-6 border-t border-brand-border flex justify-end gap-3">
-            <button 
-              type="button" 
-              onClick={() => setIsModalOpen(false)}
-              className="px-6 py-3 rounded-xl border border-brand-border text-text-muted text-[10px] font-black uppercase tracking-widest hover:text-text-main hover:bg-brand-primary/80 transition-colors"
-            >
+          <div className="flex gap-3 pt-4">
+            <Button type="button" variant="outline" className="flex-1" onClick={() => setIsModalOpen(false)}>
               Cancel
-            </button>
-            <Button 
-              type="submit"
-              className="px-6 py-3 shadow-lg shadow-brand-accent/20 flex items-center"
-            >
-              {editingId ? "Commit Changes" : "Establish Unit"}
+            </Button>
+            <Button type="submit" className="flex-1">
+              {editingId ? "Save Changes" : "Create Division"}
             </Button>
           </div>
         </form>
       </Modal>
-
     </div>
   );
 }

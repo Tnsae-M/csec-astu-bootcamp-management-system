@@ -180,9 +180,15 @@ export default function AppRouter() {
           <Route path="student/progress" element={<ProtectedRoute role="STUDENT"><ProgressPage /></ProtectedRoute>} />
           <Route path="student/notifications" element={<ProtectedRoute role="STUDENT"><NotificationsPage /></ProtectedRoute>} />
 
-          {/* Drill-down */}
+          {/* Drill-down & Breadcrumb Catchers */}
+          <Route path="student" element={<Navigate to="/dashboard/student/dashboard" replace />} />
+          <Route path="admin" element={<Navigate to="/dashboard/admin/dashboard" replace />} />
+          <Route path="instructor" element={<Navigate to="/dashboard/instructor/dashboard" replace />} />
+          
+          <Route path=":role/divisions/:divisionId" element={<Navigate to="bootcamps" replace />} />
           <Route path=":role/divisions/:divisionId/bootcamps" element={<ProtectedRoute><BootcampsPage /></ProtectedRoute>} />
           <Route path=":role/divisions/:divisionId/bootcamps/:bootcampId" element={<ProtectedRoute><BootcampDetailPage /></ProtectedRoute>} />
+          <Route path=":role/divisions/:divisionId/bootcamps/:bootcampId/sessions" element={<Navigate to=".." replace />} />
           <Route path=":role/divisions/:divisionId/bootcamps/:bootcampId/sessions/:sessionId" element={<ProtectedRoute><SessionDetailPage /></ProtectedRoute>} />
         </Route>
       </Routes>

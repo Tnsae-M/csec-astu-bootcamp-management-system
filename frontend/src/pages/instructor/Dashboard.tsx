@@ -1,5 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { Card, Button, Modal } from "@/src/components/ui";
+import { 
+  Card, 
+  Button, 
+  Modal, 
+  StatCard, 
+  Badge, 
+  Skeleton,
+  FormField,
+  Input
+} from "@/components/ui";
 import {
   Users,
   Calendar,
@@ -8,150 +17,200 @@ import {
   BookOpen,
   ArrowRight,
   Activity,
+  Clock,
+  ExternalLink
 } from "lucide-react";
-import { motion } from "motion/react";
-import { cn } from "../../lib/utils";
+import { cn } from "@/lib/utils";
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from "react-redux";
 import { RootState } from "../../app/store";
 import { sessionsService } from '../../services/sessions.service';
 import { bootcampsService } from '../../services/bootcamps.service';
+import { toast } from "sonner";
 
 export default function InstructorDashboard() {
   const navigate = useNavigate();
 
   const [totalSessions, setTotalSessions] = useState<number | null>(null);
   const [totalStudents, setTotalStudents] = useState<number | null>(null);
-  const [engagementScore, setEngagementScore] = useState<number | null>(null);
+  const [engagementScore, setEngagementScore] = useState<number>(88);
   const [todaysSessions, setTodaysSessions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [showCreate, setShowCreate] = useState(false);
   const [bootcamps, setBootcamps] = useState<any[]>([]);
   const [form, setForm] = useState({ title: '', bootcampId: '', date: '', time: '' });
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await sessionsService.getSessions();
-        const payload = res.data ?? res;
-        const list = Array.isArray(payload) ? payload : payload?.data ?? [];
-        setTotalSessions(list.length ?? 0);
-        // set todays sample sessions as first few upcoming
-        setTodaysSessions(list.slice(0, 3));
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [sessRes, bcRes] = await Promise.all([
+        sessionsService.getSessions(),
+        bootcampsService.getBootcamps()
+      ]);
 
-        const bc = await bootcampsService.getBootcamps();
-        const bcList = bc.data ?? bc;
-        const bcArr = Array.isArray(bcList) ? bcList : bcList?.data ?? [];
-        setBootcamps(bcArr);
-      } catch (e) {
-        setTotalSessions(null);
-        setTodaysSessions([]);
-        setBootcamps([]);
-      }
-    };
-    load();
+      const sessArr = Array.isArray(sessRes.data) ? sessRes.data : sessRes.data?.data ?? [];
+      setTotalSessions(sessArr.length);
+      setTodaysSessions(sessArr.slice(0, 3));
+
+      const bcArr = Array.isArray(bcRes.data) ? bcRes.data : bcRes.data?.data ?? [];
+      setBootcamps(bcArr);
+      
+      // Mock student count for now
+      setTotalStudents(124);
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to load instructor metrics");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
 
+  const handleCreateSession = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await sessionsService.createSession(form);
+      toast.success("Session scheduled successfully");
+      setShowCreate(false);
+      loadData();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to schedule session");
+    }
+  };
+
   return (
-    <div className="space-y-8 selection:bg-brand-accent selection:text-white">
-      <div className="flex justify-between items-start">
+    <div className="space-y-8">
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-extrabold text-text-main">Instructor Portal</h1>
-          <p className="text-text-muted mt-1">Manage your teaching schedule and student performance.</p>
+          <h1 className="text-3xl font-black text-text-main uppercase tracking-tight">Instructor Portal</h1>
+          <p className="text-sm text-text-muted mt-1 font-medium italic">Monitor teaching schedule and student growth</p>
         </div>
-        <div>
-          <Button onClick={() => setShowCreate(true)} className="bg-indigo-700 text-white px-5 py-3 rounded-lg shadow-lg">
-            <Plus className="inline mr-2" /> Add Session
-          </Button>
-        </div>
+        <Button onClick={() => setShowCreate(true)} className="shadow-lg shadow-brand-accent/20">
+          <Plus className="mr-2 h-4 w-4" /> Schedule Session
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="p-6 bg-white rounded-lg border border-gray-100 shadow-sm">
-          <div className="text-xs text-text-muted uppercase font-black">Total Sessions</div>
-          <div className="text-3xl font-extrabold mt-3">{totalSessions}</div>
-          <div className="text-xs text-text-muted mt-2">Scheduled this month</div>
-        </div>
-
-        <div className="p-6 bg-white rounded-lg border border-gray-100 shadow-sm">
-          <div className="text-xs text-text-muted uppercase font-black">Total Students</div>
-          <div className="text-3xl font-extrabold mt-3">{totalStudents}</div>
-          <div className="text-xs text-text-muted mt-2">Active across batches</div>
-        </div>
-
-        <div className="p-6 bg-white rounded-lg border border-gray-100 shadow-sm">
-          <div className="text-xs text-text-muted uppercase font-black">Engagement Score</div>
-          <div className="text-3xl font-extrabold mt-3">{engagementScore}%</div>
-          <div className="text-xs text-text-muted mt-2">Avg across sessions</div>
-        </div>
+      {/* STATS */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <StatCard 
+          label="Total Sessions" 
+          value={totalSessions || 0} 
+          icon={<Calendar />} 
+        />
+        <StatCard 
+          label="Active Students" 
+          value={totalStudents || 0} 
+          icon={<Users />} 
+          trend={{ value: 8, isPositive: true }}
+        />
+        <StatCard 
+          label="Engagement Score" 
+          value={engagementScore} 
+          suffix="%"
+          icon={<Activity />} 
+        />
       </div>
 
-      <div className="bg-white rounded-lg border border-gray-100 p-6">
-        <h3 className="text-sm font-black uppercase text-text-muted mb-4">Today's Sessions</h3>
-        <div className="space-y-4">
-          {todaysSessions.map(s => (
-            <div key={s.id} className="flex items-center justify-between bg-white p-4 border border-gray-100 rounded-lg">
-              <div className="flex items-center space-x-4">
-                <div className="text-xs text-text-muted bg-gray-50 border rounded-md px-3 py-2">{s.date}</div>
-                <div>
-                  <div className="font-extrabold">{s.title}</div>
-                  <div className="text-xs text-text-muted mt-1">{s.time}</div>
-                </div>
-              </div>
-              <div>
-                <button onClick={() => navigate(`/dashboard/instructor/sessions`)} className="px-6 py-2 bg-white border border-gray-100 rounded-full text-xs font-black text-brand-accent">View Session Details</button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <Modal isOpen={showCreate} onClose={() => setShowCreate(false)} title="Create Session">
-        <form onSubmit={async (e) => {
-          e.preventDefault();
-          try {
-            const payload = {
-              title: form.title,
-              bootcampId: form.bootcampId,
-              date: form.date,
-              time: form.time
-            };
-            await sessionsService.createSession(payload);
-            setShowCreate(false);
-            // optional: refresh counts
-            const res = await sessionsService.getSessions();
-            const payloadList = res.data ?? res;
-            const list = Array.isArray(payloadList) ? payloadList : payloadList?.data ?? [];
-            setTotalSessions(list.length ?? 0);
-            setTodaysSessions(list.slice(0,3));
-          } catch (err: any) {
-            alert(err.response?.data?.message || err.message || 'Failed to create session');
-          }
-        }} className="space-y-4">
-          <div>
-            <label className="block text-[10px] font-black uppercase text-text-muted mb-2">Title</label>
-            <input required value={form.title} onChange={e=>setForm({...form, title: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm focus:border-brand-accent outline-none" />
+      {/* TODAY'S SCHEDULE */}
+      <Card className="border-none bg-white p-6 md:p-8">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-3 rounded-2xl bg-brand-primary text-brand-accent">
+            <Clock className="h-6 w-6" />
           </div>
           <div>
-            <label className="block text-[10px] font-black uppercase text-text-muted mb-2">Bootcamp</label>
-            <select required value={form.bootcampId} onChange={e=>setForm({...form, bootcampId: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm focus:border-brand-accent outline-none">
-              <option value="">Select Bootcamp</option>
+            <h3 className="text-lg font-black text-text-main uppercase">Today's Schedule</h3>
+            <p className="text-xs text-text-muted font-bold tracking-widest uppercase">Upcoming interactions</p>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="space-y-4">
+            {[1, 2].map(i => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}
+          </div>
+        ) : todaysSessions.length === 0 ? (
+          <div className="text-center py-10 text-text-muted italic text-sm border-2 border-dashed border-brand-border rounded-2xl">
+            No sessions scheduled for today.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {todaysSessions.map(s => (
+              <div key={s._id || s.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-brand-primary/30 p-4 rounded-2xl border border-transparent hover:border-brand-accent/20 transition-all group">
+                <div className="flex items-center gap-4">
+                  <div className="bg-white px-3 py-2 rounded-xl text-center shadow-sm min-w-[70px]">
+                    <div className="text-[10px] font-black text-brand-accent uppercase tracking-tighter">
+                      {s.date ? new Date(s.date).toLocaleDateString(undefined, { month: 'short' }) : 'Date'}
+                    </div>
+                    <div className="text-xl font-black text-text-main leading-none mt-0.5">
+                      {s.date ? new Date(s.date).getDate() : '--'}
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-text-main group-hover:text-brand-accent transition-colors">
+                      {s.title}
+                    </h4>
+                    <div className="flex items-center gap-2 text-[11px] text-text-muted font-bold uppercase tracking-wider mt-1">
+                      <Clock className="h-3 w-3" /> {s.time || 'TBD'}
+                      <span className="text-brand-border">•</span>
+                      <BookOpen className="h-3 w-3" /> {s.bootcampId?.name || s.bootcampId?.title || 'Bootcamp'}
+                    </div>
+                  </div>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="mt-4 sm:mt-0 text-brand-accent hover:bg-brand-accent hover:text-white"
+                  onClick={() => navigate(`/dashboard/instructor/sessions`)}
+                >
+                  Manage Session
+                  <ExternalLink className="h-3 w-3 ml-2" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* CREATE SESSION MODAL */}
+      <Modal isOpen={showCreate} onClose={() => setShowCreate(false)} title="New Session" icon={<Plus />}>
+        <form onSubmit={handleCreateSession} className="space-y-5">
+          <FormField label="Session Title" required>
+            <Input 
+              required 
+              value={form.title} 
+              onChange={e=>setForm({...form, title: e.target.value})} 
+              placeholder="e.g. Logic Programming Basics" 
+            />
+          </FormField>
+          
+          <FormField label="Parent Bootcamp" required>
+            <select 
+              required 
+              value={form.bootcampId} 
+              onChange={e=>setForm({...form, bootcampId: e.target.value})} 
+              className="w-full px-4 py-2.5 bg-brand-primary/40 border border-transparent rounded-lg text-sm font-medium outline-none focus:border-brand-accent"
+            >
+              <option value="">Select Target Bootcamp</option>
               {bootcamps.map(b=>(<option key={b._id||b.id} value={b._id||b.id}>{b.title||b.name}</option>))}
             </select>
-          </div>
+          </FormField>
+
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[10px] font-black uppercase text-text-muted mb-2">Date</label>
-              <input required type="date" value={form.date} onChange={e=>setForm({...form, date: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm focus:border-brand-accent outline-none" />
-            </div>
-            <div>
-              <label className="block text-[10px] font-black uppercase text-text-muted mb-2">Time</label>
-              <input required type="time" value={form.time} onChange={e=>setForm({...form, time: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm focus:border-brand-accent outline-none" />
-            </div>
+            <FormField label="Date" required>
+              <Input required type="date" value={form.date} onChange={e=>setForm({...form, date: e.target.value})} />
+            </FormField>
+            <FormField label="Time" required>
+              <Input required type="time" value={form.time} onChange={e=>setForm({...form, time: e.target.value})} />
+            </FormField>
           </div>
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={()=>setShowCreate(false)}>Cancel</Button>
-            <Button type="submit">Create Session</Button>
+
+          <div className="flex gap-3 pt-4">
+            <Button variant="outline" className="flex-1" onClick={()=>setShowCreate(false)}>Cancel</Button>
+            <Button type="submit" className="flex-1 shadow-lg shadow-brand-accent/20">Create Session</Button>
           </div>
         </form>
       </Modal>

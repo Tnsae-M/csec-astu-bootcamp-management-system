@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import api from '@/src/api/axios';
-import { Button } from '@/src/components/ui';
+import api from '@/api/axios';
+import { Button } from '@/components/ui';
 import { useDispatch } from 'react-redux';
 import { addFeedback } from '../../features/feedback/feedbackSlice';
 import { v4 as uuidv4 } from 'uuid';

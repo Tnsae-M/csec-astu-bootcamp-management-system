@@ -21,6 +21,18 @@ export const createBootcamp = async (req, res, next) => {
   }
 };
 
+export const getBootcamps = async (req, res, next) => {
+  try {
+    const bootcamps = await bootcampService.getBootcamps();
+    return res.status(200).json({
+      success: true,
+      data: bootcamps,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 export const getBootcampsByDivision = async (req, res, next) => {
   try {
     const bootcamps = await bootcampService.getBootcampsByDivision(

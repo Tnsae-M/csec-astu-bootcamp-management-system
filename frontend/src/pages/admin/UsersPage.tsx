@@ -2,29 +2,46 @@ import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../app/store';
-import { User, Mail, Shield, Activity, Edit, Plus, Trash2, UserPlus } from 'lucide-react';
-import { cn } from '../../lib/utils';
-import { usersService } from '../../services/users.service';
-import { divisionsService } from '../../services/divisions.service';
-import { setUsersStart, setUsersSuccess, setUsersFailure } from '../../features/users/usersSlice';
-import { Button, Modal, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
+import { User, Mail, Shield, Activity, Edit, Plus, Trash2, UserPlus, Search, MoreHorizontal } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { usersService } from '@/services/users.service';
+import { divisionsService } from '@/services/divisions.service';
+import { setUsersStart, setUsersSuccess, setUsersFailure } from '@/features/users/usersSlice';
+import { 
+  Button, 
+  Modal, 
+  Card,
+  Table, 
+  TableHeader, 
+  TableBody, 
+  TableRow, 
+  TableHead, 
+  TableCell,
+  Badge,
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+  FormField,
+  Input,
+  Skeleton,
+  EmptyState
+} from '@/components/ui';
+import { toast } from 'sonner';
 
 export default function UsersPage() {
   const dispatch = useDispatch();
   const { users, loading } = useSelector((state: RootState) => state.users);
   const { searchTerm } = useSelector((state: RootState) => state.ui);
-  const { user } = useSelector((state: RootState) => state.auth);
+  const { user: currentUser } = useSelector((state: RootState) => state.auth);
   const location = useLocation();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   
-  // Form State
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    // support multiple roles for backend integration (use uppercase role tokens)
     roles: ['STUDENT'],
     division: '',
     status: 'active'
@@ -34,45 +51,34 @@ export default function UsersPage() {
   const fetchUsers = () => {
     dispatch(setUsersStart());
     usersService.getUsers()
-      .then(res => {
-        dispatch(setUsersSuccess(res.data || []));
-      })
+      .then(res => dispatch(setUsersSuccess(res.data || [])))
       .catch(err => dispatch(setUsersFailure(err.message)));
   };
 
   useEffect(() => {
     fetchUsers();
+    divisionsService.getDivisions().then(res => {
+      const payload = res.data ?? res;
+      setDivisions(Array.isArray(payload) ? payload : payload?.data ?? []);
+    }).catch(() => setDivisions([]));
   }, [dispatch]);
 
   useEffect(() => {
-    divisionsService.getDivisions().then(res => {
-      const payload = res.data ?? res;
-      const list = Array.isArray(payload) ? payload : payload?.data ?? [];
-      setDivisions(list);
-    }).catch(() => setDivisions([]));
-  }, []);
-
-  // Auto-open create admin modal when navigated from dashboard quick action
-  useEffect(() => {
     const params = new URLSearchParams(location.search);
-    if (params.get('createAdmin') === 'true' && (user?.roles || []).includes('SUPER ADMIN')) {
-      setEditingUserId(null);
-      setFormData({ name: '', email: '', password: '', roles: ['ADMIN'], division: '', status: 'active' });
-      setIsModalOpen(true);
+    if (params.get('createAdmin') === 'true' && (currentUser?.roles || []).includes('SUPER ADMIN')) {
+      handleOpenCreate('ADMIN');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [location, currentUser]);
 
   const filteredUsers = users.filter((u) => 
     u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.role.toLowerCase().includes(searchTerm.toLowerCase())
+    (u.role || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleOpenCreate = () => {
+  const handleOpenCreate = (forcedRole?: string) => {
     setEditingUserId(null);
-    // Super Admins may only create Admin users per requirements
-    const defaultRoles = (user?.roles || []).includes('SUPER ADMIN') ? ['ADMIN'] : ['STUDENT'];
+    const defaultRoles = forcedRole ? [forcedRole] : ((currentUser?.roles || []).includes('SUPER ADMIN') ? ['ADMIN'] : ['STUDENT']);
     setFormData({ name: '', email: '', password: '', roles: defaultRoles, division: '', status: 'active' });
     setIsModalOpen(true);
   };
@@ -82,10 +88,10 @@ export default function UsersPage() {
     setFormData({ 
       name: user.name, 
       email: user.email, 
-      password: '', // Blank when editing
+      password: '', 
       roles: user.roles || (user.role ? [String(user.role).toUpperCase()] : ['STUDENT']),
       division: user.division || user.divisionId || '',
-      status: user.status 
+      status: user.status || 'active'
     });
     setIsModalOpen(true);
   };
@@ -94,224 +100,207 @@ export default function UsersPage() {
     e.preventDefault();
     try {
       if (editingUserId) {
-        const payload: any = { ...formData };
-        if (!payload.password) delete payload.password; // Don't submit blank passwords
+        const payload = { ...formData };
+        if (!payload.password) delete (payload as any).password;
         await usersService.updateUser(editingUserId, payload);
+        toast.success('User updated successfully');
       } else {
-        // Prepare payload for backend: send `roles` array and a primary `role` for compatibility
-        // Enforce role creation rules: SUPER ADMIN may only create ADMIN
-        const desiredRoles = (user?.role === 'SUPER ADMIN') ? ['ADMIN'] : formData.roles;
-        const primaryRole = Array.isArray(desiredRoles) && desiredRoles.length > 0 ? desiredRoles[0] : 'STUDENT';
-        const payload: any = {
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          roles: (user?.roles || []).includes('SUPER ADMIN') ? ['ADMIN'] : formData.roles,
-          role: primaryRole,
-          division: formData.division || undefined,
-          status: formData.status
-        };
+        const primaryRole = formData.roles[0] || 'STUDENT';
+        const payload = { ...formData, role: primaryRole };
         await usersService.createUser(payload);
+        toast.success('User provisioned successfully');
       }
       setIsModalOpen(false);
-      fetchUsers(); // Refresh the list
+      fetchUsers();
     } catch (err: any) {
-      alert(err.response?.data?.message || err.message);
+      toast.error(err.response?.data?.message || err.message);
     }
   };
 
+  const getStatusBadge = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'active': return <Badge variant="success" className="bg-emerald-50 text-emerald-600 border-emerald-100 uppercase text-[9px] tracking-widest px-2">Active</Badge>;
+      case 'suspended': return <Badge variant="destructive" className="uppercase text-[9px] tracking-widest px-2">Suspended</Badge>;
+      default: return <Badge variant="secondary" className="uppercase text-[9px] tracking-widest px-2">{status || 'Pending'}</Badge>;
+    }
+  };
+
+  const getRoleBadge = (role: string) => {
+    const r = (role || 'Student').toUpperCase();
+    if (r === 'ADMIN' || r === 'SUPER ADMIN') return <span className="text-[10px] font-black text-brand-accent tracking-widest">{r}</span>;
+    if (r === 'INSTRUCTOR') return <span className="text-[10px] font-black text-violet-600 tracking-widest">{r}</span>;
+    return <span className="text-[10px] font-bold text-text-muted tracking-widest">{r}</span>;
+  };
+
   return (
-    <div className="space-y-8 selection:bg-brand-accent selection:text-white">
-      <div className="flex justify-between items-end">
+    <div className="space-y-6">
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-black text-brand-accent uppercase tracking-tighter">User Directory</h1>
-          <p className="text-text-muted font-bold text-xs uppercase tracking-[0.2em] mt-2">Active Directory & Access Control Systems</p>
+          <h1 className="text-3xl font-black text-text-main uppercase tracking-tight">User Directory</h1>
+          <p className="text-sm text-text-muted mt-1 font-medium italic">Identity provisioning and access control systems</p>
         </div>
-        <button 
-          onClick={handleOpenCreate}
-          className="bg-brand-accent text-white px-6 py-3 text-[11px] font-black uppercase tracking-widest rounded-xl flex items-center hover:bg-brand-accent/90 transition-all shadow-lg shadow-brand-accent/20 active:translate-y-[1px]"
-        >
-          <Plus size={14} className="mr-2" /> Provision New User
-        </button>
+
+        <Button onClick={() => handleOpenCreate()} className="shadow-lg shadow-brand-accent/20">
+          <Plus className="mr-2 h-4 w-4" /> Provision New User
+        </Button>
       </div>
 
-      {loading ? (
-         <div className="text-center text-text-muted font-bold uppercase py-10">Loading Users...</div>
-      ) : (
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>User</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Role</TableHead>
-            <TableHead>Division</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filteredUsers.map((u) => (
-            <TableRow key={u._id}>
-              <TableCell className="font-bold">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 rounded-lg bg-brand-primary border border-brand-border flex items-center justify-center text-brand-accent shadow-sm">
-                    <User size={14} />
-                  </div>
-                  <span className="uppercase tracking-tight">{u.name}</span>
-                </div>
-              </TableCell>
-              <TableCell className="text-text-muted">{u.email}</TableCell>
-              <TableCell>
-                 <span className="flex items-center text-[10px] font-black uppercase tracking-widest text-brand-accent">
-                    <Shield size={10} className="mr-2" /> {u.role}
-                 </span>
-              </TableCell>
-              <TableCell className="uppercase text-[10px] font-black tracking-widest text-text-muted">
-                 {u.division || 'Unassigned'}
-              </TableCell>
-              <TableCell>
-                <div className={cn(
-                  "inline-flex px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-[0.2em] shadow-sm",
-                  u.status?.toLowerCase() === 'active' ? "bg-green-100 text-green-700 border border-green-200" : "bg-red-100 text-red-700 border border-red-200"
-                )}>
-                  {u.status}
-                </div>
-              </TableCell>
-              <TableCell className="text-right">
-                <button 
-                  onClick={() => handleOpenEdit(u)}
-                  className="p-2 bg-brand-primary border border-brand-border rounded-lg text-text-muted hover:text-brand-accent hover:border-brand-accent/50 transition-colors"
-                >
-                  <Edit size={14} />
-                </button>
-              </TableCell>
-            </TableRow>
-          ))}
-          {filteredUsers.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={6} className="text-center py-10 text-text-muted uppercase tracking-widest text-[10px] font-black">
-                No users found.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-      )}
+      {/* TABLE SECTION */}
+      <Card className="overflow-hidden border-none shadow-sm bg-white">
+        {loading ? (
+          <div className="p-8 space-y-4">
+            {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}
+          </div>
+        ) : filteredUsers.length === 0 ? (
+          <EmptyState 
+            title="No Users Found" 
+            description="Your search criteria did not match any users in the directory."
+            icon={<User />}
+          />
+        ) : (
+          <div className="overflow-x-auto no-scrollbar">
+            <Table>
+              <TableHeader className="bg-brand-primary/30">
+                <TableRow>
+                  <TableHead className="w-[300px]">Profile Identity</TableHead>
+                  <TableHead>System Access</TableHead>
+                  <TableHead>Department</TableHead>
+                  <TableHead>Availability</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredUsers.map((u) => (
+                  <TableRow key={u._id} className="hover:bg-brand-primary/10 transition-colors group">
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-9 w-9 border border-brand-border">
+                          <AvatarFallback className="bg-brand-primary text-brand-accent font-bold text-xs uppercase">
+                            {u.name?.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col">
+                          <span className="font-bold text-text-main text-sm tracking-tight">{u.name}</span>
+                          <span className="text-[11px] text-text-muted">{u.email}</span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>{getRoleBadge(u.role)}</TableCell>
+                    <TableCell>
+                      <span className="text-xs font-semibold text-text-muted uppercase tracking-tight">
+                        {u.division || 'Unassigned'}
+                      </span>
+                    </TableCell>
+                    <TableCell>{getStatusBadge(u.status)}</TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-text-muted hover:text-brand-accent" onClick={() => handleOpenEdit(u)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </Card>
 
-      {/* CREATE / EDIT MODAL */}
+      {/* USER MODAL */}
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
-        title={editingUserId ? "Edit User Profiling" : "Provision New Identity"}
-        subtitle={editingUserId ? "Update the user's profile and access rights." : "Create a new system identity with appropriate role and status."}
+        title={editingUserId ? "Modify Identity" : "Provision Identity"}
+        subtitle="Manage user access rights, roles, and departmental assignments."
         icon={<UserPlus />}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Full Name</label>
-            <input 
+          <FormField label="Legal Name" required>
+            <Input 
               required 
-              type="text" 
               value={formData.name} 
               onChange={e => setFormData(prev => ({...prev, name: e.target.value}))}
-              className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm font-medium focus:border-brand-accent outline-none transition-colors" 
               placeholder="e.g. John Doe" 
             />
-          </div>
-          <div>
-            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Educational Email</label>
-            <input 
+          </FormField>
+          
+          <FormField label="Educational Email" required>
+            <Input 
               required 
               type="email" 
               value={formData.email} 
               onChange={e => setFormData(prev => ({...prev, email: e.target.value}))}
-              className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm font-medium focus:border-brand-accent outline-none transition-colors" 
-              placeholder="e.g. j.doe@scholar.astu" 
+              placeholder="j.doe@scholar.astu" 
             />
-          </div>
-          <div>
-            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">
-              Identity Key {editingUserId && <span className="text-brand-accent lowercase normal-case text-[9px]">(Leave blank to keep unchanged)</span>}
-            </label>
-            <input 
+          </FormField>
+
+          <FormField label={editingUserId ? "New Identity Key (Optional)" : "Identity Key"} required={!editingUserId}>
+            <Input 
               type="password" 
-              required={!editingUserId} // Only required for new users
               value={formData.password} 
               onChange={e => setFormData(prev => ({...prev, password: e.target.value}))}
-              className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm font-medium focus:border-brand-accent outline-none transition-colors" 
               placeholder="••••••••" 
             />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Role Assignment</label>
-              {user?.role === 'SUPER ADMIN' ? (
-                <div className="flex items-center gap-2">
-                  <div className="px-3 py-2 rounded-lg bg-brand-primary/30 text-sm font-black uppercase tracking-wider">Administrator</div>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  <label className="inline-flex items-center gap-2">
-                    <input type="checkbox" checked={formData.roles.includes('STUDENT')} onChange={() => {
-                      setFormData(prev => {
-                        const has = prev.roles.includes('STUDENT');
-                        return {...prev, roles: has ? prev.roles.filter((r:any) => r !== 'STUDENT') : [...prev.roles, 'STUDENT']};
-                      });
-                    }} />
-                    <span className="text-xs font-bold">Student</span>
-                  </label>
-                  <label className="inline-flex items-center gap-2">
-                    <input type="checkbox" checked={formData.roles.includes('INSTRUCTOR')} onChange={() => {
-                      setFormData(prev => {
-                        const has = prev.roles.includes('INSTRUCTOR');
-                        return {...prev, roles: has ? prev.roles.filter((r:any) => r !== 'INSTRUCTOR') : [...prev.roles, 'INSTRUCTOR']};
-                      });
-                    }} />
-                    <span className="text-xs font-bold">Instructor</span>
-                  </label>
-                </div>
-              )}
+          </FormField>
 
-              <div className="mt-3">
-                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Assign Division</label>
-                <select value={formData.division} onChange={e => setFormData(prev => ({...prev, division: e.target.value}))} className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm font-medium outline-none focus:border-brand-accent">
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="Role Path">
+              <div className="flex flex-col gap-2 pt-1">
+                {['STUDENT', 'INSTRUCTOR', 'ADMIN'].map((r) => (
+                  <label key={r} className="inline-flex items-center gap-2 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      className="rounded border-brand-border text-brand-accent focus:ring-brand-accent"
+                      checked={formData.roles.includes(r)} 
+                      onChange={() => {
+                        setFormData(prev => {
+                          const has = prev.roles.includes(r);
+                          return {...prev, roles: has ? prev.roles.filter(role => role !== r) : [...prev.roles, r]};
+                        });
+                      }} 
+                    />
+                    <span className="text-xs font-bold text-text-main uppercase tracking-widest">{r}</span>
+                  </label>
+                ))}
+              </div>
+            </FormField>
+
+            <div className="space-y-4">
+              <FormField label="Division Unit">
+                <select 
+                  value={formData.division} 
+                  onChange={e => setFormData(prev => ({...prev, division: e.target.value}))} 
+                  className="w-full px-3 py-2 rounded-lg bg-brand-primary/40 border border-transparent text-sm font-medium outline-none focus:border-brand-accent transition-all appearance-none"
+                >
                   <option value="">Unassigned</option>
                   {divisions.map(d => (<option key={d._id || d.id} value={d._id || d.id}>{d.name}</option>))}
                 </select>
-              </div>
-            </div>
-            <div>
-              <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Account Status</label>
-              <select 
-                value={formData.status} 
-                onChange={e => setFormData(prev => ({...prev, status: e.target.value}))}
-                className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm font-medium uppercase outline-none focus:border-brand-accent transition-colors"
-               >
-                <option value="active">Active</option>
-                <option value="suspended">Suspended</option>
-                <option value="graduated">Graduated</option>
-              </select>
+              </FormField>
+
+              <FormField label="Lifecycle Status">
+                <select 
+                  value={formData.status} 
+                  onChange={e => setFormData(prev => ({...prev, status: e.target.value}))}
+                  className="w-full px-3 py-2 rounded-lg bg-brand-primary/40 border border-transparent text-sm font-medium outline-none focus:border-brand-accent transition-all appearance-none"
+                >
+                  <option value="active">Active</option>
+                  <option value="suspended">Suspended</option>
+                  <option value="graduated">Graduated</option>
+                </select>
+              </FormField>
             </div>
           </div>
           
-          <div className="pt-6 mt-6 border-t border-brand-border flex justify-end gap-3">
-            <button 
-              type="button" 
-              onClick={() => setIsModalOpen(false)}
-              className="px-6 py-3 rounded-xl border border-brand-border text-text-muted text-[10px] font-black uppercase tracking-widest hover:text-text-main hover:bg-brand-primary/80 transition-colors"
-            >
+          <div className="flex gap-3 pt-6 border-t border-brand-border mt-4">
+            <Button type="button" variant="outline" className="flex-1" onClick={() => setIsModalOpen(false)}>
               Cancel
-            </button>
-            <Button 
-              type="submit"
-              className="px-6 py-3 shadow-lg shadow-brand-accent/20"
-            >
-              {editingUserId ? "Commit Changes" : "Deploy User"}
+            </Button>
+            <Button type="submit" className="flex-1 shadow-lg shadow-brand-accent/20">
+              {editingUserId ? "Update Identity" : "Deploy Provisioning"}
             </Button>
           </div>
         </form>
       </Modal>
-
     </div>
   );
 }

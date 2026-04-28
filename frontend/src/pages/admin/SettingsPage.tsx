@@ -1,6 +1,6 @@
 import React from 'react';
 import { Settings, Shield, Bell, Database, Globe, Lock, Cpu, Save } from 'lucide-react';
-import { Button } from '@/src/components/ui';
+import { Button } from '@/components/ui';
 
 export default function SettingsPage() {
   const sections = [

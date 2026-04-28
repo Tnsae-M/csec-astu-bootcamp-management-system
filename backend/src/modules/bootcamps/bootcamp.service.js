@@ -26,6 +26,9 @@ export const createBootcamp = async (
   });
   return bootcamp;
 };
+export const getBootcamps = async () => {
+  return await Bootcamp.find().populate("divisionId", "name");
+};
 export const getBootcampsByDivision = async (divisionId) => {
   const division = await Division.findById(divisionId);
   if (!division) {

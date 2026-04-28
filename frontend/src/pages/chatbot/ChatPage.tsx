@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card } from '@/src/components/ui';
+import { Card } from '@/components/ui';
 import { MessageSquare } from 'lucide-react';
 
 export default function ChatPage() {
