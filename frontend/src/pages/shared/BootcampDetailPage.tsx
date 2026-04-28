@@ -3,8 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
 import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/card';
-import { Button } from '../../components/ui';
+import { Button, Modal } from '../../components/ui';
 import { Users2, Clock, Calendar, BookOpen } from 'lucide-react';
+import { usersService } from '../../services/users.service';
 import { groupsService } from '../../services/groups.service';
 import { sessionsService } from '../../services/sessions.service';
 import { setGroupsStart, setGroupsSuccess, setGroupsFailure } from '../../features/groups/groupsSlice';
@@ -35,11 +36,65 @@ export default function BootcampDetailPage() {
   }, [bootcampId, dispatch]);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [formState, setFormState] = useState<any>({
+    // group
+    groupName: '',
+    mentorId: '',
+    // session
+    title: '',
+    instructorId: '',
+    place: '',
+    duration: '',
+    date: '',
+    time: ''
+  });
+  const [instructors, setInstructors] = useState<any[]>([]);
+  const [creating, setCreating] = useState(false);
 
   const handleCreate = async () => {
-    alert(`Creation logic for ${activeTab} would trigger here. Ready for module expansion.`);
-    setShowCreateModal(false);
+    if (!bootcampId) return;
+    setCreating(true);
+    try {
+      if (activeTab === 'groups') {
+        await groupsService.createGroup({
+          name: formState.groupName,
+          bootcampId,
+          mentor: formState.mentorId || undefined
+        });
+        dispatch(setGroupsStart());
+        groupsService.getGroupsByBootcamp(bootcampId).then(res => dispatch(setGroupsSuccess(res.data || []))).catch(err => dispatch(setGroupsFailure(err.message)));
+      } else {
+        // sessions
+        await sessionsService.createSession({
+          title: formState.title,
+          bootcampId,
+          instructor: formState.instructorId || undefined,
+          place: formState.place,
+          duration: formState.duration,
+          date: formState.date,
+          startTime: formState.time
+        });
+        dispatch(setSessionsStart());
+        sessionsService.getSessionsByBootcamp(bootcampId).then(res => dispatch(setSessionsSuccess(res.data || []))).catch(err => dispatch(setSessionsFailure(err.message)));
+      }
+      setShowCreateModal(false);
+      // reset form
+      setFormState({ groupName: '', mentorId: '', title: '', instructorId: '', place: '', duration: '', date: '', time: '' });
+    } catch (err: any) {
+      alert(err.response?.data?.message || err.message || 'Create failed');
+    } finally {
+      setCreating(false);
+    }
   };
+
+  useEffect(() => {
+    // load instructors for selects
+    usersService.getUsers('INSTRUCTOR').then(res => {
+      const payload = res.data ?? res;
+      const list = Array.isArray(payload) ? payload : payload?.data ?? [];
+      setInstructors(list);
+    }).catch(() => setInstructors([]));
+  }, []);
 
   return (
     <div className="space-y-8 selection:bg-brand-accent selection:text-white relative">
@@ -66,39 +121,75 @@ export default function BootcampDetailPage() {
         )}
       </div>
 
-      {/* Creation Modal Placeholder */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-brand-primary/80 backdrop-blur-md z-[100] flex items-center justify-center p-6">
-          <Card className="w-full max-w-md border-brand-accent shadow-2xl shadow-brand-accent/20">
-            <CardHeader>
-              <CardTitle className="uppercase tracking-tighter font-black text-brand-accent">Initialize New {activeTab === 'groups' ? 'Group' : 'Session'}</CardTitle>
-              <CardDescription className="text-[10px] font-bold uppercase tracking-widest">Provide the metadata for this deployment.</CardDescription>
-            </CardHeader>
-            <div className="p-6 space-y-4">
-               <div className="space-y-1">
-                 <label className="text-[10px] font-black uppercase tracking-widest text-text-muted">Entity Title</label>
-                 <input type="text" className="w-full bg-brand-primary border border-brand-border rounded px-3 py-2 text-xs focus:border-brand-accent outline-none" placeholder={`New ${activeTab.slice(0, -1)} name...`} />
-               </div>
-               {activeTab === 'sessions' && (
-                 <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-text-muted">Date</label>
-                      <input type="date" className="w-full bg-brand-primary border border-brand-border rounded px-3 py-2 text-xs focus:border-brand-accent outline-none" />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-text-muted">Time</label>
-                      <input type="time" className="w-full bg-brand-primary border border-brand-border rounded px-3 py-2 text-xs focus:border-brand-accent outline-none" />
-                    </div>
-                 </div>
-               )}
-            </div>
-            <CardFooter className="flex gap-4">
-               <Button onClick={() => setShowCreateModal(false)} variant="outline" className="flex-1 text-[10px] font-black uppercase tracking-widest">Cancel</Button>
-               <Button onClick={handleCreate} className="flex-1 bg-brand-accent text-white text-[10px] font-black uppercase tracking-widest">Confirm Creation</Button>
-            </CardFooter>
-          </Card>
-        </div>
-      )}
+      <Modal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title={activeTab === 'groups' ? 'Create Group' : 'Schedule Session'}
+        subtitle={activeTab === 'groups' ? 'Define a cohort and assign a mentor.' : 'Schedule a session and assign an instructor.'}
+        icon={activeTab === 'groups' ? <Users2 /> : <Calendar />}
+      >
+        <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleCreate(); }}>
+          {activeTab === 'groups' ? (
+            <>
+              <div>
+                <label className="block text-[10px] font-black uppercase text-text-muted mb-2">Group Name</label>
+                <input required value={formState.groupName} onChange={e => setFormState({...formState, groupName: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm focus:border-brand-accent outline-none" placeholder="e.g. Alpha Cohort" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black uppercase text-text-muted mb-2">Mentor (Instructor)</label>
+                <select value={formState.mentorId} onChange={e => setFormState({...formState, mentorId: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm focus:border-brand-accent outline-none">
+                  <option value="">Unassigned</option>
+                  {instructors.map(i => (<option key={i._id || i.id} value={i._id || i.id}>{i.name}</option>))}
+                </select>
+              </div>
+              <div className="pt-4 flex justify-end gap-3">
+                <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>Cancel</Button>
+                <Button type="submit" disabled={creating}>{creating ? 'Creating...' : 'Create Group'}</Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <label className="block text-[10px] font-black uppercase text-text-muted mb-2">Session Title</label>
+                <input required value={formState.title} onChange={e => setFormState({...formState, title: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm focus:border-brand-accent outline-none" placeholder="e.g. React Hooks Deep Dive" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-text-muted mb-2">Instructor</label>
+                  <select value={formState.instructorId} onChange={e => setFormState({...formState, instructorId: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm focus:border-brand-accent outline-none">
+                    <option value="">Unassigned</option>
+                    {instructors.map(i => (<option key={i._id || i.id} value={i._id || i.id}>{i.name}</option>))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-text-muted mb-2">Place</label>
+                  <input value={formState.place} onChange={e => setFormState({...formState, place: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm focus:border-brand-accent outline-none" placeholder="e.g. Room 204 / Zoom" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-text-muted mb-2">Date</label>
+                  <input type="date" value={formState.date} onChange={e => setFormState({...formState, date: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm focus:border-brand-accent outline-none" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-text-muted mb-2">Time</label>
+                  <input type="time" value={formState.time} onChange={e => setFormState({...formState, time: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm focus:border-brand-accent outline-none" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-text-muted mb-2">Duration</label>
+                  <input value={formState.duration} onChange={e => setFormState({...formState, duration: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm focus:border-brand-accent outline-none" placeholder="e.g. 1h 30m" />
+                </div>
+              </div>
+
+              <div className="pt-4 flex justify-end gap-3">
+                <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>Cancel</Button>
+                <Button type="submit" disabled={creating}>{creating ? 'Scheduling...' : 'Create Session'}</Button>
+              </div>
+            </>
+          )}
+        </form>
+      </Modal>
 
       {/* Tabs */}
       <div className="flex border-b border-brand-border space-x-8">

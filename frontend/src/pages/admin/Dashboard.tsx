@@ -13,6 +13,9 @@ import { usersService } from "@/src/services/users.service";
 import { divisionsService } from "@/src/services/divisions.service";
 import { sessionsService } from "@/src/services/sessions.service";
 import { bootcampsService } from "@/src/services/bootcamps.service";
+import { useSelector } from 'react-redux';
+import { RootState } from '../../app/store';
+import { useNavigate } from 'react-router-dom';
 
 export default function AdminDashboard() {
   const [totalUsers, setTotalUsers] = useState<number | null>(null);
@@ -31,6 +34,8 @@ export default function AdminDashboard() {
   const [showAddBootcamp, setShowAddBootcamp] = useState(false);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ divisionId: "", name: "", startDate: "", endDate: "" });
+  const navigate = useNavigate();
+  const { user } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
     const load = async () => {
@@ -208,7 +213,12 @@ export default function AdminDashboard() {
         </div>
 
         <div>
-          <Button onClick={() => setShowAddBootcamp(true)} className="shadow-lg bg-brand-accent text-white px-4 py-2 rounded-full">+ Bootcamp</Button>
+            <div className="flex items-center gap-3">
+              {user === 'SUPER ADMIN' && (
+                <Button onClick={() => navigate('/dashboard/admin/users?createAdmin=true')} className="shadow-lg bg-indigo-600 text-white px-4 py-2 rounded-full">Add Admin</Button>
+              )}
+              <Button onClick={() => setShowAddBootcamp(true)} className="shadow-lg bg-brand-accent text-white px-4 py-2 rounded-full">+ Bootcamp</Button>
+            </div>
         </div>
       </div>
 

@@ -2,6 +2,13 @@ import api from '../api/axios';
 
 export const submissionsService = {
   submitTask: async (data: any) => {
+    if (data instanceof FormData) {
+      const response = await api.post('/submissions', data, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return response.data;
+    }
+
     const response = await api.post('/submissions', data);
     return response.data;
   },

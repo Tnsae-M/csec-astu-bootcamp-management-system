@@ -1,21 +1,86 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { FileUp, Link as LinkIcon, Send, CheckCircle2, ChevronRight, File } from 'lucide-react';
 import { Button } from '@/src/components/ui';
 import { cn } from '../../lib/utils';
+import { tasksService } from '../../services/tasks.service';
+import { submissionsService } from '../../services/submissions.service';
 
-export default function SubmissionFormPage() {
+interface SubmissionFormPageProps {
+  bootcampId?: string;
+  sessionId?: string;
+}
+
+export default function SubmissionFormPage({ bootcampId, sessionId }: SubmissionFormPageProps) {
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [selectedTask, setSelectedTask] = useState('TASK-01');
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<string | null>(null);
 
-  const tasks = [
-    { id: 'TASK-01', title: 'Modular Architecture Design', division: 'Software Development', deadline: '2026-04-25' },
-    { id: 'TASK-02', title: 'React Performance Audit', division: 'Software Development', deadline: '2026-04-28' },
-    { id: 'TASK-03', title: 'Database Normalization', division: 'Data Science', deadline: '2026-05-01' },
-  ];
+  const [submissionType, setSubmissionType] = useState<'link' | 'text' | 'file'>('link');
+  const [linkValue, setLinkValue] = useState('');
+  const [textValue, setTextValue] = useState('');
+  const [fileValue, setFileValue] = useState<File | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const fileRef = useRef<HTMLInputElement | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    const fetchTasks = async () => {
+      if (!bootcampId) return;
+      setLoadingTasks(true);
+      try {
+        const res = await tasksService.getTasksByBootcamp(bootcampId);
+        const list = Array.isArray(res) ? res : (res.data || []);
+        const filtered = sessionId ? list.filter((t: any) => (t.sessionId?._id || t.sessionId) === sessionId) : list;
+        setTasks(filtered);
+        if (filtered.length > 0) setSelectedTask(filtered[0]._id || filtered[0].id || filtered[0].taskId);
+      } catch (err) {
+        console.error('Failed to load tasks', err);
+      } finally {
+        setLoadingTasks(false);
+      }
+    };
+
+    fetchTasks();
+  }, [bootcampId, sessionId]);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0] || null;
+    setFileValue(f);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitted(true);
+    if (!selectedTask) return alert('Please choose a task.');
+
+    try {
+      setSubmitting(true);
+      if (submissionType === 'file') {
+        if (!fileValue) return alert('Please select a file to upload.');
+        const form = new FormData();
+        form.append('taskId', selectedTask);
+        form.append('type', 'file');
+        form.append('file', fileValue);
+        if (sessionId) form.append('sessionId', sessionId);
+        await submissionsService.submitTask(form);
+      } else if (submissionType === 'link') {
+        if (!linkValue) return alert('Please enter a link.');
+        await submissionsService.submitTask({ taskId: selectedTask, type: 'link', link: linkValue, sessionId });
+      } else {
+        if (!textValue) return alert('Please enter your text submission.');
+        await submissionsService.submitTask({ taskId: selectedTask, type: 'text', text: textValue, sessionId });
+      }
+
+      setIsSubmitted(true);
+      setLinkValue('');
+      setTextValue('');
+      setFileValue(null);
+      if (fileRef.current) fileRef.current.value = '';
+    } catch (err) {
+      console.error('Submission failed', err);
+      alert('Submission failed. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (isSubmitted) {
@@ -28,7 +93,7 @@ export default function SubmissionFormPage() {
            <div className="space-y-4">
              <h2 className="text-4xl font-black text-text-main uppercase tracking-tighter">Receipt Confirmed</h2>
              <p className="text-text-muted font-medium text-sm leading-relaxed uppercase tracking-widest">
-               Your technical artifacts have been successfully uploaded to the central registry. Faculty review pending.
+               Your submission was received. Faculty review pending.
              </p>
            </div>
            <Button onClick={() => setIsSubmitted(false)} variant="secondary" className="px-10 bg-brand-primary border border-brand-border text-brand-accent font-black uppercase tracking-widest text-[11px]">
@@ -55,64 +120,91 @@ export default function SubmissionFormPage() {
               <div className="space-y-4">
                 <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-text-muted">Target Objective / Task</label>
                 <div className="grid grid-cols-1 gap-3">
-                  {tasks.map((task) => (
-                    <div 
-                      key={task.id}
-                      onClick={() => setSelectedTask(task.id)}
-                      className={cn(
-                        "p-5 rounded-2xl border-2 transition-all cursor-pointer group flex justify-between items-center",
-                        selectedTask === task.id 
-                          ? "bg-brand-accent/[0.03] border-brand-accent shadow-sm" 
-                          : "bg-white border-brand-border hover:border-brand-accent/30"
-                      )}
-                    >
-                      <div className="flex items-center space-x-4">
-                        <div className={cn(
-                          "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
-                          selectedTask === task.id ? "bg-brand-accent text-white" : "bg-brand-primary text-text-muted group-hover:text-brand-accent"
-                        )}>
-                          <File size={20} />
+                  {loadingTasks ? (
+                    <div className="text-sm text-text-muted uppercase">Loading tasks...</div>
+                  ) : tasks.length === 0 ? (
+                    <div className="text-sm text-text-muted uppercase">No tasks available for this bootcamp/session.</div>
+                  ) : (
+                    tasks.map((task) => (
+                      <div 
+                        key={task._id || task.id}
+                        onClick={() => setSelectedTask(task._id || task.id)}
+                        className={cn(
+                          "p-5 rounded-2xl border-2 transition-all cursor-pointer group flex justify-between items-center",
+                          (selectedTask === (task._id || task.id)) 
+                            ? "bg-brand-accent/[0.03] border-brand-accent shadow-sm" 
+                            : "bg-white border-brand-border hover:border-brand-accent/30"
+                        )}
+                      >
+                        <div className="flex items-center space-x-4">
+                          <div className={cn(
+                            "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
+                            selectedTask === (task._id || task.id) ? "bg-brand-accent text-white" : "bg-brand-primary text-text-muted group-hover:text-brand-accent"
+                          )}>
+                            <File size={20} />
+                          </div>
+                          <div>
+                            <div className={cn("text-sm font-black uppercase tracking-tight", selectedTask === (task._id || task.id) ? "text-brand-accent" : "text-text-main")}>{task.title}</div>
+                            <div className="text-[9px] font-bold text-text-muted uppercase tracking-widest mt-1">{task._id || task.id} • Deadline: {task.deadline || task.dueDate || 'TBD'}</div>
+                          </div>
                         </div>
-                        <div>
-                          <div className={cn("text-sm font-black uppercase tracking-tight", selectedTask === task.id ? "text-brand-accent" : "text-text-main")}>{task.title}</div>
-                          <div className="text-[9px] font-bold text-text-muted uppercase tracking-widest mt-1">{task.id} • Deadline: {task.deadline}</div>
-                        </div>
+                        <ChevronRight size={16} className={cn("transition-all", selectedTask === (task._id || task.id) ? "text-brand-accent opacity-100" : "text-brand-border opacity-0 group-hover:opacity-100")} />
                       </div>
-                      <ChevronRight size={16} className={cn("transition-all", selectedTask === task.id ? "text-brand-accent opacity-100" : "text-brand-border opacity-0 group-hover:opacity-100")} />
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t border-brand-border">
-                <div className="space-y-4">
-                   <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-text-muted">Technical Repository Link</label>
-                   <div className="relative">
+              <div className="pt-6 border-t border-brand-border space-y-4">
+                <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-text-muted">Submission Format</label>
+                <div className="flex space-x-3">
+                  <Button type="button" variant={submissionType === 'link' ? 'primary' : 'outline'} onClick={() => setSubmissionType('link')}>Link</Button>
+                  <Button type="button" variant={submissionType === 'text' ? 'primary' : 'outline'} onClick={() => setSubmissionType('text')}>Text</Button>
+                  <Button type="button" variant={submissionType === 'file' ? 'primary' : 'outline'} onClick={() => setSubmissionType('file')}>PDF</Button>
+                </div>
+
+                {submissionType === 'link' && (
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-text-muted">Repository / Resource Link</label>
+                    <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-text-muted">
                         <LinkIcon size={14} />
                       </div>
-                      <input 
+                      <input
+                        value={linkValue}
+                        onChange={(e) => setLinkValue(e.target.value)}
                         type="url"
                         placeholder="https://github.com/..."
                         className="w-full pl-10 pr-4 py-4 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm focus:outline-none focus:ring-4 focus:ring-brand-accent/5 focus:border-brand-accent transition-all font-medium"
                       />
-                   </div>
-                </div>
-                <div className="space-y-4">
-                   <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-text-muted">Documentation Upload (PDF)</label>
-                   <div className="relative group">
-                      <input type="file" className="hidden" id="file-upload" />
+                    </div>
+                  </div>
+                )}
+
+                {submissionType === 'text' && (
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-text-muted">Text Submission</label>
+                    <textarea value={textValue} onChange={(e) => setTextValue(e.target.value)} rows={6} className="w-full p-4 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm focus:outline-none" />
+                  </div>
+                )}
+
+                {submissionType === 'file' && (
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-text-muted">Upload PDF</label>
+                    <div className="relative group">
+                      <input ref={fileRef} accept="application/pdf" onChange={handleFileSelect} type="file" className="hidden" id="file-upload" />
                       <label htmlFor="file-upload" className="w-full flex items-center justify-center p-4 py-4 rounded-xl border-2 border-dashed border-brand-border bg-brand-primary/20 hover:bg-brand-accent/5 hover:border-brand-accent/40 cursor-pointer transition-all">
                         <FileUp size={16} className="mr-2 text-brand-accent" />
-                        <span className="text-xs font-black uppercase tracking-widest text-text-muted group-hover:text-brand-accent">Select Artifact</span>
+                        <span className="text-xs font-black uppercase tracking-widest text-text-muted group-hover:text-brand-accent">{fileValue ? fileValue.name : 'Select PDF Artifact'}</span>
                       </label>
-                   </div>
-                </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="pt-8">
-                <Button type="submit" className="w-full py-5 text-[11px] font-black uppercase tracking-[0.3em] shadow-xl shadow-brand-accent/20">
-                  <Send size={16} className="mr-3" /> Execute Submission
+                <Button type="submit" disabled={submitting} className="w-full py-5 text-[11px] font-black uppercase tracking-[0.3em] shadow-xl shadow-brand-accent/20">
+                  <Send size={16} className="mr-3" /> {submitting ? 'Submitting…' : 'Execute Submission'}
                 </Button>
               </div>
             </form>

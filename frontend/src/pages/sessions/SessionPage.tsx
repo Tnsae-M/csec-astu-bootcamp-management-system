@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Button } from '@/src/components/ui';
+import { Button, Modal } from '@/src/components/ui';
 import { Calendar, Filter, Plus } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
 import FeedbackForm from '@/src/components/feedback/FeedbackForm';
+import { sessionsService } from '../../services/sessions.service';
 
 export default function SessionPage() {
   const { searchTerm } = useSelector((state: RootState) => state.ui);
@@ -18,6 +19,7 @@ export default function SessionPage() {
   ]);
 
   const [creating, setCreating] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [newSessionTitle, setNewSessionTitle] = useState('');
   const [newSessionDate, setNewSessionDate] = useState('');
   const [newSessionTime, setNewSessionTime] = useState('');
@@ -38,32 +40,58 @@ export default function SessionPage() {
         </div>
           {user?.role === 'INSTRUCTOR' && (
             <>
-              <Button onClick={() => setCreating(true)} className="font-black uppercase tracking-[0.2em] text-[11px] px-8 py-4 shadow-lg shadow-brand-accent/20">
+              <Button onClick={() => setShowCreateModal(true)} className="font-black uppercase tracking-[0.2em] text-[11px] px-8 py-4 shadow-lg shadow-brand-accent/20 flex items-center gap-2">
                 <Plus className="mr-2 h-4 w-4" /> Add Session
               </Button>
 
-              {creating && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center">
-                  <div className="fixed inset-0 bg-black/40" onClick={() => setCreating(false)} />
-                  <div className="bg-white rounded-xl p-6 z-10 w-full max-w-lg shadow-lg">
-                    <h3 className="text-lg font-bold mb-4">Create Session</h3>
-                    <div className="space-y-3">
-                      <input value={newSessionTitle} onChange={(e)=>setNewSessionTitle(e.target.value)} placeholder="Session Title" className="w-full border px-3 py-2 rounded-md" />
-                      <input type="date" value={newSessionDate} onChange={(e)=>setNewSessionDate(e.target.value)} className="w-full border px-3 py-2 rounded-md" />
-                      <input type="time" value={newSessionTime} onChange={(e)=>setNewSessionTime(e.target.value)} className="w-full border px-3 py-2 rounded-md" />
+              <Modal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} title="Create Session" subtitle="Your name is auto-filled as the instructor">
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  setCreating(true);
+                  try {
+                    const payload: any = {
+                      title: newSessionTitle || `Session ${Date.now()}`,
+                      date: newSessionDate || new Date().toISOString().slice(0,10),
+                      startTime: newSessionTime || '10:00',
+                      instructor: user?.id || undefined,
+                      instructorName: user?.name || undefined,
+                      place: 'TBD',
+                      duration: '1h',
+                      bootcampId: 'general'
+                    };
+                    // try backend, fallback to local state
+                    try {
+                      const res = await sessionsService.createSession(payload);
+                      const created = res.data ?? res;
+                      setSessions(prev => [created, ...prev]);
+                    } catch (err) {
+                      const id = sessions.length ? Math.max(...sessions.map(s=>s.id)) + 1 : 1;
+                      const created = { id, title: payload.title, division: 'General', date: payload.date, time: payload.startTime, status: 'UPCOMING', instructorId: payload.instructor, bootcampId: payload.bootcampId };
+                      setSessions([created, ...sessions]);
+                    }
+                    setNewSessionTitle(''); setNewSessionDate(''); setNewSessionTime(''); setShowCreateModal(false);
+                  } finally { setCreating(false); }
+                }}>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-text-muted mb-2">Instructor</label>
+                      <input value={user?.name || ''} readOnly className="w-full px-4 py-3 rounded-xl bg-brand-primary/20 border border-brand-border text-text-main text-sm" />
                     </div>
-                    <div className="flex justify-end mt-4 space-x-2">
-                      <Button variant="ghost" onClick={() => setCreating(false)}>Cancel</Button>
-                      <Button onClick={() => {
-                        const id = sessions.length ? Math.max(...sessions.map(s=>s.id)) + 1 : 1;
-                        const created = { id, title: newSessionTitle || `Session ${id}`, division: 'General', date: newSessionDate || new Date().toISOString().slice(0,10), time: newSessionTime || '10:00', status: 'UPCOMING', instructorId: user?.id || 'instructor', bootcampId: 'general' };
-                        setSessions([created, ...sessions]);
-                        setNewSessionTitle(''); setNewSessionDate(''); setNewSessionTime(''); setCreating(false);
-                      }}>Create</Button>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-text-muted mb-2">Session Title</label>
+                      <input value={newSessionTitle} onChange={(e)=>setNewSessionTitle(e.target.value)} placeholder="Session Title" className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <input type="date" value={newSessionDate} onChange={(e)=>setNewSessionDate(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border" />
+                      <input type="time" value={newSessionTime} onChange={(e)=>setNewSessionTime(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border" />
                     </div>
                   </div>
-                </div>
-              )}
+                  <div className="flex justify-end mt-4 space-x-2">
+                    <Button variant="ghost" onClick={() => setShowCreateModal(false)}>Cancel</Button>
+                    <Button type="submit" disabled={creating}>{creating ? 'Creating...' : 'Create'}</Button>
+                  </div>
+                </form>
+              </Modal>
             </>
           )}
       </div>
