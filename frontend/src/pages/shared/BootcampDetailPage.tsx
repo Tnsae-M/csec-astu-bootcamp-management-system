@@ -8,6 +8,7 @@ import { Users2, Clock, Calendar, BookOpen } from 'lucide-react';
 import { usersService } from '../../services/users.service';
 import { groupsService } from '../../services/groups.service';
 import { sessionsService } from '../../services/sessions.service';
+import { projectsService } from '../../services/projects.service';
 import { setGroupsStart, setGroupsSuccess, setGroupsFailure } from '../../features/groups/groupsSlice';
 import { setSessionsStart, setSessionsSuccess, setSessionsFailure } from '../../features/sessions/sessionSlice';
 
@@ -16,10 +17,15 @@ export default function BootcampDetailPage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   
-  const [activeTab, setActiveTab] = useState<'groups' | 'sessions'>('sessions');
+  const [activeTab, setActiveTab] = useState<'groups' | 'sessions' | 'projects'>('sessions');
 
   const { groups, loading: groupsLoading } = useSelector((state: RootState) => state.groups);
   const { items: sessions, loading: sessionsLoading } = useSelector((state: RootState) => state.sessions);
+  const { user } = useSelector((state: RootState) => state.auth);
+  const isStudent = (user?.roles || []).includes('STUDENT');
+
+  const [projects, setProjects] = useState<any[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(false);
 
   useEffect(() => {
     if (!bootcampId) return;
@@ -31,8 +37,23 @@ export default function BootcampDetailPage() {
 
     dispatch(setSessionsStart());
     sessionsService.getSessionsByBootcamp(bootcampId)
-      .then(res => dispatch(setSessionsSuccess(res.data || [])))
+      .then(res => {
+        const payload = res.data ?? res;
+        const list = Array.isArray(payload) ? payload : payload?.data ?? [];
+        dispatch(setSessionsSuccess(list));
+      })
       .catch(err => dispatch(setSessionsFailure(err.message)));
+
+    // load projects for this bootcamp
+    setProjectsLoading(true);
+    projectsService.getProjectsByBootcamp(bootcampId)
+      .then(res => {
+        const payload = res.data ?? res;
+        const list = Array.isArray(payload) ? payload : payload?.data ?? [];
+        setProjects(list);
+      })
+      .catch(() => setProjects([]))
+      .finally(() => setProjectsLoading(false));
   }, [bootcampId, dispatch]);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -50,6 +71,7 @@ export default function BootcampDetailPage() {
   });
   const [instructors, setInstructors] = useState<any[]>([]);
   const [creating, setCreating] = useState(false);
+  const [projectForm, setProjectForm] = useState({ title: '', description: '', repo: '', dueDate: '' });
 
   const handleCreate = async () => {
     if (!bootcampId) return;
@@ -77,6 +99,18 @@ export default function BootcampDetailPage() {
         dispatch(setSessionsStart());
         sessionsService.getSessionsByBootcamp(bootcampId).then(res => dispatch(setSessionsSuccess(res.data || []))).catch(err => dispatch(setSessionsFailure(err.message)));
       }
+      if (activeTab === 'projects') {
+        // create project
+        await projectsService.createProject(bootcampId, projectForm);
+        // refresh
+        setProjectsLoading(true);
+        projectsService.getProjectsByBootcamp(bootcampId).then(res => {
+          const payload = res.data ?? res;
+          const list = Array.isArray(payload) ? payload : payload?.data ?? [];
+          setProjects(list);
+        }).catch(() => setProjects([])).finally(() => setProjectsLoading(false));
+        setProjectForm({ title: '', description: '', repo: '', dueDate: '' });
+      }
       setShowCreateModal(false);
       // reset form
       setFormState({ groupName: '', mentorId: '', title: '', instructorId: '', place: '', duration: '', date: '', time: '' });
@@ -103,7 +137,7 @@ export default function BootcampDetailPage() {
           <h1 className="text-4xl font-black text-brand-accent uppercase tracking-tighter">Bootcamp Hub</h1>
           <p className="text-text-muted font-bold text-xs uppercase tracking-[0.2em] mt-2">Manage Groups & Sessions</p>
         </div>
-        {(role === 'admin' || role === 'instructor') && (
+        {((user?.roles || []).includes('ADMIN') || (user?.roles || []).includes('INSTRUCTOR') ) && (
           <div className="flex gap-4">
             <Button 
               onClick={() => { setActiveTab('groups'); setShowCreateModal(true); }}
@@ -117,6 +151,12 @@ export default function BootcampDetailPage() {
             >
               Add Session
             </Button>
+            <Button
+              onClick={() => { setActiveTab('projects'); setShowCreateModal(true); }}
+              className="bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest px-6 h-10 hover:bg-blue-700 shadow-lg"
+            >
+              Create Project
+            </Button>
           </div>
         )}
       </div>
@@ -124,9 +164,9 @@ export default function BootcampDetailPage() {
       <Modal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        title={activeTab === 'groups' ? 'Create Group' : 'Schedule Session'}
-        subtitle={activeTab === 'groups' ? 'Define a cohort and assign a mentor.' : 'Schedule a session and assign an instructor.'}
-        icon={activeTab === 'groups' ? <Users2 /> : <Calendar />}
+        title={activeTab === 'groups' ? 'Create Group' : activeTab === 'projects' ? 'Create Project' : 'Schedule Session'}
+        subtitle={activeTab === 'groups' ? 'Define a cohort and assign a mentor.' : activeTab === 'projects' ? 'Create the final project for this bootcamp.' : 'Schedule a session and assign an instructor.'}
+        icon={activeTab === 'groups' ? <Users2 /> : activeTab === 'projects' ? <BookOpen /> : <Calendar />}
       >
         <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleCreate(); }}>
           {activeTab === 'groups' ? (
@@ -145,6 +185,29 @@ export default function BootcampDetailPage() {
               <div className="pt-4 flex justify-end gap-3">
                 <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>Cancel</Button>
                 <Button type="submit" disabled={creating}>{creating ? 'Creating...' : 'Create Group'}</Button>
+              </div>
+            </>
+          ) : activeTab === 'projects' ? (
+            <>
+              <div>
+                <label className="block text-[10px] font-black uppercase text-text-muted mb-2">Project Title</label>
+                <input required value={projectForm.title} onChange={e => setProjectForm({...projectForm, title: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm focus:border-brand-accent outline-none" placeholder="e.g. Final Capstone Project" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black uppercase text-text-muted mb-2">Repository Link (optional)</label>
+                <input value={projectForm.repo} onChange={e => setProjectForm({...projectForm, repo: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm focus:border-brand-accent outline-none" placeholder="https://github.com/..." />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black uppercase text-text-muted mb-2">Short Description</label>
+                <textarea value={projectForm.description} onChange={e => setProjectForm({...projectForm, description: e.target.value})} rows={4} className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm focus:border-brand-accent outline-none" placeholder="Describe project goals and deliverables" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black uppercase text-text-muted mb-2">Due Date</label>
+                <input type="date" value={projectForm.dueDate} onChange={e => setProjectForm({...projectForm, dueDate: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm focus:border-brand-accent outline-none" />
+              </div>
+              <div className="pt-4 flex justify-end gap-3">
+                <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>Cancel</Button>
+                <Button type="submit" disabled={creating}>{creating ? 'Creating...' : 'Create Project'}</Button>
               </div>
             </>
           ) : (
@@ -209,6 +272,14 @@ export default function BootcampDetailPage() {
         >
         Sessions
         </button>
+        <button
+          onClick={() => setActiveTab('projects')}
+          className={`pb-4 text-xs font-black uppercase tracking-widest transition-colors ${
+            activeTab === 'projects' ? 'border-b-2 border-brand-accent text-brand-accent' : 'text-text-muted hover:text-text-main'
+          }`}
+        >
+        Projects
+        </button>
       </div>
 
       {/* Tab Content */}
@@ -255,13 +326,46 @@ export default function BootcampDetailPage() {
           </div>
         )}
 
+        {activeTab === 'projects' && (
+          <div>
+            {projectsLoading ? (
+              <div className="text-center text-text-muted font-bold uppercase py-10">Loading Projects...</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {projects.map((p) => (
+                  <Card key={p._id || p.id} className="flex flex-col h-full hover:border-brand-accent transition-colors shadow-sm">
+                    <CardHeader className="flex flex-col space-y-1.5 pb-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="w-10 h-10 rounded-lg bg-brand-accent/10 text-brand-accent flex items-center justify-center">
+                          <BookOpen size={20} />
+                        </div>
+                        <div className="text-[10px] font-semibold text-brand-accent bg-brand-primary border border-brand-border px-2 py-1 rounded">
+                          Project
+                        </div>
+                      </div>
+                      <CardTitle className="text-xl font-bold">{p.title}</CardTitle>
+                      <CardDescription className="text-xs mt-1 text-text-muted">{p.description || 'No description provided.'}</CardDescription>
+                    </CardHeader>
+                    <CardFooter className="mt-auto pt-4 flex gap-2">
+                      <Button variant="outline" className="w-full text-xs h-9 bg-transparent border-brand-border text-brand-accent hover:bg-brand-accent hover:text-white">View Project</Button>
+                    </CardFooter>
+                  </Card>
+                ))}
+                {projects.length === 0 && (
+                  <div className="col-span-full text-center py-10 text-text-muted font-black uppercase tracking-widest text-xs">No projects defined.</div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {activeTab === 'sessions' && (
           <div>
              {sessionsLoading ? (
                 <div className="text-center text-text-muted font-bold uppercase py-10">Loading Sessions...</div>
              ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {sessions.map((s) => (
+                  {(Array.isArray(sessions) ? sessions : []).map((s) => (
                     <Card key={s._id || s.id} className="flex flex-col h-full hover:border-brand-accent transition-colors shadow-sm">
                       <CardHeader className="flex flex-col space-y-1.5 pb-4">
                         <div className="flex justify-between items-start mb-2">
@@ -273,7 +377,7 @@ export default function BootcampDetailPage() {
                           </div>
                         </div>
                         <CardTitle className="text-xl font-bold">
-                          {s.title}
+                          {s?.title || 'Untitled Session'}
                         </CardTitle>
                         <div className="flex items-center space-x-2 text-xs text-text-muted mt-2">
                            <Calendar size={12} />
@@ -283,13 +387,23 @@ export default function BootcampDetailPage() {
                         </div>
                       </CardHeader>
                       <CardFooter className="mt-auto pt-4 flex gap-2">
-                         <Button 
-                           variant="outline" 
-                           onClick={() => navigate(`/dashboard/${role}/divisions/${divisionId}/bootcamps/${bootcampId}/sessions/${s._id || s.id}`)}
-                           className="w-full text-xs h-9 bg-transparent border-brand-border text-brand-accent hover:bg-brand-accent hover:text-white"
-                         >
-                           Enter Session Hub
-                         </Button>
+                          <div className="flex gap-2 w-full">
+                            <Button 
+                              variant="outline" 
+                              onClick={() => navigate(`/dashboard/${role}/divisions/${divisionId}/bootcamps/${bootcampId}/sessions/${s._id || s.id}`)}
+                              className="w-full text-xs h-9 bg-transparent border-brand-border text-brand-accent hover:bg-brand-accent hover:text-white"
+                            >
+                              Enter Session Hub
+                            </Button>
+                            {isStudent && (
+                              <Button
+                                onClick={() => navigate(`/dashboard/${role}/divisions/${divisionId}/bootcamps/${bootcampId}/sessions/${s._id || s.id}?openFeedback=1`)}
+                                className="w-full text-xs h-9 bg-brand-accent text-white hover:bg-brand-accent/90"
+                              >
+                                Give Feedback
+                              </Button>
+                            )}
+                          </div>
                       </CardFooter>
                     </Card>
                   ))}

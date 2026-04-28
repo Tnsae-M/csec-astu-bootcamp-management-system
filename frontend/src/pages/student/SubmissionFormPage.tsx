@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../app/store';
+import { useLocation } from 'react-router-dom';
 import { FileUp, Link as LinkIcon, Send, CheckCircle2, ChevronRight, File } from 'lucide-react';
 import { Button } from '../../components/ui';
 import { cn } from '../../lib/utils';
@@ -22,17 +23,22 @@ export default function SubmissionFormPage({ bootcampId, sessionId }: Submission
   const [loadingTasks, setLoadingTasks] = useState(false);
   const [selectedTask, setSelectedTask] = useState<string | null>(null);
 
-  const [submissionType, setSubmissionType] = useState<'link' | 'text' | 'file'>('link');
+  const [submissionType, setSubmissionType] = useState<'link' | 'text' | 'file' | 'both'>('link');
   const [linkValue, setLinkValue] = useState('');
   const [textValue, setTextValue] = useState('');
   const [fileValue, setFileValue] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const location = useLocation();
 
   const fetchMySubmissions = () => {
     dispatch(setSubmissionsStart());
-    submissionsService.getStudentSubmissions()
-      .then(res => dispatch(setSubmissionsSuccess(res.data || [])))
+    submissionsService.getMySubmissions()
+      .then(res => {
+        const payload = res.data ?? res;
+        const list = Array.isArray(payload) ? payload : payload?.data ?? [];
+        dispatch(setSubmissionsSuccess(list));
+      })
       .catch(err => dispatch(setSubmissionsFailure(err.message)));
   };
 
@@ -60,6 +66,22 @@ export default function SubmissionFormPage({ bootcampId, sessionId }: Submission
     fetchMySubmissions();
   }, [bootcampId, sessionId, dispatch]);
 
+  // support preselecting via query params when navigated from TasksPage
+  useEffect(() => {
+    const search = new URLSearchParams(location.search);
+    const qTask = search.get('taskId');
+    const qSession = search.get('sessionId');
+    const qBootcamp = search.get('bootcampId');
+    if (qTask) setSelectedTask(qTask);
+    if (qSession) {
+      // rely on submission payload to include sessionId if prop not present
+      // could set local state or ignore; leaving as informational
+    }
+    if (qBootcamp) {
+      // same as above
+    }
+  }, [location.search]);
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0] || null;
     setFileValue(f);
@@ -82,9 +104,18 @@ export default function SubmissionFormPage({ bootcampId, sessionId }: Submission
       } else if (submissionType === 'link') {
         if (!linkValue) return alert('Please enter a link.');
         await submissionsService.submitTask({ taskId: selectedTask, type: 'link', link: linkValue, sessionId });
-      } else {
+      } else if (submissionType === 'text') {
         if (!textValue) return alert('Please enter your text submission.');
         await submissionsService.submitTask({ taskId: selectedTask, type: 'text', text: textValue, sessionId });
+      } else if (submissionType === 'both') {
+        if (!linkValue) return alert('Please enter a link for the submission.');
+        const form = new FormData();
+        form.append('taskId', selectedTask);
+        form.append('type', 'both');
+        form.append('link', linkValue);
+        if (fileValue) form.append('file', fileValue);
+        if (sessionId) form.append('sessionId', sessionId);
+        await submissionsService.submitTask(form);
       }
 
       setIsSubmitted(true);
@@ -189,6 +220,7 @@ export default function SubmissionFormPage({ bootcampId, sessionId }: Submission
                   <Button type="button" variant={submissionType === 'link' ? 'primary' : 'outline'} onClick={() => setSubmissionType('link')}>Link</Button>
                   <Button type="button" variant={submissionType === 'text' ? 'primary' : 'outline'} onClick={() => setSubmissionType('text')}>Text</Button>
                   <Button type="button" variant={submissionType === 'file' ? 'primary' : 'outline'} onClick={() => setSubmissionType('file')}>PDF</Button>
+                  <Button type="button" variant={submissionType === 'both' ? 'primary' : 'outline'} onClick={() => setSubmissionType('both')}>Both</Button>
                 </div>
 
                 {submissionType === 'link' && (
@@ -226,6 +258,36 @@ export default function SubmissionFormPage({ bootcampId, sessionId }: Submission
                         <FileUp size={16} className="mr-2 text-brand-accent" />
                         <span className="text-xs font-black uppercase tracking-widest text-text-muted group-hover:text-brand-accent">{fileValue ? fileValue.name : 'Select PDF Artifact'}</span>
                       </label>
+                    </div>
+                  </div>
+                )}
+                {submissionType === 'both' && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-text-muted">Repository / Resource Link</label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-text-muted">
+                          <LinkIcon size={14} />
+                        </div>
+                        <input
+                          required
+                          value={linkValue}
+                          onChange={(e) => setLinkValue(e.target.value)}
+                          type="url"
+                          placeholder="https://github.com/..."
+                          className="w-full pl-10 pr-4 py-4 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm focus:outline-none focus:ring-1 focus:ring-brand-accent focus:border-brand-accent transition-all font-medium"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-text-muted">Upload PDF (optional)</label>
+                      <div className="relative group">
+                        <input ref={fileRef} accept="application/pdf" onChange={handleFileSelect} type="file" className="hidden" id="file-upload-both" />
+                        <label htmlFor="file-upload-both" className="w-full flex items-center justify-center p-4 py-4 rounded-xl border-2 border-dashed border-brand-border bg-brand-primary/20 hover:bg-brand-accent/5 hover:border-brand-accent/40 cursor-pointer transition-all">
+                          <FileUp size={16} className="mr-2 text-brand-accent" />
+                          <span className="text-xs font-black uppercase tracking-widest text-text-muted group-hover:text-brand-accent">{fileValue ? fileValue.name : 'Select Optional PDF Artifact'}</span>
+                        </label>
+                      </div>
                     </div>
                   </div>
                 )}

@@ -7,6 +7,7 @@ interface User {
   name: string;
   email: string;
   roles: string[];
+  role?: string; // primary/active role (derived from roles or chosen by user)
   division?: string;
   groupId?: string;
 }
@@ -43,7 +44,12 @@ const authSlice = createSlice({
     loginSuccess: (state, action: PayloadAction<{ user: User; token: string }>) => {
       state.loading = false;
       state.isAuthenticated = true;
-      state.user = action.payload.user;
+      // Ensure a primary `role` is present for compatibility with older code
+      const user = action.payload.user;
+      if ((!user as any).role && Array.isArray(user.roles) && user.roles.length > 0) {
+        (user as any).role = user.roles[0];
+      }
+      state.user = user;
       state.token = action.payload.token;
       localStorage.setItem('token', action.payload.token);
     },
@@ -59,9 +65,19 @@ const authSlice = createSlice({
       localStorage.removeItem('token');
     },
     setUser: (state, action: PayloadAction<User>) => {
-      state.user = action.payload;
+      const user = action.payload;
+      if ((!user as any).role && Array.isArray(user.roles) && user.roles.length > 0) {
+        (user as any).role = user.roles[0];
+      }
+      state.user = user;
       state.isAuthenticated = true;
       state.isInitializing = false;
+    },
+    // Allow switching the active role for multi-role users (UI only)
+    setActiveRole: (state, action: PayloadAction<string>) => {
+      if (state.user) {
+        (state.user as any).role = action.payload;
+      }
     },
     setInitializing: (state, action: PayloadAction<boolean>) => {
       state.isInitializing = action.payload;
@@ -69,5 +85,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { loginStart, loginSuccess, loginFailure, logout, setUser, setInitializing } = authSlice.actions;
+export const { loginStart, loginSuccess, loginFailure, logout, setUser, setActiveRole, setInitializing } = authSlice.actions;
 export default authSlice.reducer;

@@ -29,7 +29,6 @@ export const store = configureStore({
     feedback: feedbackReducer,
     notifications: notificationReducer,
     ui: uiReducer,
-    bootcamps: bootcampsReducer,
   },
 });
 

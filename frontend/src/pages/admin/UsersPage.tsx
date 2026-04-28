@@ -24,8 +24,8 @@ export default function UsersPage() {
     name: '',
     email: '',
     password: '',
-    // support multiple roles for backend integration
-    roles: ['student'],
+    // support multiple roles for backend integration (use uppercase role tokens)
+    roles: ['STUDENT'],
     division: '',
     status: 'active'
   });
@@ -55,9 +55,9 @@ export default function UsersPage() {
   // Auto-open create admin modal when navigated from dashboard quick action
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    if (params.get('createAdmin') === 'true' && user?.role === 'SUPER ADMIN') {
+    if (params.get('createAdmin') === 'true' && (user?.roles || []).includes('SUPER ADMIN')) {
       setEditingUserId(null);
-      setFormData({ name: '', email: '', password: '', roles: ['admin'], division: '', status: 'active' });
+      setFormData({ name: '', email: '', password: '', roles: ['ADMIN'], division: '', status: 'active' });
       setIsModalOpen(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -72,7 +72,7 @@ export default function UsersPage() {
   const handleOpenCreate = () => {
     setEditingUserId(null);
     // Super Admins may only create Admin users per requirements
-    const defaultRoles = user?.role === 'SUPER ADMIN' ? ['admin'] : ['student'];
+    const defaultRoles = (user?.roles || []).includes('SUPER ADMIN') ? ['ADMIN'] : ['STUDENT'];
     setFormData({ name: '', email: '', password: '', roles: defaultRoles, division: '', status: 'active' });
     setIsModalOpen(true);
   };
@@ -83,7 +83,7 @@ export default function UsersPage() {
       name: user.name, 
       email: user.email, 
       password: '', // Blank when editing
-      roles: user.roles || (user.role ? [String(user.role).toLowerCase()] : ['student']),
+      roles: user.roles || (user.role ? [String(user.role).toUpperCase()] : ['STUDENT']),
       division: user.division || user.divisionId || '',
       status: user.status 
     });
@@ -99,12 +99,15 @@ export default function UsersPage() {
         await usersService.updateUser(editingUserId, payload);
       } else {
         // Prepare payload for backend: send `roles` array and a primary `role` for compatibility
+        // Enforce role creation rules: SUPER ADMIN may only create ADMIN
+        const desiredRoles = (user?.role === 'SUPER ADMIN') ? ['ADMIN'] : formData.roles;
+        const primaryRole = Array.isArray(desiredRoles) && desiredRoles.length > 0 ? desiredRoles[0] : 'STUDENT';
         const payload: any = {
           name: formData.name,
           email: formData.email,
           password: formData.password,
-          roles: formData.roles,
-          role: Array.isArray(formData.roles) && formData.roles.length > 0 ? formData.roles[0] : 'student',
+          roles: (user?.roles || []).includes('SUPER ADMIN') ? ['ADMIN'] : formData.roles,
+          role: primaryRole,
           division: formData.division || undefined,
           status: formData.status
         };
@@ -210,7 +213,7 @@ export default function UsersPage() {
               required 
               type="text" 
               value={formData.name} 
-              onChange={e => setFormData({...formData, name: e.target.value})}
+              onChange={e => setFormData(prev => ({...prev, name: e.target.value}))}
               className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm font-medium focus:border-brand-accent outline-none transition-colors" 
               placeholder="e.g. John Doe" 
             />
@@ -221,7 +224,7 @@ export default function UsersPage() {
               required 
               type="email" 
               value={formData.email} 
-              onChange={e => setFormData({...formData, email: e.target.value})}
+              onChange={e => setFormData(prev => ({...prev, email: e.target.value}))}
               className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm font-medium focus:border-brand-accent outline-none transition-colors" 
               placeholder="e.g. j.doe@scholar.astu" 
             />
@@ -234,7 +237,7 @@ export default function UsersPage() {
               type="password" 
               required={!editingUserId} // Only required for new users
               value={formData.password} 
-              onChange={e => setFormData({...formData, password: e.target.value})}
+              onChange={e => setFormData(prev => ({...prev, password: e.target.value}))}
               className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm font-medium focus:border-brand-accent outline-none transition-colors" 
               placeholder="••••••••" 
             />
@@ -249,34 +252,29 @@ export default function UsersPage() {
               ) : (
                 <div className="flex flex-col gap-2">
                   <label className="inline-flex items-center gap-2">
-                    <input type="checkbox" checked={formData.roles.includes('student')} onChange={() => {
-                      const has = formData.roles.includes('student');
-                      setFormData({...formData, roles: has ? formData.roles.filter((r:any) => r !== 'student') : [...formData.roles, 'student']});
+                    <input type="checkbox" checked={formData.roles.includes('STUDENT')} onChange={() => {
+                      setFormData(prev => {
+                        const has = prev.roles.includes('STUDENT');
+                        return {...prev, roles: has ? prev.roles.filter((r:any) => r !== 'STUDENT') : [...prev.roles, 'STUDENT']};
+                      });
                     }} />
                     <span className="text-xs font-bold">Student</span>
                   </label>
                   <label className="inline-flex items-center gap-2">
-                    <input type="checkbox" checked={formData.roles.includes('instructor')} onChange={() => {
-                      const has = formData.roles.includes('instructor');
-                      setFormData({...formData, roles: has ? formData.roles.filter((r:any) => r !== 'instructor') : [...formData.roles, 'instructor']});
+                    <input type="checkbox" checked={formData.roles.includes('INSTRUCTOR')} onChange={() => {
+                      setFormData(prev => {
+                        const has = prev.roles.includes('INSTRUCTOR');
+                        return {...prev, roles: has ? prev.roles.filter((r:any) => r !== 'INSTRUCTOR') : [...prev.roles, 'INSTRUCTOR']};
+                      });
                     }} />
                     <span className="text-xs font-bold">Instructor</span>
                   </label>
-                  {user?.role !== 'ADMIN' && (
-                    <label className="inline-flex items-center gap-2">
-                      <input type="checkbox" checked={formData.roles.includes('admin')} onChange={() => {
-                        const has = formData.roles.includes('admin');
-                        setFormData({...formData, roles: has ? formData.roles.filter((r:any) => r !== 'admin') : [...formData.roles, 'admin']});
-                      }} />
-                      <span className="text-xs font-bold">Administrator</span>
-                    </label>
-                  )}
                 </div>
               )}
 
               <div className="mt-3">
                 <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Assign Division</label>
-                <select value={formData.division} onChange={e => setFormData({...formData, division: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm font-medium outline-none focus:border-brand-accent">
+                <select value={formData.division} onChange={e => setFormData(prev => ({...prev, division: e.target.value}))} className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm font-medium outline-none focus:border-brand-accent">
                   <option value="">Unassigned</option>
                   {divisions.map(d => (<option key={d._id || d.id} value={d._id || d.id}>{d.name}</option>))}
                 </select>
@@ -286,7 +284,7 @@ export default function UsersPage() {
               <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Account Status</label>
               <select 
                 value={formData.status} 
-                onChange={e => setFormData({...formData, status: e.target.value})}
+                onChange={e => setFormData(prev => ({...prev, status: e.target.value}))}
                 className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm font-medium uppercase outline-none focus:border-brand-accent transition-colors"
                >
                 <option value="active">Active</option>

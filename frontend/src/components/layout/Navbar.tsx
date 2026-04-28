@@ -3,7 +3,8 @@ import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { RootState } from "../../app/store";
 import { setSearchTerm } from "../../features/ui/uiSlice";
-import { Bell, User, Search, X } from "lucide-react";
+import { Bell, User, Search, X, ChevronDown, Repeat } from "lucide-react";
+import { setActiveRole } from "../../features/auth/authSlice";
 import { markAsRead, markAllAsRead } from "../../features/notifications/notificationSlice";
 import Logo from "../common/Logo";
 
@@ -16,6 +17,8 @@ export default function Navbar() {
   const navigate = useNavigate();
 
   const [localSearch, setLocalSearch] = useState("");
+  const [roleMenuOpen, setRoleMenuOpen] = useState(false);
+  const roleRef = React.useRef<HTMLDivElement | null>(null);
 
   // Debounce search term update
   useEffect(() => {
@@ -37,6 +40,9 @@ export default function Navbar() {
       if (!(e.target instanceof Node)) return;
       if (!containerRef.current.contains(e.target)) {
         setShowNotifications(false);
+      }
+      if (roleRef.current && e.target instanceof Node && !roleRef.current.contains(e.target)) {
+        setRoleMenuOpen(false);
       }
     }
     document.addEventListener('mousedown', handleOutside);
@@ -120,9 +126,29 @@ export default function Navbar() {
             <p className="text-sm font-bold text-text-main leading-none mb-1">
               {user?.name}
             </p>
-            <p className="text-[11px] text-text-muted uppercase tracking-wider font-medium">
-              {user?.role === "ADMIN" ? "Admin" : user?.role}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-[11px] text-text-muted uppercase tracking-wider font-medium">
+                {user?.role === "ADMIN" ? "Admin" : user?.role}
+              </p>
+              {Array.isArray(user?.roles) && user.roles.length > 1 && (
+                <div className="relative" ref={roleRef}>
+                  <button onClick={() => setRoleMenuOpen(s => !s)} className="p-1 rounded-md hover:bg-gray-100">
+                    <Repeat className="w-4 h-4 text-text-muted" />
+                  </button>
+                  {roleMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-40 bg-white rounded-xl shadow-2xl border border-brand-border z-50 overflow-hidden text-sm text-text-main">
+                      <div className="p-2">
+                        {user.roles.map((r) => (
+                          <button key={r} onClick={() => { dispatch(setActiveRole(r)); setRoleMenuOpen(false); }} className={`w-full text-left px-3 py-2 rounded hover:bg-gray-50 ${user.role === r ? 'font-bold' : ''}`}>
+                            {r}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
           <div className="w-10 h-10 rounded-full bg-brand-accent text-white font-black text-sm shadow-md flex items-center justify-center border-2 border-brand-header">
             {user?.name?.charAt(0).toUpperCase()}

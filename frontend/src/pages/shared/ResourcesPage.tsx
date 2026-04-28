@@ -38,6 +38,10 @@ export default function ResourcesPage({ sessionId }: ResourcesPageProps) {
 
   useEffect(() => { fetchResources(); }, [sessionId]);
 
+  const roles = (user?.roles || []).map((r: string) => String(r).toUpperCase());
+  const canUpload = roles.includes('INSTRUCTOR') || String(user?.role || '').toUpperCase() === 'INSTRUCTOR';
+  const [success, setSuccess] = useState('');
+
   const filteredResources = resources.filter((r) => 
     r.title?.toLowerCase().includes((searchTerm || '').toLowerCase()) ||
     r.type?.toLowerCase().includes((searchTerm || '').toLowerCase()) ||
@@ -59,6 +63,8 @@ export default function ResourcesPage({ sessionId }: ResourcesPageProps) {
       await fetchResources();
       setShowAdd(false);
       setTitle(''); setDescription(''); setFile(null);
+      setSuccess('Resource uploaded successfully');
+      setTimeout(() => setSuccess(''), 3500);
     } catch (err: any) {
       alert(err.response?.data?.message || err.message || 'Upload failed');
     } finally {
@@ -93,7 +99,7 @@ export default function ResourcesPage({ sessionId }: ResourcesPageProps) {
           <p className="text-text-muted font-bold text-xs uppercase tracking-[0.2em] mt-2">Session Resources</p>
         </div>
         <div className="flex flex-col items-end">
-          {user?.role === 'INSTRUCTOR' ? (
+          {canUpload ? (
             <Button onClick={() => setShowAdd(true)} className="bg-brand-accent text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
               <Plus /> Add Resource
             </Button>
@@ -112,6 +118,7 @@ export default function ResourcesPage({ sessionId }: ResourcesPageProps) {
               <span className="ml-1">Only instructors can upload session resources.</span>
             </div>
           )}
+          {success && <div className="text-sm text-green-600 mt-2">{success}</div>}
         </div>
       </div>
 

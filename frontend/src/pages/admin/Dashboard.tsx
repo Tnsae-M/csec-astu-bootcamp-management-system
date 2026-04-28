@@ -28,10 +28,14 @@ export default function AdminDashboard() {
   const [usersList, setUsersList] = useState<any[]>([]);
   const [instructorsList, setInstructorsList] = useState<any[]>([]);
   const [bootcampsPerDivision, setBootcampsPerDivision] = useState<Record<string, number>>({});
+  const [bootcampsList, setBootcampsList] = useState<any[]>([]);
 
   const [activeTab, setActiveTab] = useState("sessions");
 
   const [showAddBootcamp, setShowAddBootcamp] = useState(false);
+  const [showAddSession, setShowAddSession] = useState(false);
+  const [creatingSession, setCreatingSession] = useState(false);
+  const [sessionForm, setSessionForm] = useState({ title: '', bootcampId: '', date: '', time: '', instructorId: '', instructorName: '' });
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ divisionId: "", name: "", startDate: "", endDate: "" });
   const navigate = useNavigate();
@@ -64,6 +68,16 @@ export default function AdminDashboard() {
         const sessArray = Array.isArray(sessPayload) ? sessPayload : sessPayload?.data ?? [];
         setSessions(sessArray);
         setActiveSessions(sessArray.length ?? 0);
+
+        // bootcamps list for admin session creation
+        try {
+          const allBcs = await bootcampsService.getBootcamps();
+          const bcPayload = allBcs.data ?? allBcs;
+          const bcArr = Array.isArray(bcPayload) ? bcPayload : bcPayload?.data ?? [];
+          setBootcampsList(bcArr);
+        } catch (e) {
+          setBootcampsList([]);
+        }
 
         // avg attendance (backend endpoint can be added later)
         setAvgAttendance(92);
@@ -204,6 +218,35 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleCreateSession = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sessionForm.title || !sessionForm.bootcampId || !sessionForm.date || !sessionForm.time) return;
+    setCreatingSession(true);
+    try {
+      const payload: any = {
+        title: sessionForm.title,
+        bootcampId: sessionForm.bootcampId,
+        date: sessionForm.date,
+        time: sessionForm.time,
+      };
+      if (sessionForm.instructorId) payload.instructorId = sessionForm.instructorId;
+      if (sessionForm.instructorName) payload.instructorName = sessionForm.instructorName;
+      await sessionsService.createSession(payload);
+      // refresh sessions
+      const sessRes = await sessionsService.getSessions();
+      const sessPayload = sessRes.data ?? sessRes;
+      const sessArray = Array.isArray(sessPayload) ? sessPayload : sessPayload?.data ?? [];
+      setSessions(sessArray);
+      setActiveSessions(sessArray.length ?? 0);
+      setShowAddSession(false);
+      setSessionForm({ title: '', bootcampId: '', date: '', time: '', instructorId: '', instructorName: '' });
+    } catch (err: any) {
+      alert(err.response?.data?.message || err.message || 'Failed to create session');
+    } finally {
+      setCreatingSession(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between">
@@ -214,8 +257,11 @@ export default function AdminDashboard() {
 
         <div>
             <div className="flex items-center gap-3">
-              {user === 'SUPER ADMIN' && (
+              {user?.role === 'SUPER ADMIN' && (
                 <Button onClick={() => navigate('/dashboard/admin/users?createAdmin=true')} className="shadow-lg bg-indigo-600 text-white px-4 py-2 rounded-full">Add Admin</Button>
+              )}
+              {user?.role === 'ADMIN' && (
+                <Button onClick={() => setShowAddSession(true)} className="shadow-lg bg-indigo-600 text-white px-4 py-2 rounded-full">+ Session</Button>
               )}
               <Button onClick={() => setShowAddBootcamp(true)} className="shadow-lg bg-brand-accent text-white px-4 py-2 rounded-full">+ Bootcamp</Button>
             </div>
@@ -347,6 +393,48 @@ export default function AdminDashboard() {
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setShowAddBootcamp(false)}>Cancel</Button>
             <Button type="submit" disabled={creating}>{creating ? 'Creating...' : 'Create Bootcamp'}</Button>
+          </div>
+        </form>
+      </Modal>
+      <Modal isOpen={showAddSession} onClose={() => setShowAddSession(false)} title="Create Session">
+        <form onSubmit={handleCreateSession} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-text-muted">Title</label>
+            <input value={sessionForm.title} onChange={(e)=>setSessionForm({...sessionForm, title: e.target.value})} className="w-full mt-2 p-2 bg-transparent border rounded-md" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-text-muted">Bootcamp</label>
+            <select value={sessionForm.bootcampId} onChange={(e)=>setSessionForm({...sessionForm, bootcampId: e.target.value})} className="w-full mt-2 p-2 bg-transparent border rounded-md">
+              <option value="">Select Bootcamp</option>
+              {bootcampsList.map(b => (<option key={b._id||b.id} value={b._id||b.id}>{b.title||b.name}</option>))}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-text-muted">Date</label>
+              <input type="date" value={sessionForm.date} onChange={(e)=>setSessionForm({...sessionForm, date: e.target.value})} className="w-full mt-2 p-2 bg-transparent border rounded-md" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-text-muted">Time</label>
+              <input type="time" value={sessionForm.time} onChange={(e)=>setSessionForm({...sessionForm, time: e.target.value})} className="w-full mt-2 p-2 bg-transparent border rounded-md" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-text-muted">Instructor</label>
+            <select value={sessionForm.instructorId} onChange={(e)=>{
+              const selectedId = e.target.value;
+              const found = instructorsList.find(i=> (i._id||i.id) === selectedId);
+              setSessionForm({...sessionForm, instructorId: selectedId, instructorName: found ? (found.name || found.fullName || '') : ''});
+            }} className="w-full mt-2 p-2 bg-transparent border rounded-md">
+              <option value="">Select Instructor</option>
+              {instructorsList.map((ins:any)=>(<option key={ins._id||ins.id} value={ins._id||ins.id}>{ins.name || ins.fullName || ins.email}</option>))}
+            </select>
+            <div className="text-[11px] text-text-muted mt-2">You can also type a name below if instructor is not in the list.</div>
+            <input placeholder="Instructor name (optional)" value={sessionForm.instructorName} onChange={(e)=>setSessionForm({...sessionForm, instructorName: e.target.value})} className="w-full mt-2 p-2 bg-transparent border rounded-md" />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={()=>setShowAddSession(false)}>Cancel</Button>
+            <Button type="submit" disabled={creatingSession}>{creatingSession ? 'Creating...' : 'Create Session'}</Button>
           </div>
         </form>
       </Modal>

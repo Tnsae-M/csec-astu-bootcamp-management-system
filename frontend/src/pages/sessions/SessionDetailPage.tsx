@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useLocation } from 'react-router-dom';
 import TasksPage from '../tasks/TasksPage';
 import SubmissionsPage from '../instructor/SubmissionsPage';
 import AttendancePage from '../shared/AttendancePage';
@@ -17,6 +17,12 @@ export default function SessionDetailPage() {
   const { feedbacks } = useSelector((state: RootState) => state.feedback);
   const { user } = useSelector((state: RootState) => state.auth);
   const [modalOpen, setModalOpen] = useState(false);
+  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('openFeedback')) setModalOpen(true);
+  }, [location.search]);
 
   const tabs: { id: TabType, label: string }[] = [
     { id: 'attendance', label: 'Attendance' },

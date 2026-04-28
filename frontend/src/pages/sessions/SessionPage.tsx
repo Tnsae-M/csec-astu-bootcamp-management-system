@@ -15,9 +15,9 @@ export default function SessionPage() {
   const { items: sessions, loading } = useSelector((state: RootState) => state.sessions);
   const { searchTerm } = useSelector((state: RootState) => state.ui);
   const { user } = useSelector((state: RootState) => state.auth);
-  const roles = user?.roles || [];
-  const isStudent = roles.includes('STUDENT');
-  const isAdminOrInstructor = roles.includes('ADMIN') || roles.includes('SUPER ADMIN') || roles.includes('INSTRUCTOR');
+  const userRole = (user as any)?.role || (Array.isArray((user as any)?.roles) ? (user as any).roles[0] : null);
+  const isStudent = userRole === 'STUDENT';
+  const isAdminOrInstructor = ['ADMIN', 'SUPER ADMIN', 'INSTRUCTOR'].includes(userRole);
 
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState<any>(null);
@@ -42,7 +42,11 @@ export default function SessionPage() {
   const fetchSessions = () => {
     dispatch(setSessionsStart());
     sessionsService.getSessions()
-      .then(res => dispatch(setSessionsSuccess(res.data || [])))
+      .then(res => {
+        const payload = res.data ?? res;
+        const list = Array.isArray(payload) ? payload : payload?.data ?? [];
+        dispatch(setSessionsSuccess(list));
+      })
       .catch(err => dispatch(setSessionsFailure(err.message)));
   };
 
@@ -58,10 +62,13 @@ export default function SessionPage() {
     });
   }, [dispatch]);
 
-  const filteredSessions = sessions.filter((s) => 
-    s.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (typeof s.bootcamp === 'object' && s.bootcamp?.title?.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const safeSessions = Array.isArray(sessions) ? sessions : [];
+  const filteredSessions = safeSessions.filter((s: any) => {
+    const title = (s?.title || '').toString().toLowerCase();
+    const term = (searchTerm || '').toString().toLowerCase();
+    const bcTitle = typeof s?.bootcamp === 'object' ? (s.bootcamp?.title || '').toString().toLowerCase() : '';
+    return title.includes(term) || bcTitle.includes(term);
+  });
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -153,25 +160,29 @@ export default function SessionPage() {
             const instName = typeof session.instructor === 'object' ? session.instructor?.name : (instructors.find(i => i._id === session.instructor)?.name || 'Unknown Instructor');
 
             return (
-            <div key={session._id} className="p-8 rounded-2xl bg-brand-primary border border-brand-border hover:border-brand-accent/30 transition-all group shadow-sm flex flex-col justify-between">
+            <div key={session._id || session.id} className="p-8 rounded-2xl bg-brand-primary border border-brand-border hover:border-brand-accent/30 transition-all group shadow-sm flex flex-col justify-between">
               <div>
                 <div className="flex justify-between items-start mb-8">
                   <div className="w-12 h-12 bg-white border border-brand-border text-brand-accent rounded-xl flex items-center justify-center shadow-sm group-hover:bg-brand-accent group-hover:text-white transition-all">
                     <Calendar size={24} />
                   </div>
                   <div className="flex space-x-2">
-                    <button 
-                       onClick={() => handleOpenEdit(session)}
-                       className="text-text-muted hover:text-brand-accent p-1"
-                    >
-                       <Edit size={14} />
-                    </button>
-                    <button 
-                       onClick={() => handleDelete(session._id, session.title)}
-                       className="text-text-muted hover:text-red-500 p-1"
-                    >
-                       <Trash2 size={14} />
-                    </button>
+                      {isAdminOrInstructor && (
+                       <>
+                        <button 
+                          onClick={() => handleOpenEdit(session)}
+                          className="text-text-muted hover:text-brand-accent p-1"
+                        >
+                          <Edit size={14} />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(session._id, session.title)}
+                          className="text-text-muted hover:text-red-500 p-1"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                       </>
+                      )}
                     <span className={cn(
                       "px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm",
                       session.status === 'UPCOMING' ? 'bg-blue-100 text-blue-700 border border-blue-200' : 
