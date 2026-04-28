@@ -1,34 +1,47 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 export interface Enrollment {
-  id: string;
-  studentId: string;
-  bootcampId: string;
-  divisionId: string;
-  enrolledAt: string;
+  _id: string;
+  id?: string;
+  user?: any; // User object containing name, email etc.
+  studentId?: string | any;
+  bootcamp?: string | any;
+  bootcampId?: string | any;
   status: 'PENDING' | 'APPROVED' | 'COMPLETED' | 'DROPPED';
+  enrolledAt?: string;
+  createdAt?: string;
 }
 
 interface EnrollmentsState {
   enrollments: Enrollment[];
+  loading: boolean;
+  error: string | null;
 }
 
 const initialState: EnrollmentsState = {
-  enrollments: [
-    { id: '1', studentId: '3', bootcampId: '1', divisionId: '1', enrolledAt: '2026-01-10', status: 'APPROVED' },
-    { id: '2', studentId: '4', bootcampId: '1', divisionId: '2', enrolledAt: '2026-01-12', status: 'APPROVED' },
-  ],
+  enrollments: [],
+  loading: false,
+  error: null,
 };
 
 const enrollmentsSlice = createSlice({
   name: 'enrollments',
   initialState,
   reducers: {
-    setEnrollments: (state, action: PayloadAction<Enrollment[]>) => {
+    setEnrollmentsStart: (state) => {
+      state.loading = true;
+      state.error = null;
+    },
+    setEnrollmentsSuccess: (state, action: PayloadAction<Enrollment[]>) => {
       state.enrollments = action.payload;
+      state.loading = false;
+    },
+    setEnrollmentsFailure: (state, action: PayloadAction<string>) => {
+      state.error = action.payload;
+      state.loading = false;
     },
   },
 });
 
-export const { setEnrollments } = enrollmentsSlice.actions;
+export const { setEnrollmentsStart, setEnrollmentsSuccess, setEnrollmentsFailure } = enrollmentsSlice.actions;
 export default enrollmentsSlice.reducer;

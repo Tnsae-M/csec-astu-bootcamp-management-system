@@ -1,35 +1,43 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 export interface Division {
-  id: string;
+  _id: string;
   name: string;
-  head: string;
-  studentsCount: number;
-  status: 'ACTIVE' | 'INACTIVE';
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface DivisionsState {
   divisions: Division[];
+  loading: boolean;
+  error: string | null;
 }
 
 const initialState: DivisionsState = {
-  divisions: [
-    { id: '1', name: 'Software Development', head: 'Dr. Tech', studentsCount: 450, status: 'ACTIVE' },
-    { id: '2', name: 'Cybersecurity', head: 'Cipher Master', studentsCount: 320, status: 'ACTIVE' },
-    { id: '3', name: 'Data Science', head: 'Logic Analyst', studentsCount: 280, status: 'ACTIVE' },
-    { id: '4', name: 'CPD & Soft Skills', head: 'Soft Leader', studentsCount: 150, status: 'ACTIVE' },
-  ],
+  divisions: [],
+  loading: false,
+  error: null,
 };
 
 const divisionsSlice = createSlice({
   name: 'divisions',
   initialState,
   reducers: {
-    setDivisions: (state, action: PayloadAction<Division[]>) => {
+    setDivisionsStart: (state) => {
+      state.loading = true;
+      state.error = null;
+    },
+    setDivisionsSuccess: (state, action: PayloadAction<Division[]>) => {
       state.divisions = action.payload;
+      state.loading = false;
+    },
+    setDivisionsFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
     },
   },
 });
 
-export const { setDivisions } = divisionsSlice.actions;
+export const { setDivisionsStart, setDivisionsSuccess, setDivisionsFailure } = divisionsSlice.actions;
 export default divisionsSlice.reducer;

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
-import { loginStart, loginSuccess, loginFailure, UserRole } from '../../features/auth/authSlice';
+import { loginStart, loginSuccess, loginFailure } from '../../features/auth/authSlice';
 import { Button, Card } from '@/src/components/ui';
 import { RootState } from '../../app/store';
 import Logo from '../../components/common/Logo';
+import { authService } from '../../services/auth.service';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -13,27 +14,34 @@ export default function Login() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     dispatch(loginStart());
 
-    // Faking a login for demo purposes
-    setTimeout(() => {
-      let role: UserRole = 'STUDENT';
-      if (email.includes('admin')) role = 'ADMIN';
-      else if (email.includes('instructor')) role = 'INSTRUCTOR';
+    try {
+      const response = await authService.login({ email, password });
+      
+      const backendResponse = response.data || response; // Gets { success: true, data: { accessToken, user } }
+      const actualData = backendResponse.data || backendResponse; // Extracts { accessToken, user }
+      
+      const user = actualData.user;
+      const token = actualData.accessToken || actualData.token || 'fake-token';
+      
+      const roles: string[] = user?.roles ? user.roles.map((r: string) => r.toUpperCase()) : (user?.role ? [user.role.toUpperCase()] : ['STUDENT']);
 
       dispatch(loginSuccess({
         user: {
-          id: '1',
-          name: email.split('@')[0],
-          email: email,
-          role: role,
+          id: user._id || user.id,
+          name: user.name,
+          email: user.email,
+          roles: roles,
         },
-        token: 'fake-jwt-token'
+        token: token
       }));
       navigate('/dashboard');
-    }, 1000);
+    } catch (err: any) {
+      dispatch(loginFailure(err.response?.data?.message || err.message || 'Login failed'));
+    }
   };
 
   return (
