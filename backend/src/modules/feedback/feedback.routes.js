@@ -3,7 +3,9 @@ import {
   createFeedback,
   getBootcampFeedback,
   getInstructorFeedback,
+  getSessionFeedback
 } from "./feedback.controller.js";
+
 
 import { authGuard, roleGuard } from "../../middleware/role.guard.js";
 
@@ -33,4 +35,12 @@ router.get(
   getInstructorFeedback
 );
 
-export default router;
+// View session feedback
+router.get(
+  "/session/:id",
+  authGuard,
+  roleGuard(["admin", "instructor"]),
+  getSessionFeedback
+);
+
+export default router;

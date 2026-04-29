@@ -18,9 +18,13 @@ export const sendEmail = async ({ to, subject, text, html }) => {
     !process.env.EMAIL_USER ||
     !process.env.EMAIL_PASS
   ) {
-    throw Object.assign(new Error("Email service is not configured."), {
-      statusCode: 500,
-    });
+    console.log("------------------------------------------");
+    console.log("📧 EMAIL SERVICE SIMULATION (SMTP not configured)");
+    console.log(`To: ${to}`);
+    console.log(`Subject: ${subject}`);
+    console.log(`Body: ${text}`);
+    console.log("------------------------------------------");
+    return { message: "Email logged to console (dev mode)" };
   }
 
   const message = {

@@ -22,62 +22,51 @@ const initialState: AttendanceState = {
   error: null,
 };
 
+// ===== THUNKS =====
+
 export const fetchSessionAttendance = createAsyncThunk(
   "attendance/fetchSession",
-  async (sessionId: string) => {
-    const response = await attendanceService.getSessionAttendance(sessionId);
-    return response.data;
+  async (sessionId: string, { rejectWithValue }) => {
+    try {
+      const response = await attendanceService.getSessionAttendance(sessionId);
+      return response.data || response;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch attendance');
+    }
   },
 );
 
 export const markAttendanceAsync = createAsyncThunk(
   "attendance/mark",
-  async (data: any) => {
-    const response = await attendanceService.markAttendance(data);
-    return response.data;
+  async (data: any, { rejectWithValue }) => {
+    try {
+      const response = await attendanceService.markAttendance(data);
+      return response.data || response;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to mark attendance');
+    }
   },
 );
 
 export const fetchMyAttendance = createAsyncThunk(
   "attendance/fetchMy",
-  async () => {
-    const response = await attendanceService.getMyAttendance();
-    return response.data;
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await attendanceService.getMyAttendance();
+      return response.data || response;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch my attendance');
+    }
   },
 );
 
 const attendanceSlice = createSlice({
   name: "attendance",
   initialState,
-  reducers: {
-    setAttendanceStart: (state) => {
-      state.loading = true;
-      state.error = null;
-    },
-    setAttendanceSuccess: (
-      state,
-      action: PayloadAction<AttendanceRecord[]>,
-    ) => {
-      state.loading = false;
-      state.records = action.payload;
-    },
-    setAttendanceFailure: (state, action: PayloadAction<string>) => {
-      state.loading = false;
-      state.error = action.payload;
-    },
-    markAttendance: (state, action: PayloadAction<AttendanceRecord>) => {
-      const index = state.records.findIndex(
-        (r) => (r._id || r.id) === (action.payload._id || action.payload.id),
-      );
-      if (index !== -1) {
-        state.records[index] = action.payload;
-      } else {
-        state.records.push(action.payload);
-      }
-    },
-  },
+  reducers: {},
   extraReducers: (builder) => {
     builder
+      // Fetch Session
       .addCase(fetchSessionAttendance.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -88,11 +77,12 @@ const attendanceSlice = createSlice({
       })
       .addCase(fetchSessionAttendance.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || "Failed to fetch";
+        state.error = action.payload as string;
       })
+      // Mark Attendance
       .addCase(markAttendanceAsync.fulfilled, (state, action) => {
         const index = state.records.findIndex(
-          (r) => r._id === action.payload._id,
+          (r) => (r._id || r.id) === (action.payload._id || action.payload.id),
         );
         if (index !== -1) {
           state.records[index] = action.payload;
@@ -100,16 +90,12 @@ const attendanceSlice = createSlice({
           state.records.push(action.payload);
         }
       })
+      // Fetch My Attendance
       .addCase(fetchMyAttendance.fulfilled, (state, action) => {
         state.records = action.payload;
       });
   },
 });
 
-export const {
-  setAttendanceStart,
-  setAttendanceSuccess,
-  setAttendanceFailure,
-  markAttendance,
-} = attendanceSlice.actions;
 export default attendanceSlice.reducer;
+

@@ -48,8 +48,10 @@ export default function TasksPage({ sessionId, bootcampId }: TasksPageProps) {
   const { searchTerm } = useSelector((state: RootState) => state.ui);
 
   const [bootcamps, setBootcamps] = useState<any[]>([]);
+  const [allSessions, setAllSessions] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+
 
   const [formData, setFormData] = useState({
     title: "",
@@ -78,10 +80,13 @@ export default function TasksPage({ sessionId, bootcampId }: TasksPageProps) {
   useEffect(() => {
     fetchTasks();
     bootcampsService.getBootcamps().then((res) => setBootcamps(res.data || []));
+    sessionsService.getSessions().then((res) => setAllSessions(res.data.data || []));
   }, [dispatch, bootcampId]);
 
+
+
   const filteredTasks = tasks.filter((t) => {
-    const matchesSearch = t.title
+    const matchesSearch = (t.title || "")
       .toLowerCase()
       .includes((searchTerm || "").toLowerCase());
     const matchesSession = sessionId
@@ -215,8 +220,8 @@ export default function TasksPage({ sessionId, bootcampId }: TasksPageProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredTasks.map((task) => {
             const bcName =
-              typeof task.bootcampId === "object"
-                ? task.bootcampId.title
+              typeof task.bootcampId === "object" && task.bootcampId !== null
+                ? (task.bootcampId.name || task.bootcampId.title || "General Bootcamp")
                 : "General Bootcamp";
             const isOverdue =
               task.dueDate && new Date(task.dueDate) < new Date();
@@ -353,7 +358,37 @@ export default function TasksPage({ sessionId, bootcampId }: TasksPageProps) {
             />
           </FormField>
 
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="Parent Bootcamp" required>
+               <select 
+                 className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm font-medium outline-none focus:border-brand-accent transition-colors"
+                 value={formData.bootcampId}
+                 onChange={e => setFormData({...formData, bootcampId: e.target.value})}
+                 required
+               >
+                 <option value="">Select Bootcamp</option>
+                 {bootcamps.map(b => (
+                   <option key={b._id} value={b._id}>{b.name || b.title}</option>
+                 ))}
+               </select>
+            </FormField>
+
+            <FormField label="Related Session">
+               <select 
+                 className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm font-medium outline-none focus:border-brand-accent transition-colors"
+                 value={formData.sessionId}
+                 onChange={e => setFormData({...formData, sessionId: e.target.value})}
+               >
+                 <option value="">None / General</option>
+                 {allSessions.filter(s => (s.bootcamp && typeof s.bootcamp === 'object' ? s.bootcamp._id : s.bootcamp) === formData.bootcampId).map(s => (
+                   <option key={s._id} value={s._id}>{s.title}</option>
+                 ))}
+               </select>
+            </FormField>
+          </div>
+
           <FormField label="Description">
+
             <Textarea
               placeholder="Detail the requirements for this assignment..."
               value={formData.description}

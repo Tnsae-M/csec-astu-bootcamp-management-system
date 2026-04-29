@@ -1,4 +1,5 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
+import { divisionsService } from '../../services/divisions.service';
 
 export interface Division {
   _id: string;
@@ -20,24 +21,74 @@ const initialState: DivisionsState = {
   error: null,
 };
 
+// ===== THUNKS =====
+
+export const fetchDivisions = createAsyncThunk(
+  'divisions/fetchAll',
+  async (name: string | undefined, { rejectWithValue }) => {
+    try {
+      const response = await divisionsService.getDivisions(name);
+      return response.data || response;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch divisions');
+    }
+  }
+);
+
+export const createDivisionAsync = createAsyncThunk(
+  'divisions/create',
+  async (data: { name: string; description?: string }, { rejectWithValue }) => {
+    try {
+      const response = await divisionsService.createDivision(data);
+      return response.data || response;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to create division');
+    }
+  }
+);
+
+export const deleteDivisionAsync = createAsyncThunk(
+  'divisions/delete',
+  async (id: string, { rejectWithValue }) => {
+    try {
+      await divisionsService.deleteDivision(id);
+      return id;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to delete division');
+    }
+  }
+);
+
 const divisionsSlice = createSlice({
   name: 'divisions',
   initialState,
-  reducers: {
-    setDivisionsStart: (state) => {
-      state.loading = true;
-      state.error = null;
-    },
-    setDivisionsSuccess: (state, action: PayloadAction<Division[]>) => {
-      state.divisions = action.payload;
-      state.loading = false;
-    },
-    setDivisionsFailure: (state, action: PayloadAction<string>) => {
-      state.loading = false;
-      state.error = action.payload;
-    },
+  reducers: {},
+  extraReducers: (builder) => {
+    builder
+      // Fetch
+      .addCase(fetchDivisions.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchDivisions.fulfilled, (state, action) => {
+        state.loading = false;
+        state.divisions = action.payload.data || action.payload || [];
+      })
+
+      .addCase(fetchDivisions.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      // Create
+      .addCase(createDivisionAsync.fulfilled, (state, action) => {
+        state.divisions.push(action.payload);
+      })
+      // Delete
+      .addCase(deleteDivisionAsync.fulfilled, (state, action) => {
+        state.divisions = state.divisions.filter(d => (d._id) !== action.payload);
+      });
   },
 });
 
-export const { setDivisionsStart, setDivisionsSuccess, setDivisionsFailure } = divisionsSlice.actions;
 export default divisionsSlice.reducer;
+

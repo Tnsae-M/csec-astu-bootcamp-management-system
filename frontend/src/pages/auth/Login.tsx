@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
-import { loginStart, loginSuccess, loginFailure } from '../../features/auth/authSlice';
+import { login, clearError } from '../../features/auth/authSlice';
 import { 
   Button, 
   Card, 
@@ -10,47 +10,44 @@ import {
 } from '@/components/ui';
 import { RootState } from '../../app/store';
 import Logo from '../../components/common/Logo';
-import { authService } from '../../services/auth.service';
 import { ShieldCheck, ArrowRight, Lock, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { loading, error } = useSelector((state: RootState) => state.auth);
-  const dispatch = useDispatch();
+  const { loading, error, user } = useSelector((state: RootState) => state.auth);
+  const dispatch = useDispatch() as any;
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (user) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    dispatch(loginStart());
-
-    try {
-      const response = await authService.login({ email, password });
-      const backendResponse = response.data || response;
-      const actualData = backendResponse.data || backendResponse;
+    const result = await dispatch(login({ email, password }));
+    
+    if (login.fulfilled.match(result)) {
+      const rawPayload = result.payload;
+      const data = rawPayload.data || {};
+      const userData = rawPayload.user || data.user;
       
-      const user = actualData.user;
-      const token = actualData.accessToken || actualData.token || 'fake-token';
-      const roles: string[] = user?.roles ? user.roles.map((r: string) => r.toUpperCase()) : (user?.role ? [user.role.toUpperCase()] : ['STUDENT']);
-
-      dispatch(loginSuccess({
-        user: {
-          id: user._id || user.id,
-          name: user.name,
-          email: user.email,
-          roles: roles,
-        },
-        token: token
-      }));
-      toast.success(`Welcome back, ${user.name}!`);
+      if (userData) {
+        toast.success(`Welcome back, ${userData.name}!`);
+      }
+      
+      // Immediate navigation for better responsiveness
       navigate('/dashboard');
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.message || err.message || 'Authentication failed';
-      dispatch(loginFailure(errorMsg));
-      toast.error(errorMsg);
+    } else if (login.rejected.match(result)) {
+      toast.error(result.payload as string || 'Authentication failed');
     }
   };
+
+
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-brand-primary px-4 relative overflow-hidden">

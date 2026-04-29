@@ -15,4 +15,9 @@ export const feedbackService = {
     const response = await api.get(`/feedback/instructor/${instructorId}`);
     return response.data;
   },
+  getFeedbacksBySession: async (sessionId: string) => {
+    const response = await api.get(`/feedback/session/${sessionId}`);
+    return response.data;
+  },
 };
+

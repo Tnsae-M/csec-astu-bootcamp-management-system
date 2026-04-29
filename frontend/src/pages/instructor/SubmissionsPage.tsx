@@ -1,43 +1,21 @@
-import React, { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
-import { RootState } from '../../app/store';
-import {
-  FileText,
-  CheckCircle2,
-  AlertCircle,
-  BookOpen,
-} from 'lucide-react';
-import { cn } from '../../lib/utils';
-import {
-  Button,
-  Modal,
-  Table,
-  TableHeader,
-  TableBody,
-  TableHead,
-  TableRow,
-  TableCell,
-} from '../../components/ui';
-import { tasksService } from '../../services/tasks.service';
-import { submissionsService } from '../../services/submissions.service';
-
-interface SubmissionsPageProps {
-  sessionId?: string;
-  bootcampId?: string;
-}
+import { useDispatch, useSelector } from 'react-redux';
+import { 
+  fetchTasksByBootcamp, 
+  fetchSubmissionsByTask, 
+  gradeSubmission 
+} from '../../features/tasks/taskSlice';
+import { toast } from 'sonner';
 
 export default function SubmissionsPage({
   sessionId,
   bootcampId,
 }: SubmissionsPageProps) {
+  const dispatch = useDispatch() as any;
   const { user } = useSelector((state: RootState) => state.auth);
   const { searchTerm } = useSelector((state: RootState) => state.ui);
+  const { tasks, selectedSubmissions: submissions, loading } = useSelector((state: RootState) => state.tasks);
 
-  const [tasks, setTasks] = useState<any[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<string>('');
-  const [submissions, setSubmissions] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-
   const [isGradeModalOpen, setIsGradeModalOpen] = useState(false);
   const [activeSubmission, setActiveSubmission] = useState<any>(null);
 
@@ -49,78 +27,35 @@ export default function SubmissionsPage({
 
   const isStandalone = !sessionId || !bootcampId;
 
-  // LOAD TASKS (Standalone)
+  // LOAD TASKS
   useEffect(() => {
-    if (isStandalone) {
-      tasksService.getTasks().then((res) => {
-        const allTasks = res.data || [];
-        setTasks(allTasks);
-        if (allTasks.length > 0) {
-          setSelectedTaskId(allTasks[0]._id || allTasks[0].id);
-        }
-      });
+    if (bootcampId) {
+      dispatch(fetchTasksByBootcamp(bootcampId));
     }
-  }, [isStandalone]);
+  }, [bootcampId, dispatch]);
 
-  // LOAD SUBMISSIONS (Standalone)
   useEffect(() => {
-    if (isStandalone && selectedTaskId) {
-      setLoading(true);
-      submissionsService
-        .getSubmissionsByTask(selectedTaskId)
-        .then((res) => setSubmissions(res.data || []))
-        .finally(() => setLoading(false));
+    if (tasks.length > 0 && !selectedTaskId) {
+        setSelectedTaskId(tasks[0]._id || tasks[0].id);
     }
-  }, [selectedTaskId, isStandalone]);
+  }, [tasks, selectedTaskId]);
 
-  // EMBEDDED MODE (Session-based)
+  // LOAD SUBMISSIONS
   useEffect(() => {
-    const fetchData = async () => {
-      if (isStandalone) return;
-
-      setLoading(true);
-      try {
-        const tasksRes = await tasksService.getTasksByBootcamp(
-          bootcampId!
-        );
-        const allTasks = tasksRes.data || [];
-
-        const sessionTasks = allTasks.filter(
-          (t: any) =>
-            (t.sessionId?._id || t.sessionId) === sessionId
-        );
-
-        const submissionsResults = await Promise.all(
-          sessionTasks.map((t: any) =>
-            submissionsService.getSubmissionsByTask(
-              t._id || t.id
-            )
-          )
-        );
-
-        const allSubmissions = submissionsResults.flatMap(
-          (res) => res.data || []
-        );
-
-        setSubmissions(allSubmissions);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [sessionId, bootcampId, isStandalone]);
+    if (selectedTaskId) {
+      dispatch(fetchSubmissionsByTask(selectedTaskId));
+    }
+  }, [selectedTaskId, dispatch]);
 
   // FILTER
-  const filteredSubmissions = submissions.filter((s) => {
+  const filteredSubmissions = (submissions || []).filter((s) => {
     const term = (searchTerm || '').toLowerCase();
+    const studentName = typeof s.studentId === 'object' ? (s.studentId?.name || '') : '';
+    const taskTitle = s.taskId?.title || '';
 
     return (
-      (typeof s.studentId === 'object' &&
-        s.studentId?.name?.toLowerCase().includes(term)) ||
-      s.taskId?.title?.toLowerCase().includes(term)
+      studentName.toLowerCase().includes(term) ||
+      taskTitle.toLowerCase().includes(term)
     );
   });
 
@@ -130,46 +65,33 @@ export default function SubmissionsPage({
     setGradeData({
       grade: sub.grade || 0,
       feedback: sub.feedback || '',
-      status:
-        sub.status === 'PENDING' ? 'GRADED' : sub.status,
+      status: sub.status === 'PENDING' ? 'GRADED' : sub.status,
     });
     setIsGradeModalOpen(true);
   };
 
   // SUBMIT GRADE
-  const submitGrade = async (e: React.FormEvent) => {
+  const handleSubmitGrade = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeSubmission) return;
 
     try {
-      await submissionsService.gradeSubmission(
-        activeSubmission._id || activeSubmission.id,
-        gradeData
-      );
-
-      setIsGradeModalOpen(false);
-
-      // refresh
-      if (isStandalone) {
-        const res =
-          await submissionsService.getSubmissionsByTask(
-            selectedTaskId
-          );
-        setSubmissions(res.data || []);
+      const result = await dispatch(gradeSubmission({
+        id: activeSubmission._id || activeSubmission.id,
+        data: gradeData
+      }));
+      
+      if (gradeSubmission.fulfilled.match(result)) {
+          toast.success('Grade finalized successfully');
+          setIsGradeModalOpen(false);
       } else {
-        setSubmissions((prev) =>
-          prev.map((s) =>
-            (s._id || s.id) ===
-            (activeSubmission._id || activeSubmission.id)
-              ? { ...s, ...gradeData }
-              : s
-          )
-        );
+          toast.error((result.payload as string) || 'Grading failed');
       }
     } catch (err: any) {
-      alert(err.message);
+      toast.error(err.message);
     }
   };
+
 
   return (
     <div className="space-y-8">
@@ -269,9 +191,10 @@ export default function SubmissionsPage({
         title="Grade Submission"
       >
         <form
-          onSubmit={submitGrade}
+          onSubmit={handleSubmitGrade}
           className="space-y-4"
         >
+
           <input
             type="number"
             value={gradeData.grade}

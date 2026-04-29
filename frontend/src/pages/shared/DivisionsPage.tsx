@@ -5,7 +5,12 @@ import { RootState } from '../../app/store';
 import { Building2, Activity, Plus, Edit, Trash2, AlertCircle, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { divisionsService } from '@/services/divisions.service';
-import { setDivisionsStart, setDivisionsSuccess, setDivisionsFailure } from '@/features/divisions/divisionsSlice';
+import { 
+  fetchDivisions, 
+  createDivisionAsync, 
+  deleteDivisionAsync 
+} from '@/features/divisions/divisionsSlice';
+
 import { 
   Modal, 
   Button, 
@@ -19,7 +24,7 @@ import {
 } from '@/components/ui';
 
 export default function DivisionsPage() {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch() as any;
   const navigate = useNavigate();
   const { divisions, loading } = useSelector((state: RootState) => state.divisions);
   const { searchTerm } = useSelector((state: RootState) => state.ui);
@@ -37,20 +42,18 @@ export default function DivisionsPage() {
     description: ''
   });
 
-  const fetchDivisions = () => {
-    dispatch(setDivisionsStart());
-    divisionsService.getDivisions()
-      .then(res => dispatch(setDivisionsSuccess(res.data || [])))
-      .catch(err => dispatch(setDivisionsFailure(err.message)));
+  const fetchDivisionsList = () => {
+    dispatch(fetchDivisions(undefined));
   };
 
   useEffect(() => {
-    fetchDivisions();
+    fetchDivisionsList();
   }, [dispatch]);
 
-  const filteredDivisions = divisions.filter((d) => 
-    d.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (d.description && d.description.toLowerCase().includes(searchTerm.toLowerCase()))
+
+  const filteredDivisions = (divisions || []).filter((d) => 
+    (d.name || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
+    (d.description && d.description.toLowerCase().includes((searchTerm || '').toLowerCase()))
   );
 
   const handleOpenCreate = () => {
@@ -68,9 +71,12 @@ export default function DivisionsPage() {
   const handleDelete = async (id: string, name: string) => {
     if (window.confirm(`Are you sure you want to delete the division: ${name}?`)) {
       try {
-        await divisionsService.deleteDivision(id);
-        fetchDivisions();
-        toast.success('Division deleted successfully');
+        const result = await dispatch(deleteDivisionAsync(id));
+        if (deleteDivisionAsync.fulfilled.match(result)) {
+            toast.success('Division deleted successfully');
+        } else {
+            toast.error((result.payload as string) || 'Delete failed');
+        }
       } catch (err: any) {
         toast.error(err.response?.data?.message || err.message);
       }
@@ -83,17 +89,23 @@ export default function DivisionsPage() {
       if (editingId) {
         await divisionsService.updateDivision(editingId, formData);
         toast.success('Division updated successfully');
+        fetchDivisionsList();
       } else {
-        await divisionsService.createDivision(formData);
-        toast.success('Division created successfully');
+        const result = await dispatch(createDivisionAsync(formData));
+        if (createDivisionAsync.fulfilled.match(result)) {
+            toast.success('Division created successfully');
+        } else {
+            toast.error((result.payload as string) || 'Create failed');
+            return;
+        }
       }
       setIsModalOpen(false);
-      fetchDivisions();
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || err.message;
       toast.error(errorMsg);
     }
   };
+
 
   return (
     <div className="space-y-8">

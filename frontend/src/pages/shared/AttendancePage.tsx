@@ -9,11 +9,8 @@ import {
   markAttendanceAsync,
   fetchMyAttendance,
 } from "../../features/attendance/attendanceSlice";
-import {
-  setEnrollmentsStart,
-  setEnrollmentsSuccess,
-  setEnrollmentsFailure,
-} from "../../features/enrollments/enrollmentsSlice";
+import { fetchBootcampEnrollments } from "../../features/enrollments/enrollmentsSlice";
+
 
 interface AttendancePageProps {
   sessionId?: string;
@@ -38,11 +35,7 @@ export default function AttendancePage({
 
   useEffect(() => {
     if (isInstructor && bootcampId) {
-      dispatch(setEnrollmentsStart());
-      enrollmentsService
-        .getBootcampEnrollments(bootcampId)
-        .then((res) => dispatch(setEnrollmentsSuccess(res.data || [])))
-        .catch((err) => dispatch(setEnrollmentsFailure(err.message)));
+      dispatch(fetchBootcampEnrollments(bootcampId));
     }
 
     if (sessionId) {
@@ -53,6 +46,7 @@ export default function AttendancePage({
       }
     }
   }, [dispatch, sessionId, bootcampId, isInstructor]);
+
 
   const handleMarkAttendance = async (userId: string) => {
     if (!sessionId) return;

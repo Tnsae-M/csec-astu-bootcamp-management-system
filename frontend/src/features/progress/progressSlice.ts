@@ -1,34 +1,63 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { progressService } from '../../services/progress.service';
 
 export interface ProgressReport {
-  id: string;
-  studentId: string;
-  week: number;
-  score: number;
-  status: 'PASSED' | 'FAILED' | 'PENDING';
-  remarks: string;
+  _id?: string;
+  studentId?: any;
+  bootcampId?: any;
+  overallScore?: number;
+  completedTasks?: number;
+  totalTasks?: number;
+  attendedSessions?: number;
+  totalSessions?: number;
+  status?: string;
 }
 
 interface ProgressState {
   reports: ProgressReport[];
+  loading: boolean;
+  error: string | null;
 }
 
 const initialState: ProgressState = {
-  reports: [
-    { id: '1', studentId: '3', week: 1, score: 85, status: 'PASSED', remarks: 'Good grasp of modular patterns.' },
-    { id: '2', studentId: '3', week: 2, score: 92, status: 'PASSED', remarks: 'Excellent project structure.' },
-  ],
+  reports: [],
+  loading: false,
+  error: null,
 };
+
+export const fetchMyProgress = createAsyncThunk(
+  'progress/fetchMyProgress',
+  async (bootcampId: string, { rejectWithValue }) => {
+    try {
+      const response = await progressService.getMyProgress(bootcampId);
+      return response.data || response;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
+  }
+);
 
 const progressSlice = createSlice({
   name: 'progress',
   initialState,
-  reducers: {
-    addReport: (state, action: PayloadAction<ProgressReport>) => {
-      state.reports.push(action.payload);
-    },
+  reducers: {},
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchMyProgress.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchMyProgress.fulfilled, (state, action) => {
+        state.loading = false;
+        // Backend returns an object with stats, so we might need to wrap it in an array or adjust component logic
+        state.reports = Array.isArray(action.payload) ? action.payload : [action.payload];
+      })
+      .addCase(fetchMyProgress.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
   },
 });
 
-export const { addReport } = progressSlice.actions;
 export default progressSlice.reducer;
+

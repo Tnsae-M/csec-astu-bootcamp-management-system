@@ -1,70 +1,51 @@
-import React, { useEffect, useState } from "react";
-import { 
-  Button, 
-  Card, 
-  StatCard, 
-  Badge, 
-  Avatar, 
-  AvatarFallback, 
-  Skeleton 
+import React, { useEffect } from "react";
+import {
+  Button,
+  Card,
+  StatCard,
+  Badge,
+  Avatar,
+  AvatarFallback,
+  Skeleton
 } from "@/components/ui";
-import { 
-  Calendar, 
-  Clock, 
-  BookOpen, 
-  ArrowRight, 
-  Trophy, 
-  Users, 
+import {
+  Calendar,
+  Clock,
+  BookOpen,
+  ArrowRight,
+  Trophy,
   Activity,
   CheckCircle2,
-  AlertCircle
 } from "lucide-react";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../../app/store";
 import { useNavigate } from 'react-router-dom';
-import api from "../../api/axios";
-import fetchWithFallback from "../../lib/fetchWithFallback";
+import { fetchSessions } from "../../features/sessions/sessionSlice";
+import { fetchMyEnrollments } from "../../features/enrollments/enrollmentsSlice";
 
 export default function StudentDashboard() {
+  const dispatch = useDispatch() as any;
   const navigate = useNavigate();
+
   const { user } = useSelector((state: RootState) => state.auth);
-
-  const upcomingMock = [
-    { id: 'S1', title: 'React Hooks Deep Dive', time: '10:00 AM', mode: 'Online', date: '2024-05-15' },
-    { id: 'S2', title: 'Express Middleware', time: '14:00', mode: 'In-Person', date: '2024-05-16' },
-  ];
-
-  const [upcoming, setUpcoming] = useState(upcomingMock);
-  const [attendance, setAttendance] = useState<number>(0);
-  const [myGroup, setMyGroup] = useState({ name: '—', lead: '—' });
-  const [loading, setLoading] = useState(true);
+  const { items: sessions, loading: sessionsLoading } = useSelector((state: RootState) => state.sessions);
+  const { myEnrollments, myLoading: enrollmentsLoading } = useSelector((state: RootState) => state.enrollments);
 
   useEffect(() => {
-    let mounted = true;
+    dispatch(fetchSessions());
+    dispatch(fetchMyEnrollments());
+  }, [dispatch]);
 
-    (async () => {
-      setLoading(true);
-      // Sessions
-      const sessionsRes = await fetchWithFallback(() => api.get('/sessions/mine'), upcomingMock);
-      if (mounted && sessionsRes?.data) {
-        setUpcoming(Array.isArray(sessionsRes.data) ? sessionsRes.data : upcomingMock);
-      }
+  const safeSessions = Array.isArray(sessions) ? sessions : [];
+  const safeEnrollments = Array.isArray(myEnrollments) ? myEnrollments : [];
 
-      // Attendance
-      const attRes = await fetchWithFallback(() => api.get('/attendance/me'), { percent: 85 });
-      if (mounted) setAttendance(attRes?.data?.percent ?? 85);
+  // Show only the 4 most recent/upcoming sessions
+  const upcomingSessions = safeSessions.slice(0, 4);
 
-      // Group
-      const grpRes = await fetchWithFallback(() => api.get('/groups/my'), { name: 'Alpha Squad', lead: 'Sarah Connor' });
-      if (mounted && grpRes?.data) setMyGroup({ name: grpRes.data.name ?? '—', lead: grpRes.data.lead ?? '—' });
-      
-      setLoading(false);
-    })();
+  // Derive enrolled bootcamp count
+  const enrolledCount = safeEnrollments.length;
 
-    return () => { mounted = false; };
-  }, []);
-
-  const ongoingTask = { title: 'Custom Hook Lab', due: 'Sep 25, 2024', status: 'PENDING' };
+  const loading = sessionsLoading || enrollmentsLoading;
 
   return (
     <div className="space-y-8">
@@ -72,7 +53,9 @@ export default function StudentDashboard() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-text-main uppercase tracking-tight">My Learning Portal</h1>
-          <p className="text-sm text-text-muted mt-1 font-medium italic">Monitor your academic trajectory and milestones</p>
+          <p className="text-sm text-text-muted mt-1 font-medium italic">
+            Welcome back, {user?.name || 'Student'} — here's your progress at a glance.
+          </p>
         </div>
         <Button onClick={() => navigate('/dashboard/student/tasks')} className="shadow-lg shadow-brand-accent/20">
           View All Assignments
@@ -81,36 +64,82 @@ export default function StudentDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-          {/* ONGOING TASKS */}
+
+          {/* ENROLLED BOOTCAMPS SUMMARY */}
           <Card className="border-none bg-white p-6 md:p-8">
             <div className="flex items-center gap-3 mb-6">
               <div className="p-3 rounded-2xl bg-brand-primary text-brand-accent">
                 <BookOpen className="h-6 w-6" />
               </div>
               <div>
-                <h3 className="text-lg font-black text-text-main uppercase">Ongoing Assignment</h3>
-                <p className="text-xs text-text-muted font-bold tracking-widest uppercase">Immediate Priority</p>
+                <h3 className="text-lg font-black text-text-main uppercase">My Bootcamps</h3>
+                <p className="text-xs text-text-muted font-bold tracking-widest uppercase">Enrolled Tracks</p>
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-brand-primary/30 p-5 rounded-2xl border border-transparent hover:border-brand-accent/10 transition-all group">
-              <div className="flex items-center gap-4">
-                <div className="bg-white p-4 rounded-xl shadow-sm group-hover:bg-brand-accent group-hover:text-white transition-colors">
-                  <CheckCircle2 className="h-6 w-6" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-lg text-text-main group-hover:text-brand-accent transition-colors">
-                    {ongoingTask.title}
-                  </h4>
-                  <div className="flex items-center gap-2 text-xs text-text-muted font-bold mt-1 uppercase tracking-wider">
-                    <Clock className="h-3 w-3" /> Due: {ongoingTask.due}
-                  </div>
-                </div>
+            {enrollmentsLoading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-16 w-full rounded-2xl" />
+                <Skeleton className="h-16 w-full rounded-2xl" />
               </div>
-              <Badge className="mt-4 sm:mt-0 bg-amber-100 text-amber-700 border-amber-200 uppercase tracking-widest text-[9px] px-3">
-                {ongoingTask.status}
-              </Badge>
-            </div>
+            ) : safeEnrollments.length === 0 ? (
+              <div className="flex flex-col items-center py-8 text-center">
+                <BookOpen className="h-10 w-10 text-brand-accent/30 mb-3" />
+                <p className="text-text-muted font-bold text-sm">You are not enrolled in any bootcamp yet.</p>
+                <Button
+                  variant="outline"
+                  className="mt-4 text-xs font-black uppercase tracking-widest"
+                  onClick={() => navigate('/dashboard/student/bootcamps')}
+                >
+                  Browse Bootcamps
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {safeEnrollments.slice(0, 3).map((enrollment: any) => {
+                  const bootcamp = typeof enrollment.bootcamp === 'object'
+                    ? enrollment.bootcamp
+                    : { name: 'Bootcamp', _id: enrollment.bootcamp || enrollment.bootcampId };
+                  return (
+                    <div
+                      key={enrollment._id}
+                      className="flex items-center justify-between bg-brand-primary/30 p-4 rounded-2xl border border-transparent hover:border-brand-accent/10 transition-all group cursor-pointer"
+                      onClick={() => navigate('/dashboard/student/bootcamps')}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="bg-white p-2.5 rounded-xl shadow-sm group-hover:bg-brand-accent group-hover:text-white transition-colors">
+                          <BookOpen className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-text-main text-sm group-hover:text-brand-accent transition-colors">
+                            {bootcamp?.name || 'Bootcamp'}
+                          </h4>
+                          {bootcamp?.division && (
+                            <p className="text-[10px] text-text-muted font-bold uppercase tracking-widest">
+                              {typeof bootcamp.division === 'object' ? bootcamp.division?.name : bootcamp.division}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <Badge className={`uppercase tracking-widest text-[9px] px-3 ${
+                        enrollment.status === 'APPROVED' ? 'bg-green-100 text-green-700 border-green-200' :
+                        enrollment.status === 'PENDING'  ? 'bg-amber-100 text-amber-700 border-amber-200' :
+                        enrollment.status === 'COMPLETED'? 'bg-blue-100 text-blue-700 border-blue-200' :
+                        'bg-red-100 text-red-700 border-red-200'
+                      }`}>
+                        {enrollment.status}
+                      </Badge>
+                    </div>
+                  );
+                })}
+                {safeEnrollments.length > 3 && (
+                  <Button variant="ghost" className="w-full text-xs font-bold text-brand-accent" onClick={() => navigate('/dashboard/student/bootcamps')}>
+                    View all {safeEnrollments.length} bootcamps
+                    <ArrowRight className="h-3 w-3 ml-2" />
+                  </Button>
+                )}
+              </div>
+            )}
           </Card>
 
           {/* UPCOMING SESSIONS */}
@@ -121,61 +150,90 @@ export default function StudentDashboard() {
               </div>
               <div>
                 <h3 className="text-lg font-black text-text-main uppercase">Class Schedule</h3>
-                <p className="text-xs text-text-muted font-bold tracking-widest uppercase">Next 48 Hours</p>
+                <p className="text-xs text-text-muted font-bold tracking-widest uppercase">Upcoming Sessions</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {upcoming.map((s: any) => (
-                <div key={s.id} className="p-5 bg-brand-primary/30 rounded-2xl border border-transparent hover:border-brand-accent/20 transition-all flex flex-col justify-between group">
-                  <div>
-                    <h4 className="font-bold text-text-main group-hover:text-brand-accent transition-colors">{s.title}</h4>
-                    <div className="flex items-center gap-2 text-[11px] text-text-muted font-bold uppercase tracking-wider mt-3">
-                      <Clock className="h-3.5 w-3.5" /> {s.time}
-                      <span className="text-brand-border mx-1">•</span>
-                      <Activity className="h-3.5 w-3.5" /> {s.mode}
+            {sessionsLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[1, 2].map(i => <Skeleton key={i} className="h-28 w-full rounded-2xl" />)}
+              </div>
+            ) : upcomingSessions.length === 0 ? (
+              <div className="flex flex-col items-center py-8 text-center">
+                <Calendar className="h-10 w-10 text-brand-accent/30 mb-3" />
+                <p className="text-text-muted font-bold text-sm">No sessions scheduled yet.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {upcomingSessions.map((s: any) => {
+                  const bcName = typeof s.bootcamp === 'object' ? s.bootcamp?.name : (s.bootcamp || '');
+                  return (
+                    <div key={s._id || s.id} className="p-5 bg-brand-primary/30 rounded-2xl border border-transparent hover:border-brand-accent/20 transition-all flex flex-col justify-between group">
+                      <div>
+                        <h4 className="font-bold text-text-main group-hover:text-brand-accent transition-colors">{s.title}</h4>
+                        {bcName && (
+                          <p className="text-[10px] font-black text-brand-accent uppercase tracking-widest mt-1">{bcName}</p>
+                        )}
+                        <div className="flex items-center gap-2 text-[11px] text-text-muted font-bold uppercase tracking-wider mt-3">
+                          <Clock className="h-3.5 w-3.5" />
+                          {s.startTime || s.date?.substring(11, 16) || 'TBD'}
+                          {s.location && (
+                            <>
+                              <span className="text-brand-border mx-1">•</span>
+                              <Activity className="h-3.5 w-3.5" />
+                              {s.location}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <div className="mt-3">
+                        <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded ${
+                          s.status === 'UPCOMING' ? 'bg-blue-100 text-blue-700' :
+                          s.status === 'ONGOING'  ? 'bg-green-100 text-green-700' :
+                          s.status === 'COMPLETED'? 'bg-gray-100 text-gray-600' :
+                          'bg-red-100 text-red-700'
+                        }`}>
+                          {s.status || 'UPCOMING'}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </Card>
         </div>
 
         {/* SIDEBAR STATS */}
         <div className="space-y-6">
-          <StatCard 
-            label="Attendance Rate" 
-            value={attendance} 
-            suffix="%"
-            icon={<CheckCircle2 />} 
-            trend={{ value: 5, isPositive: true }}
+          <StatCard
+            label="Enrolled Bootcamps"
+            value={enrolledCount}
+            icon={<BookOpen />}
+            trend={{ value: enrolledCount, isPositive: true }}
           />
 
-          <Card className="border-none bg-white p-6">
-            <p className="text-[10px] font-black text-text-muted uppercase tracking-widest mb-4">My Squad</p>
-            <div className="flex items-center gap-4 bg-brand-primary/40 p-4 rounded-2xl">
-              <Avatar className="h-12 w-12 border-2 border-white shadow-sm">
-                <AvatarFallback className="bg-brand-accent text-white font-black text-lg">
-                  {myGroup.name.charAt(0)}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <h4 className="font-bold text-text-main leading-none mb-1">{myGroup.name}</h4>
-                <p className="text-[11px] text-brand-accent font-black uppercase tracking-tighter">Lead: {myGroup.lead}</p>
-              </div>
-            </div>
-            
-            <Button variant="ghost" className="w-full mt-4 text-xs font-bold text-brand-accent group" onClick={() => navigate('/dashboard/student/group')}>
-              View Squad Details
-              <ArrowRight className="h-3 w-3 ml-2 group-hover:translate-x-1 transition-transform" />
-            </Button>
-          </Card>
+          <StatCard
+            label="Total Sessions"
+            value={safeSessions.length}
+            icon={<Calendar />}
+            trend={{ value: safeSessions.length, isPositive: true }}
+          />
 
           <Card className="border-none bg-brand-accent text-white p-6 shadow-xl shadow-brand-accent/20">
             <Trophy className="h-8 w-8 mb-4 opacity-50" />
-            <h4 className="font-black text-lg uppercase leading-tight">Achievement Unlocked</h4>
-            <p className="text-sm text-white/70 mt-2">You've maintained a 90% completion rate this week. Keep it up!</p>
+            <h4 className="font-black text-lg uppercase leading-tight">Keep It Up!</h4>
+            <p className="text-sm text-white/70 mt-2">
+              You have {enrolledCount} active bootcamp{enrolledCount !== 1 ? 's' : ''} and {safeSessions.length} session{safeSessions.length !== 1 ? 's' : ''} available.
+            </p>
+            <Button
+              variant="ghost"
+              className="mt-4 w-full text-white border border-white/30 hover:bg-white/10 text-xs font-black uppercase tracking-widest"
+              onClick={() => navigate('/dashboard/student/sessions')}
+            >
+              View Sessions
+              <ArrowRight className="h-3 w-3 ml-2" />
+            </Button>
           </Card>
         </div>
       </div>

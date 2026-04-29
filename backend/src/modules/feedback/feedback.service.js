@@ -78,3 +78,19 @@ export const getInstructorFeedback = async (instructorId, viewerRole = 'instruct
     studentName: viewerRole === 'admin' ? d.studentId?.name || null : (d.isAnonymous ? 'Anonymous' : d.studentId?.name || null),
   }));
 };
+
+export const getSessionFeedback = async (sessionId, viewerRole = 'instructor') => {
+  const data = await Feedback.find({ sessionId })
+    .populate("studentId", "name")
+    .sort({ createdAt: -1 });
+
+  return data.map((d) => ({
+    id: d._id,
+    sessionId: d.sessionId,
+    rating: d.rating,
+    comment: d.comment,
+    createdAt: d.createdAt,
+    isAnonymous: d.isAnonymous,
+    studentName: viewerRole === 'admin' ? d.studentId?.name || null : (d.isAnonymous ? 'Anonymous' : d.studentId?.name || null),
+  }));
+};

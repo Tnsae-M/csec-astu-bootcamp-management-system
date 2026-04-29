@@ -6,12 +6,14 @@ import { cn } from '../../lib/utils';
 import { sessionsService } from '../../services/sessions.service';
 import { bootcampsService } from '../../services/bootcamps.service';
 import { usersService } from '../../services/users.service';
-import { setSessionsStart, setSessionsSuccess, setSessionsFailure } from '../../features/sessions/sessionSlice';
+import { fetchSessions, createSessionAsync, updateSessionAsync } from '../../features/sessions/sessionSlice';
 import { Button, Modal } from '../../components/ui';
 import FeedbackForm from '../../components/feedback/FeedbackForm';
+import { toast } from 'sonner';
 
 export default function SessionPage() {
-  const dispatch = useDispatch();
+
+  const dispatch = useDispatch() as any;
   const { items: sessions, loading } = useSelector((state: RootState) => state.sessions);
   const { searchTerm } = useSelector((state: RootState) => state.ui);
   const { user } = useSelector((state: RootState) => state.auth);
@@ -39,19 +41,12 @@ export default function SessionPage() {
     status: 'UPCOMING'
   });
 
-  const fetchSessions = () => {
-    dispatch(setSessionsStart());
-    sessionsService.getSessions()
-      .then(res => {
-        const payload = res.data ?? res;
-        const list = Array.isArray(payload) ? payload : payload?.data ?? [];
-        dispatch(setSessionsSuccess(list));
-      })
-      .catch(err => dispatch(setSessionsFailure(err.message)));
+  const fetchSessionsList = () => {
+    dispatch(fetchSessions());
   };
 
   useEffect(() => {
-    fetchSessions();
+    fetchSessionsList();
     bootcampsService.getBootcamps().then(res => setBootcamps(res.data || []));
     usersService.getUsers().then(res => {
       const allInts = (res.data || []).filter((u: any) => {
@@ -66,7 +61,7 @@ export default function SessionPage() {
   const filteredSessions = safeSessions.filter((s: any) => {
     const title = (s?.title || '').toString().toLowerCase();
     const term = (searchTerm || '').toString().toLowerCase();
-    const bcTitle = typeof s?.bootcamp === 'object' ? (s.bootcamp?.title || '').toString().toLowerCase() : '';
+    const bcTitle = typeof s?.bootcamp === 'object' ? (s.bootcamp?.name || '').toString().toLowerCase() : '';
     return title.includes(term) || bcTitle.includes(term);
   });
 
@@ -102,27 +97,36 @@ export default function SessionPage() {
     if (window.confirm(`Are you sure you want to delete session: ${title}?`)) {
       try {
          await sessionsService.deleteSession(id);
-         fetchSessions();
+         toast.success('Session deleted');
+         fetchSessionsList();
       } catch (err: any) {
-         alert(err.response?.data?.message || err.message);
+         toast.error(err.response?.data?.message || err.message);
       }
     }
   };
 
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      let result;
       if (editingId) {
-        await sessionsService.updateSession(editingId, formData);
+        result = await dispatch(updateSessionAsync({ id: editingId, data: formData }));
       } else {
-        await sessionsService.createSession(formData);
+        result = await dispatch(createSessionAsync(formData));
       }
-      setIsModalOpen(false);
-      fetchSessions();
+      
+      if (updateSessionAsync.fulfilled.match(result) || createSessionAsync.fulfilled.match(result)) {
+          setIsModalOpen(false);
+          toast.success('Schedule updated successfully');
+      } else {
+          toast.error((result.payload as string) || 'Operation failed');
+      }
     } catch (err: any) {
-      alert(err.response?.data?.message || err.message);
+      toast.error(err.response?.data?.message || err.message);
     }
   };
+
 
   return (
     <div className="space-y-8 selection:bg-brand-accent selection:text-white">
@@ -156,7 +160,7 @@ export default function SessionPage() {
         ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 relative z-10">
           {filteredSessions.map((session) => {
-            const bcName = typeof session.bootcamp === 'object' ? session.bootcamp?.title : (bootcamps.find(b => b._id === session.bootcamp)?.title || 'Unknown Bootcamp');
+            const bcName = typeof session.bootcamp === 'object' ? session.bootcamp?.name : (bootcamps.find(b => b._id === session.bootcamp)?.name || 'Unknown Bootcamp');
             const instName = typeof session.instructor === 'object' ? session.instructor?.name : (instructors.find(i => i._id === session.instructor)?.name || 'Unknown Instructor');
 
             return (

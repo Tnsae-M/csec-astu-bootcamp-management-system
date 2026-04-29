@@ -1,35 +1,126 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
+import { feedbackService } from '../../services/feedback.service';
 
 export interface Feedback {
-  id: string;
-  fromId: string;
-  toId: string;
+  _id: string;
+  id?: string;
+  user?: any;
   message: string;
   rating: number;
-  timestamp: string;
-  sessionId?: string | number;
+  createdAt: string;
+  sessionId?: string;
 }
 
 interface FeedbackState {
   feedbacks: Feedback[];
+  loading: boolean;
+  error: string | null;
 }
 
 const initialState: FeedbackState = {
-  feedbacks: [
-    { id: '1', fromId: '1', toId: '3', message: 'Keep up the good work on React fundamentals.', rating: 5, timestamp: '2026-04-18T10:00:00Z', sessionId: '1' },
-    { id: '2', fromId: '2', toId: '4', message: 'Focus more on networking layers.', rating: 4, timestamp: '2026-04-17T14:30:00Z', sessionId: '3' },
-  ],
+  feedbacks: [],
+  loading: false,
+  error: null,
 };
+
+// ===== THUNKS =====
+
+export const fetchSessionFeedback = createAsyncThunk(
+  'feedback/fetchBySession',
+  async (sessionId: string, { rejectWithValue }) => {
+    try {
+      const response = await feedbackService.getFeedbacksBySession(sessionId);
+      return response.data || response;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch feedback');
+    }
+  }
+);
+
+export const fetchBootcampFeedback = createAsyncThunk(
+  'feedback/fetchByBootcamp',
+  async (bootcampId: string, { rejectWithValue }) => {
+    try {
+      const response = await feedbackService.getBootcampFeedback(bootcampId);
+      return response.data || response;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch feedback');
+    }
+  }
+);
+
+export const fetchInstructorFeedback = createAsyncThunk(
+  'feedback/fetchByInstructor',
+  async (instructorId: string, { rejectWithValue }) => {
+    try {
+      const response = await feedbackService.getInstructorFeedback(instructorId);
+      return response.data || response;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch feedback');
+    }
+  }
+);
+
+export const submitFeedbackAsync = createAsyncThunk(
+  'feedback/submit',
+  async (data: any, { rejectWithValue }) => {
+    try {
+      const response = await feedbackService.submitFeedback(data);
+      return response.data || response;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to submit feedback');
+    }
+  }
+);
 
 const feedbackSlice = createSlice({
   name: 'feedback',
   initialState,
-  reducers: {
-    addFeedback: (state, action: PayloadAction<Feedback>) => {
-      state.feedbacks.push(action.payload);
-    },
+  reducers: {},
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchSessionFeedback.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchSessionFeedback.fulfilled, (state, action) => {
+        state.loading = false;
+        state.feedbacks = action.payload;
+      })
+      .addCase(fetchSessionFeedback.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(fetchBootcampFeedback.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchBootcampFeedback.fulfilled, (state, action) => {
+        state.loading = false;
+        state.feedbacks = action.payload;
+      })
+      .addCase(fetchBootcampFeedback.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(fetchInstructorFeedback.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchInstructorFeedback.fulfilled, (state, action) => {
+        state.loading = false;
+        state.feedbacks = action.payload;
+      })
+      .addCase(fetchInstructorFeedback.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(submitFeedbackAsync.fulfilled, (state, action) => {
+        state.feedbacks.push(action.payload);
+      });
   },
 });
 
-export const { addFeedback } = feedbackSlice.actions;
+
 export default feedbackSlice.reducer;
+

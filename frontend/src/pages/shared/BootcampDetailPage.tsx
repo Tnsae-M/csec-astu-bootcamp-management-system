@@ -15,21 +15,15 @@ import { usersService } from "../../services/users.service";
 import { groupsService } from "../../services/groups.service";
 import { sessionsService } from "../../services/sessions.service";
 import { projectsService } from "../../services/projects.service";
-import {
-  setGroupsStart,
-  setGroupsSuccess,
-  setGroupsFailure,
-} from "../../features/groups/groupsSlice";
-import {
-  setSessionsStart,
-  setSessionsSuccess,
-  setSessionsFailure,
-} from "../../features/sessions/sessionSlice";
+import { fetchGroupsByBootcamp, createGroupAsync } from "../../features/groups/groupsSlice";
+import { fetchSessionsByBootcamp, createSessionAsync } from "../../features/sessions/sessionSlice";
+import { toast } from "sonner";
+
 
 export default function BootcampDetailPage() {
   const { role, divisionId, bootcampId } = useParams();
   const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const dispatch = useDispatch() as any;
 
   const [activeTab, setActiveTab] = useState<
     "groups" | "sessions" | "projects"
@@ -50,21 +44,8 @@ export default function BootcampDetailPage() {
   useEffect(() => {
     if (!bootcampId) return;
 
-    dispatch(setGroupsStart());
-    groupsService
-      .getGroupsByBootcamp(bootcampId)
-      .then((res) => dispatch(setGroupsSuccess(res.data || [])))
-      .catch((err) => dispatch(setGroupsFailure(err.message)));
-
-    dispatch(setSessionsStart());
-    sessionsService
-      .getSessionsByBootcamp(bootcampId)
-      .then((res) => {
-        const payload = res.data ?? res;
-        const list = Array.isArray(payload) ? payload : (payload?.data ?? []);
-        dispatch(setSessionsSuccess(list));
-      })
-      .catch((err) => dispatch(setSessionsFailure(err.message)));
+    dispatch(fetchGroupsByBootcamp(bootcampId));
+    dispatch(fetchSessionsByBootcamp(bootcampId));
 
     // load projects for this bootcamp
     setProjectsLoading(true);
@@ -78,6 +59,7 @@ export default function BootcampDetailPage() {
       .catch(() => setProjects([]))
       .finally(() => setProjectsLoading(false));
   }, [bootcampId, dispatch]);
+
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [formState, setFormState] = useState<any>({
@@ -105,20 +87,15 @@ export default function BootcampDetailPage() {
     if (!bootcampId) return;
     setCreating(true);
     try {
+      let result;
       if (activeTab === "groups") {
-        await groupsService.createGroup({
+        result = await dispatch(createGroupAsync({
           name: formState.groupName,
           bootcampId,
           mentor: formState.mentorId || undefined,
-        });
-        dispatch(setGroupsStart());
-        groupsService
-          .getGroupsByBootcamp(bootcampId)
-          .then((res) => dispatch(setGroupsSuccess(res.data || [])))
-          .catch((err) => dispatch(setGroupsFailure(err.message)));
-      } else {
-        // sessions
-        await sessionsService.createSession({
+        }));
+      } else if (activeTab === "sessions") {
+        result = await dispatch(createSessionAsync({
           title: formState.title,
           bootcampId,
           instructor: formState.instructorId || undefined,
@@ -126,56 +103,45 @@ export default function BootcampDetailPage() {
           duration: formState.duration,
           date: formState.date,
           startTime: formState.time,
-        });
-        dispatch(setSessionsStart());
-        sessionsService
-          .getSessionsByBootcamp(bootcampId)
-          .then((res) => dispatch(setSessionsSuccess(res.data || [])))
-          .catch((err) => dispatch(setSessionsFailure(err.message)));
-      }
-      if (activeTab === "projects") {
-        // create project
+        }));
+      } else if (activeTab === "projects") {
         await projectsService.createProject(bootcampId, projectForm);
-        // refresh
+        // refresh projects
         setProjectsLoading(true);
-        projectsService
-          .getProjectsByBootcamp(bootcampId)
-          .then((res) => {
-            const payload = res.data ?? res;
-            const list = Array.isArray(payload)
-              ? payload
-              : (payload?.data ?? []);
-            setProjects(list);
-          })
-          .catch(() => setProjects([]))
-          .finally(() => setProjectsLoading(false));
+        const res = await projectsService.getProjectsByBootcamp(bootcampId);
+        const payload = res.data ?? res;
+        setProjects(Array.isArray(payload) ? payload : (payload?.data ?? []));
+        setProjectsLoading(false);
         setProjectForm({ title: "", description: "", repo: "", dueDate: "" });
+        toast.success("Project created!");
+        setShowCreateModal(false);
+        return;
       }
-      setShowCreateModal(false);
-      // reset form
-      setFormState({
-        groupName: "",
-        mentorId: "",
-        title: "",
-        instructorId: "",
-        place: "",
-        duration: "",
-        date: "",
-        time: "",
-      });
+      
+      if (createGroupAsync.fulfilled.match(result) || createSessionAsync.fulfilled.match(result)) {
+          setShowCreateModal(false);
+          toast.success(activeTab === "groups" ? "Group created!" : "Session scheduled!");
+          // Reset form
+          setFormState({
+            groupName: "",
+            mentorId: "",
+            title: "",
+            instructorId: "",
+            place: "",
+            duration: "",
+            date: "",
+            time: "",
+          });
+      } else {
+          toast.error((result?.payload as string) || "Create failed");
+      }
     } catch (err: any) {
-      alert(err.response?.data?.message || err.message || "Create failed");
+      toast.error(err.response?.data?.message || err.message || "Create failed");
     } finally {
       setCreating(false);
-      toast.success(
-        activeTab === "groups"
-          ? "Group created!"
-          : activeTab === "projects"
-            ? "Project created!"
-            : "Session scheduled!",
-      );
     }
   };
+
 
   useEffect(() => {
     // load instructors for selects

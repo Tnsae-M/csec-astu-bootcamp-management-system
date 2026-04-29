@@ -30,124 +30,7 @@ import { logout } from "../../features/auth/authSlice";
 import { cn } from "../../lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 import { useEffect } from "react";
-import { divisionsService } from "@/services/divisions.service";
-import {
-  setDivisionsStart,
-  setDivisionsSuccess,
-  setDivisionsFailure,
-} from "@/features/divisions/divisionsSlice";
-import { useEffect } from "react";
-import { divisionsService } from "@/services/divisions.service";
-import { useDispatch } from "react-redux";
-import {
-  setDivisionsStart,
-  setDivisionsSuccess,
-  setDivisionsFailure,
-} from "@/features/divisions/divisionsSlice";
-import { RootState } from "@/app/store";
-
-const menuConfig: Record<string, any[]> = {
-  ADMIN: [
-    { type: "separator", label: "Operations" },
-    {
-      to: "/dashboard/admin/dashboard",
-      icon: LayoutDashboard,
-      label: "Overview",
-    },
-    { to: "/dashboard/admin/divisions", icon: Building2, label: "Divisions" },
-    { to: "/dashboard/admin/users", icon: UserCheck, label: "User Directory" },
-    { type: "separator", label: "Analytics" },
-    {
-      to: "/dashboard/admin/reports",
-      icon: BarChart3,
-      label: "System Reports",
-    },
-  ],
-  "SUPER ADMIN": [
-    { type: "separator", label: "Global Governance" },
-    {
-      to: "/dashboard/admin/dashboard",
-      icon: LayoutDashboard,
-      label: "Master Dashboard",
-    },
-    {
-      to: "/dashboard/admin/divisions",
-      icon: Building2,
-      label: "Division Control",
-    },
-    {
-      to: "/dashboard/admin/users",
-      icon: UserCheck,
-      label: "Access Management",
-    },
-    { type: "separator", label: "Insights" },
-    {
-      to: "/dashboard/admin/reports",
-      icon: BarChart3,
-      label: "Global Analytics",
-    },
-  ],
-  INSTRUCTOR: [
-    { type: "separator", label: "Shortcuts" },
-    {
-      to: "/dashboard/instructor/dashboard",
-      icon: Activity,
-      label: "Active Pulse",
-    },
-    {
-      to: bootcampsPath.replace("student", "instructor"),
-      icon: BookOpen,
-      label: "Bootcamps",
-    },
-    { type: "separator", label: "Daily Activity" },
-    {
-      to: "/dashboard/instructor/sessions",
-      icon: Calendar,
-      label: "Session Hub",
-    },
-    {
-      to: "/dashboard/instructor/tasks",
-      icon: CheckSquare,
-      label: "Task Registry",
-    },
-    {
-      to: "/dashboard/instructor/groups",
-      icon: Users2,
-      label: "Group Management",
-    },
-  ],
-  STUDENT: [
-    { type: "separator", label: "Shortcuts" },
-    {
-      to: "/dashboard/student/dashboard",
-      icon: LayoutDashboard,
-      label: "Learning Portal",
-    },
-    {
-      to: bootcampsPath,
-      icon: BookOpen,
-      label: "Bootcamps",
-    },
-    { type: "separator", label: "Daily Activity" },
-    { to: "/dashboard/student/group", icon: Users, label: "My Squad" },
-    {
-      to: "/dashboard/student/sessions",
-      icon: Calendar,
-      label: "Session Feed",
-    },
-    {
-      to: "/dashboard/student/tasks",
-      icon: CheckSquare,
-      label: "My Assignments",
-    },
-    { type: "separator", label: "Milestones" },
-    {
-      to: "/dashboard/student/progress",
-      icon: PieChart,
-      label: "Progress DNA",
-    },
-  ],
-};
+import { fetchDivisions } from "@/features/divisions/divisionsSlice";
 
 export default function Sidebar() {
   const { user } = useSelector((state: RootState) => state.auth);
@@ -158,27 +41,128 @@ export default function Sidebar() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   // Dynamic bootcamps link using first division
-  const primaryRole = user?.roles?.[0]?.toLowerCase() || "student";
-  const firstDivisionId = divisions[0]?._id;
+  const userRolesList = user?.roles || ["STUDENT"];
+  const primaryRole = (userRolesList[0] || "student").toLowerCase();
+  const divList = Array.isArray(divisions) ? divisions : [];
+  const firstDivisionId = divList[0]?._id;
   const bootcampsPath = firstDivisionId
     ? `/dashboard/${primaryRole}/divisions/${firstDivisionId}/bootcamps`
     : `/dashboard/${primaryRole}/divisions`;
 
-  // Fetch divisions if empty
-  useEffect(() => {
-    if (divisions.length === 0) {
-      dispatch(setDivisionsStart());
-      divisionsService
-        .getDivisions()
-        .then((res) => dispatch(setDivisionsSuccess(res.data || [])))
-        .catch((err) => dispatch(setDivisionsFailure(err.message)));
-    }
-  }, [dispatch, divisions.length]);
 
-  const roles = user?.roles || ["STUDENT"];
+  const menuConfig: Record<string, any[]> = {
+    ADMIN: [
+      { type: "separator", label: "Operations" },
+      {
+        to: "/dashboard/admin/dashboard",
+        icon: LayoutDashboard,
+        label: "Overview",
+      },
+      { to: "/dashboard/admin/divisions", icon: Building2, label: "Divisions" },
+      { to: "/dashboard/admin/users", icon: UserCheck, label: "User Directory" },
+      { type: "separator", label: "Analytics" },
+      {
+        to: "/dashboard/admin/reports",
+        icon: BarChart3,
+        label: "System Reports",
+      },
+    ],
+    "SUPER ADMIN": [
+      { type: "separator", label: "Global Governance" },
+      {
+        to: "/dashboard/admin/dashboard",
+        icon: LayoutDashboard,
+        label: "Master Dashboard",
+      },
+      {
+        to: "/dashboard/admin/divisions",
+        icon: Building2,
+        label: "Division Control",
+      },
+      {
+        to: "/dashboard/admin/users",
+        icon: UserCheck,
+        label: "Access Management",
+      },
+      { type: "separator", label: "Insights" },
+      {
+        to: "/dashboard/admin/reports",
+        icon: BarChart3,
+        label: "Global Analytics",
+      },
+    ],
+    INSTRUCTOR: [
+      { type: "separator", label: "Shortcuts" },
+      {
+        to: "/dashboard/instructor/dashboard",
+        icon: Activity,
+        label: "Active Pulse",
+      },
+      {
+        to: bootcampsPath.replace("student", "instructor"),
+        icon: BookOpen,
+        label: "Bootcamps",
+      },
+      { type: "separator", label: "Daily Activity" },
+      {
+        to: "/dashboard/instructor/sessions",
+        icon: Calendar,
+        label: "Session Hub",
+      },
+      {
+        to: "/dashboard/instructor/tasks",
+        icon: CheckSquare,
+        label: "Task Registry",
+      },
+      {
+        to: "/dashboard/instructor/groups",
+        icon: Users2,
+        label: "Group Management",
+      },
+    ],
+    STUDENT: [
+      { type: "separator", label: "Shortcuts" },
+      {
+        to: "/dashboard/student/dashboard",
+        icon: LayoutDashboard,
+        label: "Learning Portal",
+      },
+      {
+        to: bootcampsPath,
+        icon: BookOpen,
+        label: "Bootcamps",
+      },
+      { type: "separator", label: "Daily Activity" },
+      { to: "/dashboard/student/group", icon: Users, label: "My Squad" },
+      {
+        to: "/dashboard/student/sessions",
+        icon: Calendar,
+        label: "Session Feed",
+      },
+      {
+        to: "/dashboard/student/tasks",
+        icon: CheckSquare,
+        label: "My Assignments",
+      },
+      { type: "separator", label: "Milestones" },
+      {
+        to: "/dashboard/student/progress",
+        icon: PieChart,
+        label: "Progress DNA",
+      },
+    ],
+  };
+
+  useEffect(() => {
+    if (Array.isArray(divisions) && divisions.length === 0) {
+      (dispatch as any)(fetchDivisions(undefined));
+    }
+  }, [dispatch, divisions]);
+
+  const userRoles = user?.roles || ["STUDENT"];
 
   // Combine links for all roles the user possesses and remove duplicates
-  const allLinks = roles.flatMap(
+  const allLinks = userRoles.flatMap(
     (role) => menuConfig[role as keyof typeof menuConfig] || [],
   );
   const links = Array.from(new Set(allLinks));

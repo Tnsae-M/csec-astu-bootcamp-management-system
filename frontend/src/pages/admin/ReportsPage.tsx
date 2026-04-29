@@ -1,6 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { Download, Calendar, FileText, CheckCircle } from 'lucide-react';
-import * as reportsService from '../../services/reports.service';
+import { fetchReports, createReportAsync } from '../../features/reports/reportsSlice';
+import { RootState } from '../../app/store';
+import { toast } from 'sonner';
 
 const StatCard = ({ icon, title, value, subtitle }: any) => (
   <div className="bg-white rounded-lg p-6 shadow-sm border">
@@ -20,49 +23,35 @@ const StatCard = ({ icon, title, value, subtitle }: any) => (
 );
 
 const ReportsPage: React.FC = () => {
-  const [reports, setReports] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const dispatch = useDispatch() as any;
+  const { reports, loading, error } = useSelector((state: RootState) => state.reports);
 
-  const load = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await reportsService.getReports();
-      const list = Array.isArray(data) ? data : (data?.data ?? []);
-      setReports(list);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err.message || 'Failed to load reports');
-      setReports([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { load(); }, []);
+  useEffect(() => { 
+    dispatch(fetchReports()); 
+  }, [dispatch]);
 
   const handleGenerate = async () => {
-    // Placeholder: for now generate a simple report using timestamp
     try {
-      setLoading(true);
-      setError(null);
       const payload = { title: `Quick Report ${new Date().toLocaleString()}`, content: 'Auto-generated report.' };
-      await reportsService.createReport(payload);
-      await load();
+      const result = await dispatch(createReportAsync(payload));
+      if (createReportAsync.fulfilled.match(result)) {
+        toast.success('Report generated successfully');
+      } else {
+        toast.error((result.payload as string) || 'Failed to generate report');
+      }
     } catch (err: any) {
-      setError(err?.response?.data?.message || err.message || 'Failed to generate report');
-    } finally {
-      setLoading(false);
+      toast.error(err.message || 'Failed to generate report');
     }
   };
 
-  const recentCount = reports.filter(r => {
+  const recentCount = (reports || []).filter(r => {
     try {
       return (new Date(r.createdAt) > new Date(Date.now() - 1000 * 60 * 60 * 24 * 7));
     } catch { return false; }
   }).length;
 
   return (
+
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -92,11 +81,12 @@ const ReportsPage: React.FC = () => {
           {error && <div className="text-red-500">{error}</div>}
           {!loading && !error && (
             <ul className="space-y-4">
-              {reports.length === 0 && <li className="text-gray-500">No reports have been generated yet.</li>}
-              {reports.map((r) => (
+              {(reports || []).length === 0 && <li className="text-gray-500">No reports have been generated yet.</li>}
+              {(reports || []).map((r) => (
                 <li key={r._id} className="flex items-center justify-between border rounded p-4">
                   <div>
                     <div className="text-lg font-bold">{r.title || 'Untitled Report'}</div>
+
                     <div className="text-sm text-gray-500">{r.createdAt ? new Date(r.createdAt).toLocaleDateString() : ''} • {r.author ? `by ${String(r.author).slice(0,8)}` : ''}</div>
                     <p className="mt-2 text-sm text-gray-700">{String(r.content || '').slice(0,240)}</p>
                   </div>

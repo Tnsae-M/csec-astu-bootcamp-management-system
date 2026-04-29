@@ -6,7 +6,8 @@ import { User, Mail, Shield, Activity, Edit, Plus, Trash2, UserPlus, Search, Mor
 import { cn } from '@/lib/utils';
 import { usersService } from '@/services/users.service';
 import { divisionsService } from '@/services/divisions.service';
-import { setUsersStart, setUsersSuccess, setUsersFailure } from '@/features/users/usersSlice';
+import { fetchUsers, createUser, updateUser } from '@/features/users/usersSlice';
+
 import { 
   Button, 
   Modal, 
@@ -29,7 +30,7 @@ import {
 import { toast } from 'sonner';
 
 export default function UsersPage() {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch() as any;
   const { users, loading } = useSelector((state: RootState) => state.users);
   const { searchTerm } = useSelector((state: RootState) => state.ui);
   const { user: currentUser } = useSelector((state: RootState) => state.auth);
@@ -48,20 +49,19 @@ export default function UsersPage() {
   });
   const [divisions, setDivisions] = useState<any[]>([]);
 
-  const fetchUsers = () => {
-    dispatch(setUsersStart());
-    usersService.getUsers()
-      .then(res => dispatch(setUsersSuccess(res.data || [])))
-      .catch(err => dispatch(setUsersFailure(err.message)));
+  const fetchUsersList = () => {
+    dispatch(fetchUsers(undefined));
   };
 
+
   useEffect(() => {
-    fetchUsers();
+    fetchUsersList();
     divisionsService.getDivisions().then(res => {
       const payload = res.data ?? res;
       setDivisions(Array.isArray(payload) ? payload : payload?.data ?? []);
     }).catch(() => setDivisions([]));
   }, [dispatch]);
+
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -70,10 +70,10 @@ export default function UsersPage() {
     }
   }, [location, currentUser]);
 
-  const filteredUsers = users.filter((u) => 
-    u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (u.role || '').toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredUsers = (users || []).filter((u) => 
+    (u.name || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
+    (u.email || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
+    (u.role || '').toLowerCase().includes((searchTerm || '').toLowerCase())
   );
 
   const handleOpenCreate = (forcedRole?: string) => {
@@ -102,20 +102,29 @@ export default function UsersPage() {
       if (editingUserId) {
         const payload = { ...formData };
         if (!payload.password) delete (payload as any).password;
-        await usersService.updateUser(editingUserId, payload);
-        toast.success('User updated successfully');
+        const result = await dispatch(updateUser({ id: editingUserId, data: payload }));
+        if (updateUser.fulfilled.match(result)) {
+            toast.success('User updated successfully');
+            setIsModalOpen(false);
+        } else {
+            toast.error(result.payload as string || 'Update failed');
+        }
       } else {
         const primaryRole = formData.roles[0] || 'STUDENT';
         const payload = { ...formData, role: primaryRole };
-        await usersService.createUser(payload);
-        toast.success('User provisioned successfully');
+        const result = await dispatch(createUser(payload));
+        if (createUser.fulfilled.match(result)) {
+            toast.success('User provisioned successfully');
+            setIsModalOpen(false);
+        } else {
+            toast.error(result.payload as string || 'Provisioning failed');
+        }
       }
-      setIsModalOpen(false);
-      fetchUsers();
     } catch (err: any) {
       toast.error(err.response?.data?.message || err.message);
     }
   };
+
 
   const getStatusBadge = (status: string) => {
     switch (status?.toLowerCase()) {

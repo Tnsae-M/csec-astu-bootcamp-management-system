@@ -7,7 +7,12 @@ import { Button } from '../../components/ui';
 import { cn } from '../../lib/utils';
 import { tasksService } from '../../services/tasks.service';
 import { submissionsService } from '../../services/submissions.service';
-import { setSubmissionsStart, setSubmissionsSuccess, setSubmissionsFailure } from '../../features/tasks/taskSlice';
+import { 
+  fetchMySubmissions, 
+  fetchTasksByBootcamp, 
+  submitTask 
+} from '../../features/tasks/taskSlice';
+import { toast } from 'sonner';
 
 interface SubmissionFormPageProps {
   bootcampId?: string;
@@ -15,8 +20,10 @@ interface SubmissionFormPageProps {
 }
 
 export default function SubmissionFormPage({ bootcampId, sessionId }: SubmissionFormPageProps) {
-  const dispatch = useDispatch();
+
+  const dispatch = useDispatch() as any;
   const { submissions } = useSelector((state: RootState) => state.tasks);
+
 
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [tasks, setTasks] = useState<any[]>([]);
@@ -31,102 +38,76 @@ export default function SubmissionFormPage({ bootcampId, sessionId }: Submission
   const fileRef = useRef<HTMLInputElement | null>(null);
   const location = useLocation();
 
-  const fetchMySubmissions = () => {
-    dispatch(setSubmissionsStart());
-    submissionsService.getMySubmissions()
-      .then(res => {
-        const payload = res.data ?? res;
-        const list = Array.isArray(payload) ? payload : payload?.data ?? [];
-        dispatch(setSubmissionsSuccess(list));
-      })
-      .catch(err => dispatch(setSubmissionsFailure(err.message)));
-  };
-
   useEffect(() => {
-    const fetchTasks = async () => {
+    const fetchInitialData = async () => {
       setLoadingTasks(true);
       try {
-        let res;
         if (bootcampId) {
-          res = await tasksService.getTasksByBootcamp(bootcampId);
-        } else {
-          res = await tasksService.getTasks();
+          const result = await dispatch(fetchTasksByBootcamp(bootcampId));
+          if (fetchTasksByBootcamp.fulfilled.match(result)) {
+              const list = result.payload || [];
+              const filtered = sessionId ? list.filter((t: any) => (t.sessionId?._id || t.sessionId) === sessionId) : list;
+              setTasks(filtered);
+          }
         }
-        const list = Array.isArray(res) ? res : (res.data || []);
-        const filtered = sessionId ? list.filter((t: any) => (t.sessionId?._id || t.sessionId) === sessionId) : list;
-        setTasks(filtered);
+        dispatch(fetchMySubmissions());
       } catch (err) {
-        console.error('Failed to load tasks', err);
+        console.error('Failed to load data', err);
       } finally {
         setLoadingTasks(false);
       }
     };
 
-    fetchTasks();
-    fetchMySubmissions();
+    fetchInitialData();
   }, [bootcampId, sessionId, dispatch]);
-
-  // support preselecting via query params when navigated from TasksPage
-  useEffect(() => {
-    const search = new URLSearchParams(location.search);
-    const qTask = search.get('taskId');
-    const qSession = search.get('sessionId');
-    const qBootcamp = search.get('bootcampId');
-    if (qTask) setSelectedTask(qTask);
-    if (qSession) {
-      // rely on submission payload to include sessionId if prop not present
-      // could set local state or ignore; leaving as informational
-    }
-    if (qBootcamp) {
-      // same as above
-    }
-  }, [location.search]);
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0] || null;
-    setFileValue(f);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedTask) return alert('Please choose a task.');
+    if (!selectedTask) return toast.error('Please choose a task.');
 
     try {
       setSubmitting(true);
+      let submissionData: any;
+
       if (submissionType === 'file') {
-        if (!fileValue) return alert('Please select a file to upload.');
+        if (!fileValue) return toast.error('Please select a file to upload.');
         const form = new FormData();
         form.append('taskId', selectedTask);
         form.append('type', 'file');
         form.append('file', fileValue);
         if (sessionId) form.append('sessionId', sessionId);
-        await submissionsService.submitTask(form);
+        submissionData = form;
       } else if (submissionType === 'link') {
-        if (!linkValue) return alert('Please enter a link.');
-        await submissionsService.submitTask({ taskId: selectedTask, type: 'link', link: linkValue, sessionId });
+        if (!linkValue) return toast.error('Please enter a link.');
+        submissionData = { taskId: selectedTask, type: 'link', link: linkValue, sessionId };
       } else if (submissionType === 'text') {
-        if (!textValue) return alert('Please enter your text submission.');
-        await submissionsService.submitTask({ taskId: selectedTask, type: 'text', text: textValue, sessionId });
+        if (!textValue) return toast.error('Please enter your text submission.');
+        submissionData = { taskId: selectedTask, type: 'text', text: textValue, sessionId };
       } else if (submissionType === 'both') {
-        if (!linkValue) return alert('Please enter a link for the submission.');
+        if (!linkValue) return toast.error('Please enter a link for the submission.');
         const form = new FormData();
         form.append('taskId', selectedTask);
         form.append('type', 'both');
         form.append('link', linkValue);
         if (fileValue) form.append('file', fileValue);
         if (sessionId) form.append('sessionId', sessionId);
-        await submissionsService.submitTask(form);
+        submissionData = form;
       }
 
-      setIsSubmitted(true);
-      fetchMySubmissions();
-    } catch (err) {
-      console.error('Submission failed', err);
-      alert('Submission failed. Please try again.');
+      const result = await dispatch(submitTask(submissionData));
+      if (submitTask.fulfilled.match(result)) {
+          setIsSubmitted(true);
+          toast.success('Work submitted successfully');
+      } else {
+          toast.error((result.payload as string) || 'Submission failed');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Submission failed');
     } finally {
       setSubmitting(false);
     }
   };
+
 
   const resetForm = () => {
     setIsSubmitted(false);

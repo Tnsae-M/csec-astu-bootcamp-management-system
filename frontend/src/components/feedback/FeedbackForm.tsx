@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import api from '@/api/axios';
 import { Button } from '@/components/ui';
 import { useDispatch } from 'react-redux';
-import { addFeedback } from '../../features/feedback/feedbackSlice';
+import { submitFeedbackAsync } from '../../features/feedback/feedbackSlice';
 import { v4 as uuidv4 } from 'uuid';
+import { toast } from 'sonner';
 
 type Props = {
   open: boolean;
@@ -18,39 +19,41 @@ export default function FeedbackForm({ open, onClose, sessionId, instructorId, b
   const [comment, setComment] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(true);
   const [loading, setLoading] = useState(false);
-  const dispatch = useDispatch();
+  const dispatch = useDispatch() as any;
 
   if (!open) return null;
 
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      await api.post('/feedback', {
+      const payload = {
         sessionId,
         instructorId,
         bootcampId,
         rating,
         comment,
         isAnonymous,
-      });
-      setComment('');
-      setRating(5);
-      setIsAnonymous(true);
-      // Optimistically add to local store so UI updates immediately
-      try {
-        const id = uuidv4();
-        dispatch(addFeedback({ id, fromId: 'local', toId: instructorId || '', message: comment, rating, timestamp: new Date().toISOString(), sessionId }));
-      } catch (e) {
-        // ignore
+      };
+      
+      const result = await dispatch(submitFeedbackAsync(payload));
+      
+      if (submitFeedbackAsync.fulfilled.match(result)) {
+        toast.success('Feedback submitted successfully');
+        setComment('');
+        setRating(5);
+        setIsAnonymous(true);
+        onClose();
+      } else {
+        toast.error((result.payload as string) || 'Failed to submit feedback');
       }
-      onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert(err?.response?.data?.message || 'Failed to submit feedback');
+      toast.error(err.message || 'Failed to submit feedback');
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">

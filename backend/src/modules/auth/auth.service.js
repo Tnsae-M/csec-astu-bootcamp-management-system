@@ -84,7 +84,7 @@ export const registerUser = async (name, email, password, role) => {
   await user.save();
 
   //  4. SEND EMAIL (REAL)
-  const verifyURL = `http://localhost:3000/api/auth/verify-email/${verificationToken}`;
+  const verifyURL = `http://localhost:3000/verify-email/${verificationToken}`;
 
   await sendEmail({
     to: user.email,
@@ -229,7 +229,7 @@ export const forgotPassword = async (email) => {
 
   await user.save();
 
-  const resetURL = `http://localhost:3000/api/auth/reset-password/${resetToken}`;
+  const resetURL = `http://localhost:3000/reset-password/${resetToken}`;
 
   // await sendEmail(user.email, "Reset Password", resetURL);
 

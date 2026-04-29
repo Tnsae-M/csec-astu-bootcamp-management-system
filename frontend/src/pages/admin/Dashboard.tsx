@@ -35,27 +35,26 @@ import { usersService } from "@/services/users.service";
 import { divisionsService } from "@/services/divisions.service";
 import { sessionsService } from "@/services/sessions.service";
 import { bootcampsService } from "@/services/bootcamps.service";
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../app/store';
 import { useNavigate } from 'react-router-dom';
 import { toast } from "sonner";
+import { fetchUsers } from "@/features/users/usersSlice";
+import { fetchDivisions } from "@/features/divisions/divisionsSlice";
+import { fetchSessions } from "@/features/sessions/sessionSlice";
+import { fetchBootcamps } from "@/features/bootcamps/bootcampsSlice";
 
 export default function AdminDashboard() {
-  const [totalUsers, setTotalUsers] = useState<number | null>(null);
-  const [totalBootcamps, setTotalBootcamps] = useState<number | null>(null);
-  const [activeSessions, setActiveSessions] = useState<number | null>(null);
-  const [avgAttendance, setAvgAttendance] = useState<number>(92);
+  const dispatch = useDispatch() as any;
 
-  const [divisions, setDivisions] = useState<any[]>([]);
-  const [sessions, setSessions] = useState<any[]>([]);
-  const [usersList, setUsersList] = useState<any[]>([]);
-  const [instructorsList, setInstructorsList] = useState<any[]>([]);
-  const [bootcampsPerDivision, setBootcampsPerDivision] = useState<Record<string, number>>({});
-  const [bootcampsList, setBootcampsList] = useState<any[]>([]);
+  const { user } = useSelector((state: RootState) => state.auth);
+  const { users, loading: usersLoading } = useSelector((state: RootState) => state.users);
+  const { divisions, loading: divLoading } = useSelector((state: RootState) => state.divisions);
+  const { sessions, loading: sessLoading } = useSelector((state: RootState) => state.sessions);
+  const { bootcamps, loading: bcLoading } = useSelector((state: RootState) => state.bootcamps);
+  const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState("sessions");
-  const [loading, setLoading] = useState(true);
-
   const [showAddBootcamp, setShowAddBootcamp] = useState(false);
   const [showAddSession, setShowAddSession] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -63,66 +62,42 @@ export default function AdminDashboard() {
   const [bootcampForm, setBootcampForm] = useState({ divisionId: "", name: "", startDate: "", endDate: "" });
   const [sessionForm, setSessionForm] = useState({ title: '', bootcampId: '', date: '', time: '', instructorId: '', instructorName: '' });
 
-  const navigate = useNavigate();
-  const { user } = useSelector((state: RootState) => state.auth);
-
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      // Parallel loading for better performance
-      const [usersRes, divRes, sessRes, bcRes] = await Promise.all([
-        usersService.getUsers(),
-        divisionsService.getDivisions(),
-        sessionsService.getSessions(),
-        bootcampsService.getBootcamps()
-      ]);
-
-      const usersArr = Array.isArray(usersRes.data) ? usersRes.data : usersRes.data?.data ?? [];
-      const instructors = usersArr.filter((u: any) => u.roles?.includes('INSTRUCTOR') || u.role === 'INSTRUCTOR');
-      
-      setUsersList(usersArr);
-      setInstructorsList(instructors);
-      setTotalUsers(usersRes.count || usersArr.length);
-
-      const divArr = Array.isArray(divRes.data) ? divRes.data : divRes.data?.data ?? [];
-      setDivisions(divArr);
-
-      const sessArr = Array.isArray(sessRes.data) ? sessRes.data : sessRes.data?.data ?? [];
-      setSessions(sessArr);
-      setActiveSessions(sessArr.length);
-
-      const bcArr = Array.isArray(bcRes.data) ? bcRes.data : bcRes.data?.data ?? [];
-      setBootcampsList(bcArr);
-      setTotalBootcamps(bcArr.length);
-
-      // Map bootcamps per division for charts
-      const map: Record<string, number> = {};
-      divArr.forEach((d: any) => {
-        map[d.name] = bcArr.filter((b: any) => (b.divisionId?._id || b.divisionId || b.division) === (d._id || d.id)).length;
-      });
-      setBootcampsPerDivision(map);
-
-    } catch (error) {
-      console.error("Dashboard Load Error:", error);
-      toast.error("Failed to sync dashboard metrics");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadData();
-  }, []);
+    dispatch(fetchUsers(undefined));
+    dispatch(fetchDivisions(undefined));
+    dispatch(fetchSessions());
+    dispatch(fetchBootcamps());
+  }, [dispatch]);
+
+  const usersList = Array.isArray(users) ? users : [];
+  const instructorsList = usersList.filter((u: any) => u.roles?.includes('INSTRUCTOR') || u.role === 'INSTRUCTOR');
+  const totalUsers = usersList.length;
+
+  const divArr = Array.isArray(divisions) ? divisions : [];
+  const sessArr = Array.isArray(sessions) ? sessions : [];
+  const activeSessions = sessArr.length;
+
+  const bcArr = Array.isArray(bootcamps) ? bootcamps : [];
+  const totalBootcamps = bcArr.length;
+  
+  const avgAttendance = 92;
+
+  const bootcampsPerDivision: Record<string, number> = {};
+  divArr.forEach((d: any) => {
+    bootcampsPerDivision[d.name] = bcArr.filter((b: any) => (b.divisionId?._id || b.divisionId || b.division) === (d._id || d.id)).length;
+  });
+
+  const loading = bcLoading || sessLoading || usersLoading || divLoading;
 
   const chartData = useMemo(() => {
     const data: { name: string, value: number }[] = [];
     
     if (activeTab === 'sessions') {
       const sessMap: Record<string, number> = {};
-      divisions.forEach(d => sessMap[d.name] = 0);
-      sessions.forEach(s => {
+      divArr.forEach(d => sessMap[d.name] = 0);
+      sessArr.forEach(s => {
         const divId = s.bootcampId?.divisionId?._id || s.bootcampId?.divisionId || s.bootcampId?.division;
-        const div = divisions.find(d => (d._id || d.id) === divId);
+        const div = divArr.find(d => (d._id || d.id) === divId);
         if (div) sessMap[div.name]++;
       });
       return Object.entries(sessMap).map(([name, value]) => ({ name, value }));
@@ -134,16 +109,16 @@ export default function AdminDashboard() {
 
     if (activeTab === 'users') {
       const userMap: Record<string, number> = {};
-      divisions.forEach(d => userMap[d.name] = 0);
+      divArr.forEach(d => userMap[d.name] = 0);
       usersList.forEach(u => {
-        const div = divisions.find(d => (d._id || d.id) === (u.divisionId || u.division));
+        const div = divArr.find(d => (d._id || d.id) === (u.divisionId || u.division));
         if (div) userMap[div.name]++;
       });
       return Object.entries(userMap).map(([name, value]) => ({ name, value }));
     }
 
     return data;
-  }, [activeTab, divisions, sessions, usersList, bootcampsPerDivision]);
+  }, [activeTab, divArr, sessArr, usersList, bootcampsPerDivision]);
 
   const handleCreateBootcamp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,7 +132,7 @@ export default function AdminDashboard() {
       });
       toast.success("Bootcamp established successfully");
       setShowAddBootcamp(false);
-      loadData();
+      dispatch(fetchBootcamps());
     } catch (err) {
       toast.error("Failed to create bootcamp");
     } finally {
@@ -172,13 +147,14 @@ export default function AdminDashboard() {
       await sessionsService.createSession(sessionForm);
       toast.success("Session scheduled");
       setShowAddSession(false);
-      loadData();
+      dispatch(fetchSessions());
     } catch (err) {
       toast.error("Failed to schedule session");
     } finally {
       setSubmitting(false);
     }
   };
+
 
   return (
     <div className="space-y-8">
@@ -346,9 +322,10 @@ export default function AdminDashboard() {
           <FormField label="Parent Bootcamp" required>
             <select value={sessionForm.bootcampId} onChange={(e)=>setSessionForm({...sessionForm, bootcampId: e.target.value})} className="w-full px-4 py-2.5 bg-brand-primary/40 border border-transparent rounded-lg text-sm font-medium outline-none focus:border-brand-accent">
               <option value="">Select Target Bootcamp</option>
-              {bootcampsList.map(b => (<option key={b._id||b.id} value={b._id||b.id}>{b.title||b.name}</option>))}
+              {bcArr.map(b => (<option key={b._id||b.id} value={b._id||b.id}>{b.title||b.name}</option>))}
             </select>
           </FormField>
+
 
           <div className="grid grid-cols-2 gap-4">
             <FormField label="Date" required>

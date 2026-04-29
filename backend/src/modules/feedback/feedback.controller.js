@@ -53,3 +53,20 @@ export const getInstructorFeedback = async (req, res, next) => {
     next(err);
   }
 };
+
+export const getSessionFeedback = async (req, res, next) => {
+  try {
+    const viewerRole = (req.user?.role || '').toLowerCase();
+    const data = await feedbackService.getSessionFeedback(
+      req.params.id,
+      viewerRole
+    );
+
+    res.status(200).json({
+      success: true,
+      data,
+    });
+  } catch (err) {
+    next(err);
+  }
+};

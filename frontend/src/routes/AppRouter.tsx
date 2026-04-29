@@ -2,12 +2,15 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../app/store';
-import { setUser, logout, setInitializing } from '../features/auth/authSlice';
-import { authService } from '../services/auth.service';
+import { logout, fetchCurrentUser } from '../features/auth/authSlice';
+
 
 // Pages - Auth
 import Login from '../pages/auth/Login';
 import Register from '../pages/auth/Register';
+import VerifyEmailPage from '../pages/auth/VerifyEmailPage';
+import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage';
+import ResetPasswordPage from '../pages/auth/ResetPasswordPage';
 
 // Layout
 import DashboardLayout from '../components/layout/DashboardLayout';
@@ -94,41 +97,15 @@ const RoleBasedHome = () => {
 };
 
 export default function AppRouter() {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch() as any;
   const { token, user } = useSelector((state: RootState) => state.auth);
 
   React.useEffect(() => {
     if (token && !user) {
-      authService
-        .getCurrentUser()
-        .then(response => {
-          const backendResponse = response.data || response;
-          const fetchedUser = backendResponse.data || backendResponse;
-
-          dispatch(
-            setUser({
-              id: fetchedUser._id || fetchedUser.id,
-              name: fetchedUser.name,
-              email: fetchedUser.email,
-              roles: fetchedUser.roles
-                ? fetchedUser.roles.map((r: string) => r.toUpperCase())
-                : fetchedUser.role
-                  ? [fetchedUser.role.toUpperCase()]
-                  : ['STUDENT'],
-              groupId: fetchedUser.groupId || fetchedUser.group || undefined,
-            })
-          );
-        })
-        .catch(() => {
-          dispatch(logout());
-        })
-        .finally(() => {
-          dispatch(setInitializing(false));
-        });
-    } else if (!token) {
-      dispatch(setInitializing(false));
+      dispatch(fetchCurrentUser());
     }
   }, [token, user, dispatch]);
+
 
   return (
     <BrowserRouter>
@@ -136,6 +113,9 @@ export default function AppRouter() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
 
         <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
           <Route index element={<RoleBasedHome />} />

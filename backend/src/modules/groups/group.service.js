@@ -33,8 +33,10 @@ export const createGroup = async (data, creatorId) => {
 export const getGroupsByBootcamp = async (bootcampId) => {
   return await Group.find({ bootcampId })
     .populate("members", "name email")
+    .populate("mentor", "name email")
     .populate("createdBy", "name");
 };
+
 
 //  Add member
 export const addMember = async (groupId, userId, bootcampId) => {

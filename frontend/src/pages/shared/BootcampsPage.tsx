@@ -24,15 +24,14 @@ import { toast } from "sonner";
 import { bootcampsService } from "@/services/bootcamps.service";
 import { enrollmentsService } from "@/services/enrollments.service";
 import {
-  setBootcampsStart,
-  setBootcampsSuccess,
-  setBootcampsFailure,
+  fetchBootcampsByDivision,
+  createBootcamp
 } from "@/features/bootcamps/bootcampsSlice";
 
 export default function BootcampsPage() {
   const { role, divisionId } = useParams();
   const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const dispatch = useDispatch() as any;
 
   const { bootcamps, loading } = useSelector(
     (state: RootState) => state.bootcamps,
@@ -50,22 +49,18 @@ export default function BootcampsPage() {
     status: "ACTIVE",
   });
 
-  const fetchBootcamps = () => {
+  const fetchBootcampsList = () => {
     if (!divisionId) return;
-    dispatch(setBootcampsStart());
-    bootcampsService
-      .getBootcampsByDivision(divisionId)
-      .then((res) => dispatch(setBootcampsSuccess(res.data || [])))
-      .catch((err) => dispatch(setBootcampsFailure(err.message)));
+    dispatch(fetchBootcampsByDivision(divisionId));
   };
 
   useEffect(() => {
-    fetchBootcamps();
+    fetchBootcampsList();
   }, [divisionId, dispatch]);
 
-  const filteredBootcamps = bootcamps.filter(
+  const filteredBootcamps = (bootcamps || []).filter(
     (b) =>
-      b.name.toLowerCase().includes((searchTerm || "").toLowerCase()) ||
+      (b.name || "").toLowerCase().includes((searchTerm || "").toLowerCase()) ||
       (b.description &&
         b.description.toLowerCase().includes((searchTerm || "").toLowerCase())),
   );
@@ -74,15 +69,19 @@ export default function BootcampsPage() {
     e.preventDefault();
     if (!divisionId) return;
     try {
-      await bootcampsService.createBootcamp(divisionId, formData);
-      toast.success("Bootcamp established successfully");
-      setIsModalOpen(false);
-      setFormData({ name: "", description: "", status: "ACTIVE" });
-      fetchBootcamps();
+      const result = await dispatch(createBootcamp({ divisionId, data: formData }));
+      if (createBootcamp.fulfilled.match(result)) {
+          toast.success("Bootcamp established successfully");
+          setIsModalOpen(false);
+          setFormData({ name: "", description: "", status: "ACTIVE" });
+      } else {
+          toast.error(result.payload as string || "Failed to create bootcamp");
+      }
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Failed to create bootcamp");
     }
   };
+
 
   return (
     <div className="space-y-8">
