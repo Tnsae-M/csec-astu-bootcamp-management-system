@@ -29,59 +29,158 @@ import { RootState } from "../../app/store";
 import { logout } from "../../features/auth/authSlice";
 import { cn } from "../../lib/utils";
 import { motion, AnimatePresence } from "motion/react";
+import { useEffect } from "react";
+import { divisionsService } from "@/services/divisions.service";
+import {
+  setDivisionsStart,
+  setDivisionsSuccess,
+  setDivisionsFailure,
+} from "@/features/divisions/divisionsSlice";
+import { useEffect } from "react";
+import { divisionsService } from "@/services/divisions.service";
+import { useDispatch } from "react-redux";
+import {
+  setDivisionsStart,
+  setDivisionsSuccess,
+  setDivisionsFailure,
+} from "@/features/divisions/divisionsSlice";
+import { RootState } from "@/app/store";
 
 const menuConfig: Record<string, any[]> = {
   ADMIN: [
-    { type: 'separator', label: 'Operations' },
-    { to: "/dashboard/admin/dashboard", icon: LayoutDashboard, label: "Overview" },
+    { type: "separator", label: "Operations" },
+    {
+      to: "/dashboard/admin/dashboard",
+      icon: LayoutDashboard,
+      label: "Overview",
+    },
     { to: "/dashboard/admin/divisions", icon: Building2, label: "Divisions" },
     { to: "/dashboard/admin/users", icon: UserCheck, label: "User Directory" },
-    { type: 'separator', label: 'Analytics' },
-    { to: "/dashboard/admin/reports", icon: BarChart3, label: "System Reports" }
+    { type: "separator", label: "Analytics" },
+    {
+      to: "/dashboard/admin/reports",
+      icon: BarChart3,
+      label: "System Reports",
+    },
   ],
   "SUPER ADMIN": [
-    { type: 'separator', label: 'Global Governance' },
-    { to: "/dashboard/admin/dashboard", icon: LayoutDashboard, label: "Master Dashboard" },
-    { to: "/dashboard/admin/divisions", icon: Building2, label: "Division Control" },
-    { to: "/dashboard/admin/users", icon: UserCheck, label: "Access Management" },
-    { type: 'separator', label: 'Insights' },
-    { to: "/dashboard/admin/reports", icon: BarChart3, label: "Global Analytics" },
+    { type: "separator", label: "Global Governance" },
+    {
+      to: "/dashboard/admin/dashboard",
+      icon: LayoutDashboard,
+      label: "Master Dashboard",
+    },
+    {
+      to: "/dashboard/admin/divisions",
+      icon: Building2,
+      label: "Division Control",
+    },
+    {
+      to: "/dashboard/admin/users",
+      icon: UserCheck,
+      label: "Access Management",
+    },
+    { type: "separator", label: "Insights" },
+    {
+      to: "/dashboard/admin/reports",
+      icon: BarChart3,
+      label: "Global Analytics",
+    },
   ],
   INSTRUCTOR: [
-    { type: 'separator', label: 'Shortcuts' },
-    { to: "/dashboard/instructor/dashboard", icon: Activity, label: "Active Pulse" },
-    { to: "/dashboard/instructor/bootcamps", icon: BookOpen, label: "Bootcamps" },
-    { type: 'separator', label: 'Daily Activity' },
-    { to: "/dashboard/instructor/divisions", icon: Building2, label: "My Divisions" },
-    { to: "/dashboard/instructor/sessions", icon: Calendar, label: "Session Hub" },
-    { to: "/dashboard/instructor/tasks", icon: CheckSquare, label: "Task Registry" },
-    { to: "/dashboard/instructor/groups", icon: Users2, label: "Group Management" },
+    { type: "separator", label: "Shortcuts" },
+    {
+      to: "/dashboard/instructor/dashboard",
+      icon: Activity,
+      label: "Active Pulse",
+    },
+    {
+      to: bootcampsPath.replace("student", "instructor"),
+      icon: BookOpen,
+      label: "Bootcamps",
+    },
+    { type: "separator", label: "Daily Activity" },
+    {
+      to: "/dashboard/instructor/sessions",
+      icon: Calendar,
+      label: "Session Hub",
+    },
+    {
+      to: "/dashboard/instructor/tasks",
+      icon: CheckSquare,
+      label: "Task Registry",
+    },
+    {
+      to: "/dashboard/instructor/groups",
+      icon: Users2,
+      label: "Group Management",
+    },
   ],
   STUDENT: [
-    { type: 'separator', label: 'Shortcuts' },
-    { to: "/dashboard/student/dashboard", icon: LayoutDashboard, label: "Learning Portal" },
-    { to: "/dashboard/student/bootcamps", icon: BookOpen, label: "Bootcamps" },
-    { type: 'separator', label: 'Daily Activity' },
-    { to: "/dashboard/student/divisions", icon: Building2, label: "Enrollments" },
+    { type: "separator", label: "Shortcuts" },
+    {
+      to: "/dashboard/student/dashboard",
+      icon: LayoutDashboard,
+      label: "Learning Portal",
+    },
+    {
+      to: bootcampsPath,
+      icon: BookOpen,
+      label: "Bootcamps",
+    },
+    { type: "separator", label: "Daily Activity" },
     { to: "/dashboard/student/group", icon: Users, label: "My Squad" },
-    { to: "/dashboard/student/sessions", icon: Calendar, label: "Session Feed" },
-    { to: "/dashboard/student/tasks", icon: CheckSquare, label: "My Assignments" },
-    { type: 'separator', label: 'Milestones' },
-    { to: "/dashboard/student/progress", icon: PieChart, label: "Progress DNA" },
+    {
+      to: "/dashboard/student/sessions",
+      icon: Calendar,
+      label: "Session Feed",
+    },
+    {
+      to: "/dashboard/student/tasks",
+      icon: CheckSquare,
+      label: "My Assignments",
+    },
+    { type: "separator", label: "Milestones" },
+    {
+      to: "/dashboard/student/progress",
+      icon: PieChart,
+      label: "Progress DNA",
+    },
   ],
 };
 
 export default function Sidebar() {
   const { user } = useSelector((state: RootState) => state.auth);
+  const { divisions } = useSelector((state: RootState) => state.divisions);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
+  // Dynamic bootcamps link using first division
+  const primaryRole = user?.roles?.[0]?.toLowerCase() || "student";
+  const firstDivisionId = divisions[0]?._id;
+  const bootcampsPath = firstDivisionId
+    ? `/dashboard/${primaryRole}/divisions/${firstDivisionId}/bootcamps`
+    : `/dashboard/${primaryRole}/divisions`;
+
+  // Fetch divisions if empty
+  useEffect(() => {
+    if (divisions.length === 0) {
+      dispatch(setDivisionsStart());
+      divisionsService
+        .getDivisions()
+        .then((res) => dispatch(setDivisionsSuccess(res.data || [])))
+        .catch((err) => dispatch(setDivisionsFailure(err.message)));
+    }
+  }, [dispatch, divisions.length]);
+
   const roles = user?.roles || ["STUDENT"];
-  
+
   // Combine links for all roles the user possesses and remove duplicates
-  const allLinks = roles.flatMap(role => menuConfig[role as keyof typeof menuConfig] || []);
+  const allLinks = roles.flatMap(
+    (role) => menuConfig[role as keyof typeof menuConfig] || [],
+  );
   const links = Array.from(new Set(allLinks));
 
   const handleLogout = () => {
@@ -97,22 +196,32 @@ export default function Sidebar() {
           isCollapsed ? "justify-center" : "px-2",
         )}
       >
-        <Logo showText={!isCollapsed} size={isCollapsed ? "sm" : "md"} inverse />
+        <Logo
+          showText={!isCollapsed}
+          size={isCollapsed ? "sm" : "md"}
+          inverse
+        />
       </div>
 
       <nav className="flex-1 overflow-y-auto no-scrollbar">
         <ul className="flex flex-col gap-1.5">
           {links.map((link, idx) => {
-            if (link.type === 'separator') {
+            if (link.type === "separator") {
               return (
-                <li key={`sep-${idx}`} className={cn("mt-5 mb-1 px-4", isCollapsed && "px-0 flex justify-center")}>
-                   {!isCollapsed ? (
-                     <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted/60 block">
-                       {link.label}
-                     </span>
-                   ) : (
-                     <div className="w-6 h-px bg-brand-border/50" />
-                   )}
+                <li
+                  key={`sep-${idx}`}
+                  className={cn(
+                    "mt-5 mb-1 px-4",
+                    isCollapsed && "px-0 flex justify-center",
+                  )}
+                >
+                  {!isCollapsed ? (
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted/60 block">
+                      {link.label}
+                    </span>
+                  ) : (
+                    <div className="w-6 h-px bg-brand-border/50" />
+                  )}
                 </li>
               );
             }
@@ -132,10 +241,12 @@ export default function Sidebar() {
                   }
                 >
                   {/* Active Indicator Bar */}
-                  <div className={cn(
-                    "absolute left-0 top-0 bottom-0 w-1 bg-white/20 transition-transform duration-300",
-                    "group-[.active]:translate-x-0 -translate-x-full"
-                  )} />
+                  <div
+                    className={cn(
+                      "absolute left-0 top-0 bottom-0 w-1 bg-white/20 transition-transform duration-300",
+                      "group-[.active]:translate-x-0 -translate-x-full",
+                    )}
+                  />
 
                   <link.icon
                     className={cn(

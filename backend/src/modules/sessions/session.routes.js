@@ -8,8 +8,8 @@ const router = express.Router();
 router.post(
   "/",
   authGuard,
-  roleGuard("instructor"),
-  sessionController.createSession
+  roleGuard("instructor", "admin"),
+  sessionController.createSession,
 );
 
 // all sessions
@@ -19,21 +19,21 @@ router.get("/", authGuard, sessionController.getSessions);
 router.get(
   "/bootcamp/:bootcampId",
   authGuard,
-  sessionController.getSessionsByBootcamp
+  sessionController.getSessionsByBootcamp,
 );
 
 router.put(
   "/:id",
   authGuard,
   roleGuard(["admin", "instructor"]),
-  sessionController.updateSession
+  sessionController.updateSession,
 );
 
 router.delete(
   "/:id",
   authGuard,
   roleGuard("admin"),
-  sessionController.deleteSession
+  sessionController.deleteSession,
 );
 
 export default router;
