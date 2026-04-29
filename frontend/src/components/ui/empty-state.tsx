@@ -28,11 +28,11 @@ export function EmptyState({
         className
       )}
     >
-      <div className="rounded-full bg-brand-primary p-6 mb-6 shadow-inner">
-        <div className="text-brand-accent h-10 w-10 flex items-center justify-center">
-          {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement, { size: 40 }) : icon}
+      {icon && (
+        <div className="w-16 h-16 rounded-2xl bg-brand-primary/80 border border-brand-border flex items-center justify-center text-brand-accent shadow-sm mb-6">
+          {React.cloneElement(icon as React.ReactElement<any>, { size: 32 } as any)}
         </div>
-      </div>
+      )}
       <h3 className="text-xl font-black text-text-main uppercase tracking-tight mb-2">{title}</h3>
       <p className="text-sm text-text-muted font-medium max-w-sm mb-8 italic">{description}</p>
       {action && (

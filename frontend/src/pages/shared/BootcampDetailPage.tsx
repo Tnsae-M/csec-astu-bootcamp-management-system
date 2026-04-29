@@ -97,10 +97,10 @@ export default function BootcampDetailPage() {
       } else if (activeTab === "sessions") {
         result = await dispatch(createSessionAsync({
           title: formState.title,
-          bootcampId,
+          bootcamp: bootcampId,
           instructor: formState.instructorId || undefined,
-          place: formState.place,
-          duration: formState.duration,
+          location: formState.place || 'TBD',
+          durationH: parseFloat(formState.duration) || 1,
           date: formState.date,
           startTime: formState.time,
         }));

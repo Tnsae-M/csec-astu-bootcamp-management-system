@@ -6,8 +6,11 @@ export interface Feedback {
   id?: string;
   user?: any;
   message: string;
+  comment?: string;
+  studentName?: string;
   rating: number;
   createdAt: string;
+  timestamp?: string;
   sessionId?: string;
 }
 

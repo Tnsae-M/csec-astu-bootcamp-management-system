@@ -19,7 +19,9 @@ import {
   BarChart3, 
   Clock,
   ArrowUpRight,
-  TrendingUp
+  TrendingUp,
+  Shield,
+  Target
 } from "lucide-react";
 import {
   BarChart,
@@ -50,7 +52,7 @@ export default function AdminDashboard() {
   const { user } = useSelector((state: RootState) => state.auth);
   const { users, loading: usersLoading } = useSelector((state: RootState) => state.users);
   const { divisions, loading: divLoading } = useSelector((state: RootState) => state.divisions);
-  const { sessions, loading: sessLoading } = useSelector((state: RootState) => state.sessions);
+  const { items: sessions, loading: sessLoading } = useSelector((state: RootState) => state.sessions);
   const { bootcamps, loading: bcLoading } = useSelector((state: RootState) => state.bootcamps);
   const navigate = useNavigate();
 
@@ -60,7 +62,7 @@ export default function AdminDashboard() {
   const [submitting, setSubmitting] = useState(false);
 
   const [bootcampForm, setBootcampForm] = useState({ divisionId: "", name: "", startDate: "", endDate: "" });
-  const [sessionForm, setSessionForm] = useState({ title: '', bootcampId: '', date: '', time: '', instructorId: '', instructorName: '' });
+  const [sessionForm, setSessionForm] = useState({ title: '', bootcamp: '', date: '', startTime: '', durationH: 1, instructor: '', location: 'TBD' });
 
   useEffect(() => {
     dispatch(fetchUsers(undefined));
@@ -71,8 +73,7 @@ export default function AdminDashboard() {
 
   const usersList = Array.isArray(users) ? users : [];
   const instructorsList = usersList.filter((u: any) => u.roles?.includes('INSTRUCTOR') || u.role === 'INSTRUCTOR');
-  const totalUsers = usersList.length;
-
+  
   const divArr = Array.isArray(divisions) ? divisions : [];
   const sessArr = Array.isArray(sessions) ? sessions : [];
   const activeSessions = sessArr.length;
@@ -95,9 +96,10 @@ export default function AdminDashboard() {
     if (activeTab === 'sessions') {
       const sessMap: Record<string, number> = {};
       divArr.forEach(d => sessMap[d.name] = 0);
-      sessArr.forEach(s => {
-        const divId = s.bootcampId?.divisionId?._id || s.bootcampId?.divisionId || s.bootcampId?.division;
-        const div = divArr.find(d => (d._id || d.id) === divId);
+      sessArr.forEach((s: any) => {
+        const bootcampObj = s.bootcamp || s.bootcampId;
+        const divId = bootcampObj?.divisionId?._id || bootcampObj?.divisionId || bootcampObj?.division;
+        const div = divArr.find((d: any) => (d._id || d.id) === divId);
         if (div) sessMap[div.name]++;
       });
       return Object.entries(sessMap).map(([name, value]) => ({ name, value }));
@@ -110,8 +112,8 @@ export default function AdminDashboard() {
     if (activeTab === 'users') {
       const userMap: Record<string, number> = {};
       divArr.forEach(d => userMap[d.name] = 0);
-      usersList.forEach(u => {
-        const div = divArr.find(d => (d._id || d.id) === (u.divisionId || u.division));
+      usersList.forEach((u: any) => {
+        const div = divArr.find((d: any) => (d._id || d.id) === (u.division || u.divisionId));
         if (div) userMap[div.name]++;
       });
       return Object.entries(userMap).map(([name, value]) => ({ name, value }));
@@ -183,30 +185,10 @@ export default function AdminDashboard() {
 
       {/* STATS GRID */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard 
-          label="Total Identity Base" 
-          value={totalUsers || 0} 
-          icon={<Users />} 
-          trend={{ value: 12, isPositive: true }}
-        />
-        <StatCard 
-          label="Active Bootcamps" 
-          value={totalBootcamps || 0} 
-          icon={<Briefcase />} 
-          trend={{ value: 3, isPositive: true }}
-        />
-        <StatCard 
-          label="Scheduled Sessions" 
-          value={activeSessions || 0} 
-          icon={<Calendar />} 
-        />
-        <StatCard 
-          label="Global Attendance" 
-          value={avgAttendance} 
-          suffix="%"
-          icon={<CheckCircle2 />} 
-          trend={{ value: 4, isPositive: true }}
-        />
+        <StatCard label="Active Divisions" value={divArr.length} trend={{ value: 0, isPositive: true }} icon={<Shield />} />
+        <StatCard label="Total Students" value={usersList.filter((u: any) => u.roles?.includes('STUDENT') || u.role === 'STUDENT').length} trend={{ value: 12, isPositive: true }} icon={<Users />} />
+        <StatCard label="Active Instructors" value={instructorsList.length} trend={{ value: 2, isPositive: true }} icon={<Target />} />
+        <StatCard label="Scheduled Sessions" value={activeSessions || 0} icon={<Calendar />} />
       </div>
 
       {/* CHARTS SECTION */}
@@ -282,7 +264,7 @@ export default function AdminDashboard() {
               className="w-full px-4 py-2.5 bg-brand-primary/40 border border-transparent rounded-lg text-sm font-medium outline-none focus:border-brand-accent appearance-none"
             >
               <option value="">Select Division Unit</option>
-              {divisions.map(d => (
+              {divisions.map((d: any) => (
                 <option key={d._id || d.id} value={d._id || d.id}>{d.name}</option>
               ))}
             </select>
@@ -320,27 +302,33 @@ export default function AdminDashboard() {
           </FormField>
           
           <FormField label="Parent Bootcamp" required>
-            <select value={sessionForm.bootcampId} onChange={(e)=>setSessionForm({...sessionForm, bootcampId: e.target.value})} className="w-full px-4 py-2.5 bg-brand-primary/40 border border-transparent rounded-lg text-sm font-medium outline-none focus:border-brand-accent">
+            <select value={sessionForm.bootcamp} onChange={(e)=>setSessionForm({...sessionForm, bootcamp: e.target.value})} className="w-full px-4 py-2.5 bg-brand-primary/40 border border-transparent rounded-lg text-sm font-medium outline-none focus:border-brand-accent">
               <option value="">Select Target Bootcamp</option>
-              {bcArr.map(b => (<option key={b._id||b.id} value={b._id||b.id}>{b.title||b.name}</option>))}
+              {bcArr.map((b: any) => (<option key={b._id||b.id} value={b._id||b.id}>{b.title||b.name}</option>))}
             </select>
           </FormField>
-
 
           <div className="grid grid-cols-2 gap-4">
             <FormField label="Date" required>
               <Input type="date" value={sessionForm.date} onChange={(e)=>setSessionForm({...sessionForm, date: e.target.value})} />
             </FormField>
-            <FormField label="Time" required>
-              <Input type="time" value={sessionForm.time} onChange={(e)=>setSessionForm({...sessionForm, time: e.target.value})} />
+            <FormField label="Start Time" required>
+              <Input type="time" value={sessionForm.startTime} onChange={(e)=>setSessionForm({...sessionForm, startTime: e.target.value})} />
+            </FormField>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="Duration (hours)">
+              <Input type="number" min={0.5} step={0.5} value={sessionForm.durationH} onChange={(e)=>setSessionForm({...sessionForm, durationH: parseFloat(e.target.value) || 1})} />
+            </FormField>
+            <FormField label="Location">
+              <Input value={sessionForm.location} onChange={(e)=>setSessionForm({...sessionForm, location: e.target.value})} placeholder="e.g. Room 301 or Online" />
             </FormField>
           </div>
 
           <FormField label="Lead Instructor">
-            <select value={sessionForm.instructorId} onChange={(e)=>{
-              const selectedId = e.target.value;
-              const found = instructorsList.find(i=> (i._id||i.id) === selectedId);
-              setSessionForm({...sessionForm, instructorId: selectedId, instructorName: found ? (found.name || '') : ''});
+            <select value={sessionForm.instructor} onChange={(e)=>{
+              setSessionForm({...sessionForm, instructor: e.target.value});
             }} className="w-full px-4 py-2.5 bg-brand-primary/40 border border-transparent rounded-lg text-sm font-medium outline-none focus:border-brand-accent">
               <option value="">Auto-Assign Later</option>
               {instructorsList.map((ins:any)=>(<option key={ins._id||ins.id} value={ins._id||ins.id}>{ins.name || ins.email}</option>))}

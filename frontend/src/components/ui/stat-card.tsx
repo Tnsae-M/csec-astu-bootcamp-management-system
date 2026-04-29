@@ -56,10 +56,11 @@ export function StatCard({
             {description && (
               <p className="text-xs text-text-muted">{description}</p>
             )}
-          </div>
-          <div className={cn("rounded-2xl p-3 bg-brand-primary text-brand-accent shadow-sm", iconClassName)}>
-            {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement, { size: 24 }) : icon}
-          </div>
+          {icon && (
+            <div className="w-10 h-10 rounded-xl bg-brand-primary/50 flex items-center justify-center text-brand-accent shadow-sm border border-brand-border">
+              {React.cloneElement(icon as React.ReactElement<any>, { size: 20 } as any)}
+            </div>
+          )}</div>
         </div>
         {trend && (
           <div className="mt-4 flex items-center gap-2">

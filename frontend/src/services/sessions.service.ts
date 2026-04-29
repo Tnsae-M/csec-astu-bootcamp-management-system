@@ -3,25 +3,26 @@ import api from '../api/axios';
 export const sessionsService = {
   getSessions: async () => {
     const response = await api.get('/sessions');
-    return response; // return full axios response so callers can use `res.data`
+    return response.data; // { success, data: [...] }
   },
 
   getSessionsByBootcamp: async (bootcampId: string) => {
     const response = await api.get(`/sessions/bootcamp/${bootcampId}`);
-    return response;
+    return response.data;
   },
 
   createSession: async (payload: any) => {
     const response = await api.post('/sessions', payload);
-    return response;
-  }
-  ,
+    return response.data;
+  },
+
   updateSession: async (id: string, payload: any) => {
     const response = await api.put(`/sessions/${id}`, payload);
-    return response;
+    return response.data;
   },
+
   deleteSession: async (id: string) => {
     const response = await api.delete(`/sessions/${id}`);
-    return response;
+    return response.data;
   }
 };

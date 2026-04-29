@@ -16,13 +16,14 @@ import {
   Mail,
   ClipboardList
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui';
 import Logo from '../components/common/Logo';
 
 import landingImg from '@/assets/images/landing.jpg';
 
 export default function LandingPage() {
+  const navigate = useNavigate();
   const divisions = [
     {
       title: 'Software Development',
@@ -64,7 +65,7 @@ export default function LandingPage() {
             <a href="#contact" className="hover:text-brand-accent transition-colors uppercase">Contact Us</a>
           </div>
           <Link to="/login">
-            <Button size="sm" variant="primary" className="px-8 shadow-lg shadow-brand-accent/20">Sign In</Button>
+            <Button size="sm" className="px-8 shadow-lg shadow-brand-accent/20">Sign In</Button>
           </Link>
         </div>
       </nav>
@@ -91,12 +92,14 @@ export default function LandingPage() {
               Join our advanced academic divisions and bridge the gap to professional excellence.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <Link to="/register">
-                <Button size="lg" className="px-10 py-5 text-sm shadow-xl shadow-brand-accent/20">
-                  Begin Enrollment
-                  <ChevronRight size={18} className="ml-2" />
-                </Button>
-              </Link>
+              <Button 
+                size="lg" 
+                className="font-black uppercase tracking-widest px-8 shadow-2xl shadow-brand-accent/20 group"
+                onClick={() => navigate('/register')}
+              >
+                Begin Enrollment
+                <ChevronRight size={18} className="ml-2" />
+              </Button>
               <Link to="/login">
                 <Button variant="secondary" size="lg" className="px-10 py-5 text-sm">
                   Access Portal

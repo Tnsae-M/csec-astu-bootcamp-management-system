@@ -3,14 +3,18 @@ import { progressService } from '../../services/progress.service';
 
 export interface ProgressReport {
   _id?: string;
+  id?: string;
   studentId?: any;
   bootcampId?: any;
   overallScore?: number;
+  score?: number;
+  week?: number | string;
   completedTasks?: number;
   totalTasks?: number;
   attendedSessions?: number;
   totalSessions?: number;
   status?: string;
+  remarks?: string;
 }
 
 interface ProgressState {

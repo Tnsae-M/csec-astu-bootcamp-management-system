@@ -47,74 +47,110 @@ const initialState: TaskState = {
 // ===== TASKS THUNKS =====
 export const fetchTasksByBootcamp = createAsyncThunk(
   "tasks/fetchByBootcamp",
-  async (bootcampId: string) => {
-    const response = await tasksService.getTasksByBootcamp(bootcampId);
-    return response.data;
+  async (bootcampId: string, { rejectWithValue }) => {
+    try {
+      const response = await tasksService.getTasksByBootcamp(bootcampId);
+      return response.data || response;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch tasks');
+    }
   },
 );
 
 export const fetchTaskById = createAsyncThunk(
   "tasks/fetchById",
-  async (id: string) => {
-    const response = await tasksService.getTaskById(id);
-    return response.data;
+  async (id: string, { rejectWithValue }) => {
+    try {
+      const response = await tasksService.getTaskById(id);
+      return response.data || response;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch task');
+    }
   },
 );
 
 export const createTask = createAsyncThunk(
   "tasks/create",
-  async (data: any) => {
-    const response = await tasksService.createTask(data);
-    return response.data;
+  async (data: any, { rejectWithValue }) => {
+    try {
+      const response = await tasksService.createTask(data);
+      return response.data || response;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to create task');
+    }
   },
 );
 
 export const updateTask = createAsyncThunk(
   "tasks/update",
-  async ({ id, data }: { id: string; data: any }) => {
-    const response = await tasksService.updateTask(id, data);
-    return response.data;
+  async ({ id, data }: { id: string; data: any }, { rejectWithValue }) => {
+    try {
+      const response = await tasksService.updateTask(id, data);
+      return response.data || response;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to update task');
+    }
   },
 );
 
 export const deleteTask = createAsyncThunk(
   "tasks/delete",
-  async (id: string) => {
-    const response = await tasksService.deleteTask(id);
-    return response.data.id;
+  async (id: string, { rejectWithValue }) => {
+    try {
+      await tasksService.deleteTask(id);
+      return id;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to delete task');
+    }
   },
 );
 
 // ===== SUBMISSIONS THUNKS =====
 export const fetchMySubmissions = createAsyncThunk(
   "tasks/fetchMySubmissions",
-  async () => {
-    const response = await submissionsService.getMySubmissions();
-    return response.data;
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await submissionsService.getMySubmissions();
+      return response.data || response;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch submissions');
+    }
   },
 );
 
 export const fetchSubmissionsByTask = createAsyncThunk(
   "tasks/fetchSubmissionsByTask",
-  async (taskId: string) => {
-    const response = await submissionsService.getSubmissionsByTask(taskId);
-    return response.data;
+  async (taskId: string, { rejectWithValue }) => {
+    try {
+      const response = await submissionsService.getSubmissionsByTask(taskId);
+      return response.data || response;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch submissions');
+    }
   },
 );
 
 export const submitTask = createAsyncThunk(
   "tasks/submit",
-  async (data: any) => {
-    const response = await submissionsService.submitTask(data);
-    return response.data;
+  async (data: any, { rejectWithValue }) => {
+    try {
+      const response = await submissionsService.submitTask(data);
+      return response.data || response;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to submit task');
+    }
   },
 );
 
 export const gradeSubmission = createAsyncThunk(
   "tasks/gradeSubmission",
-  async ({ id, data }: { id: string; data: any }) => {
-    const response = await submissionsService.gradeSubmission(id, data);
-    return response.data;
+  async ({ id, data }: { id: string; data: any }, { rejectWithValue }) => {
+    try {
+      const response = await submissionsService.gradeSubmission(id, data);
+      return response.data || response;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to grade submission');
+    }
   },
 );
 

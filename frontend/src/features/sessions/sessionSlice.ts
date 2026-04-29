@@ -35,7 +35,7 @@ export const fetchSessions = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await sessionsService.getSessions();
-      return response.data.data || response.data;
+      return response.data || response;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch sessions');
     }
@@ -48,8 +48,7 @@ export const fetchSessionsByBootcamp = createAsyncThunk(
   async (bootcampId: string, { rejectWithValue }) => {
     try {
       const response = await sessionsService.getSessionsByBootcamp(bootcampId);
-      // sessionsService returns axios response
-      return response.data.data || response.data;
+      return response.data || response;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch sessions');
     }
@@ -61,7 +60,7 @@ export const createSessionAsync = createAsyncThunk(
   async (data: any, { rejectWithValue }) => {
     try {
       const response = await sessionsService.createSession(data);
-      return response.data.data || response.data;
+      return response.data || response;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to create session');
     }
@@ -73,7 +72,7 @@ export const updateSessionAsync = createAsyncThunk(
   async ({ id, data }: { id: string; data: any }, { rejectWithValue }) => {
     try {
       const response = await sessionsService.updateSession(id, data);
-      return response.data.data || response.data;
+      return response.data || response;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to update session');
     }

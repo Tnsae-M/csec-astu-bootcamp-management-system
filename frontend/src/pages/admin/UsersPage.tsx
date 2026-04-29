@@ -100,8 +100,13 @@ export default function UsersPage() {
     e.preventDefault();
     try {
       if (editingUserId) {
-        const payload = { ...formData };
-        if (!payload.password) delete (payload as any).password;
+        const payload: any = {
+          name: formData.name,
+          email: formData.email,
+          status: formData.status,
+          role: (formData.roles[0] || 'student').toLowerCase(),
+        };
+        if (formData.password) payload.password = formData.password;
         const result = await dispatch(updateUser({ id: editingUserId, data: payload }));
         if (updateUser.fulfilled.match(result)) {
             toast.success('User updated successfully');
@@ -110,8 +115,13 @@ export default function UsersPage() {
             toast.error(result.payload as string || 'Update failed');
         }
       } else {
-        const primaryRole = formData.roles[0] || 'STUDENT';
-        const payload = { ...formData, role: primaryRole };
+        const payload = {
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          role: (formData.roles[0] || 'student').toLowerCase(),
+          status: formData.status,
+        };
         const result = await dispatch(createUser(payload));
         if (createUser.fulfilled.match(result)) {
             toast.success('User provisioned successfully');

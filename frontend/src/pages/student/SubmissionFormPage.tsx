@@ -38,6 +38,12 @@ export default function SubmissionFormPage({ bootcampId, sessionId }: Submission
   const fileRef = useRef<HTMLInputElement | null>(null);
   const location = useLocation();
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setFileValue(e.target.files[0]);
+    }
+  };
+
   useEffect(() => {
     const fetchInitialData = async () => {
       setLoadingTasks(true);
@@ -198,10 +204,10 @@ export default function SubmissionFormPage({ bootcampId, sessionId }: Submission
               <div className="pt-6 border-t border-brand-border space-y-4">
                 <label className="block text-[10px] font-black uppercase tracking-[0.3em] text-text-muted">Submission Format</label>
                 <div className="flex space-x-3">
-                  <Button type="button" variant={submissionType === 'link' ? 'primary' : 'outline'} onClick={() => setSubmissionType('link')}>Link</Button>
-                  <Button type="button" variant={submissionType === 'text' ? 'primary' : 'outline'} onClick={() => setSubmissionType('text')}>Text</Button>
-                  <Button type="button" variant={submissionType === 'file' ? 'primary' : 'outline'} onClick={() => setSubmissionType('file')}>PDF</Button>
-                  <Button type="button" variant={submissionType === 'both' ? 'primary' : 'outline'} onClick={() => setSubmissionType('both')}>Both</Button>
+                  <Button type="button" variant={submissionType === 'link' ? 'default' : 'outline'} onClick={() => setSubmissionType('link')}>Link</Button>
+                  <Button type="button" variant={submissionType === 'text' ? 'default' : 'outline'} onClick={() => setSubmissionType('text')}>Text</Button>
+                  <Button type="button" variant={submissionType === 'file' ? 'default' : 'outline'} onClick={() => setSubmissionType('file')}>PDF</Button>
+                  <Button type="button" variant={submissionType === 'both' ? 'default' : 'outline'} onClick={() => setSubmissionType('both')}>Both</Button>
                 </div>
 
                 {submissionType === 'link' && (

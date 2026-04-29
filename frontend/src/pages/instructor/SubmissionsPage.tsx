@@ -1,10 +1,28 @@
+import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '../../app/store';
+import { cn } from '@/lib/utils';
 import { 
   fetchTasksByBootcamp, 
   fetchSubmissionsByTask, 
   gradeSubmission 
 } from '../../features/tasks/taskSlice';
+import { 
+  Button, 
+  Modal,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell
+} from '@/components/ui';
 import { toast } from 'sonner';
+
+interface SubmissionsPageProps {
+  sessionId?: string;
+  bootcampId?: string;
+}
 
 export default function SubmissionsPage({
   sessionId,
