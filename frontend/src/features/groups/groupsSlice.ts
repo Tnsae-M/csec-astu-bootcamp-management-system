@@ -1,33 +1,46 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 export interface Group {
-  id: string;
+  _id: string;
+  id?: string;
   name: string;
-  divisionId: string;
-  membersCount: number;
-  mentor: string;
+  bootcamp?: string | any;
+  bootcampId?: string | any;
+  mentor?: any;
+  mentorId?: string | any;
+  members: string[] | any[];
 }
 
 interface GroupsState {
   groups: Group[];
+  loading: boolean;
+  error: string | null;
 }
 
 const initialState: GroupsState = {
-  groups: [
-    { id: '1', name: 'Alpha Squad', divisionId: '1', membersCount: 5, mentor: 'Marcello Ross' },
-    { id: '2', name: 'Cyber Sentinels', divisionId: '2', membersCount: 4, mentor: 'Cyber Ghost' },
-  ],
+  groups: [],
+  loading: false,
+  error: null,
 };
 
 const groupsSlice = createSlice({
   name: 'groups',
   initialState,
   reducers: {
-    setGroups: (state, action: PayloadAction<Group[]>) => {
+    setGroupsStart: (state) => {
+      state.loading = true;
+      state.error = null;
+    },
+    setGroupsSuccess: (state, action: PayloadAction<Group[]>) => {
       state.groups = action.payload;
+      state.loading = false;
+    },
+    setGroupsFailure: (state, action: PayloadAction<string>) => {
+      state.error = action.payload;
+      state.loading = false;
     },
   },
 });
 
-export const { setGroups } = groupsSlice.actions;
+export const { setGroupsStart, setGroupsSuccess, setGroupsFailure } = groupsSlice.actions;
 export default groupsSlice.reducer;

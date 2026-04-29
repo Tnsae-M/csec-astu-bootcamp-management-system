@@ -26,118 +26,48 @@ import {
 } from "lucide-react";
 import Logo from "../common/Logo";
 import { RootState } from "../../app/store";
-import { logout, UserRole } from "../../features/auth/authSlice";
+import { logout } from "../../features/auth/authSlice";
 import { cn } from "../../lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 
-const menuConfig: Record<UserRole, any[]> = {
+const menuConfig: Record<string, any[]> = {
   ADMIN: [
-    {
-      to: "/dashboard/admin/dashboard",
-      icon: LayoutDashboard,
-      label: "Dashboard",
-    },
-    {
-      to: "/dashboard/admin/divisions",
-      icon: Building2,
-      label: "Divisions",
-    },
-    { to: "/dashboard/admin/users", icon: UserCheck, label: "Users" }
-    ,{ to: "/dashboard/admin/reports", icon: BarChart3, label: "Reports" }
-    // { to: "/dashboard/admin/groups", icon: Users2, label: "Group Management" },
-    // {
-    //   to: "/dashboard/admin/sessions",
-    //   icon: Calendar,
-    //   label: "Session Management",
-    // },
-    // {
-    //   to: "/dashboard/admin/reports",
-    //   icon: BarChart3,
-    //   label: "Reports & Analytics",
-    // },
-    // {
-    //   to: "/dashboard/admin/feedback",
-    //   icon: MessageCircle,
-    //   label: "Feedback Management",
-    // },
-    // { to: '/dashboard/admin/notifications', icon: Bell, label: 'Notifications' },
-    // { to: '/dashboard/admin/settings', icon: Settings, label: 'System Settings' },
+    { type: 'separator', label: 'Operations' },
+    { to: "/dashboard/admin/dashboard", icon: LayoutDashboard, label: "Overview" },
+    { to: "/dashboard/admin/divisions", icon: Building2, label: "Divisions" },
+    { to: "/dashboard/admin/users", icon: UserCheck, label: "User Directory" },
+    { type: 'separator', label: 'Analytics' },
+    { to: "/dashboard/admin/reports", icon: BarChart3, label: "System Reports" }
+  ],
+  "SUPER ADMIN": [
+    { type: 'separator', label: 'Global Governance' },
+    { to: "/dashboard/admin/dashboard", icon: LayoutDashboard, label: "Master Dashboard" },
+    { to: "/dashboard/admin/divisions", icon: Building2, label: "Division Control" },
+    { to: "/dashboard/admin/users", icon: UserCheck, label: "Access Management" },
+    { type: 'separator', label: 'Insights' },
+    { to: "/dashboard/admin/reports", icon: BarChart3, label: "Global Analytics" },
   ],
   INSTRUCTOR: [
-    {
-      to: "/dashboard/instructor/dashboard",
-      icon: LayoutDashboard,
-      label: "Dashboard",
-    },
-    //there is no division route for an instructor to enter and select a bootcamp which he is teaching to.
-    {
-      to: "/dashboard/instructor/divisions",
-      icon: Building2,
-      label: "Divisions",
-    },
-    // {
-    //   to: "/dashboard/instructor/attendance",
-    //   icon: ClipboardList,
-    //   label: "Attendance",
-    // },
-    // {
-    //   to: "/dashboard/instructor/resources",
-    //   icon: BookOpen,
-    //   label: "Resources",
-    // },
-    // { to: "/dashboard/instructor/tasks", icon: CheckSquare, label: "Tasks" },
-    // {
-    //   to: "/dashboard/instructor/submissions",
-    //   icon: FileText,
-    //   label: "Submissions Review",
-    // },
-    // {
-    //   to: "/dashboard/instructor/feedback",
-    //   icon: MessageCircle,
-    //   label: "Feedback Overview",
-    // },
-    // {
-    //   to: "/dashboard/instructor/notifications",
-    //   icon: Bell,
-    //   label: "Notifications",
-    // },
+    { type: 'separator', label: 'Shortcuts' },
+    { to: "/dashboard/instructor/dashboard", icon: Activity, label: "Active Pulse" },
+    { to: "/dashboard/instructor/bootcamps", icon: BookOpen, label: "Bootcamps" },
+    { type: 'separator', label: 'Daily Activity' },
+    { to: "/dashboard/instructor/divisions", icon: Building2, label: "My Divisions" },
+    { to: "/dashboard/instructor/sessions", icon: Calendar, label: "Session Hub" },
+    { to: "/dashboard/instructor/tasks", icon: CheckSquare, label: "Task Registry" },
+    { to: "/dashboard/instructor/groups", icon: Users2, label: "Group Management" },
   ],
   STUDENT: [
-    {
-      to: "/dashboard/student/dashboard",
-      icon: LayoutDashboard,
-      label: "Dashboard",
-    },
-    //there is no division route for a student to enter and select a bootcamp which he is enrolled in.
-    {
-      to: "/dashboard/student/divisions",
-      icon: Building2,
-      label: "Divisions",
-    },
-    // {
-    //   to: "/dashboard/student/attendance",
-    //   icon: ClipboardList,
-    //   label: "My Attendance",
-    // },
-    // { to: "/dashboard/student/resources", icon: BookOpen, label: "Resources" },
-    // { to: "/dashboard/student/tasks", icon: CheckSquare, label: "Tasks" },
-    // { to: "/dashboard/student/submit", icon: FileText, label: "Submit Work" },
-    // {
-    //   to: "/dashboard/student/feedback",
-    //   icon: MessageCircle,
-    //   label: "Feedback",
-    // },
-    { to: "/dashboard/student/group", icon: Users, label: "My Group" },
-    {
-      to: "/dashboard/student/progress",
-      icon: PieChart,
-      label: "Weekly Progress",
-    },
-    // {
-    //   to: "/dashboard/student/notifications",
-    //   icon: Bell,
-    //   label: "Notifications",
-    // },
+    { type: 'separator', label: 'Shortcuts' },
+    { to: "/dashboard/student/dashboard", icon: LayoutDashboard, label: "Learning Portal" },
+    { to: "/dashboard/student/bootcamps", icon: BookOpen, label: "Bootcamps" },
+    { type: 'separator', label: 'Daily Activity' },
+    { to: "/dashboard/student/divisions", icon: Building2, label: "Enrollments" },
+    { to: "/dashboard/student/group", icon: Users, label: "My Squad" },
+    { to: "/dashboard/student/sessions", icon: Calendar, label: "Session Feed" },
+    { to: "/dashboard/student/tasks", icon: CheckSquare, label: "My Assignments" },
+    { type: 'separator', label: 'Milestones' },
+    { to: "/dashboard/student/progress", icon: PieChart, label: "Progress DNA" },
   ],
 };
 
@@ -148,8 +78,11 @@ export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  const role = user?.role || "STUDENT";
-  const links = menuConfig[role];
+  const roles = user?.roles || ["STUDENT"];
+  
+  // Combine links for all roles the user possesses and remove duplicates
+  const allLinks = roles.flatMap(role => menuConfig[role as keyof typeof menuConfig] || []);
+  const links = Array.from(new Set(allLinks));
 
   const handleLogout = () => {
     dispatch(logout());
@@ -169,41 +102,57 @@ export default function Sidebar() {
 
       <nav className="flex-1 overflow-y-auto no-scrollbar">
         <ul className="flex flex-col gap-1.5">
-          {links.map((link) => (
-            <li key={link.to}>
-              <NavLink
-                to={link.to}
-                className={({ isActive }) =>
-                  cn(
-                    "flex items-center px-4 py-3 rounded-md transition-all duration-200 group relative",
-                    isActive
-                      ? "bg-brand-accent text-white shadow-lg shadow-brand-accent/20"
-                      : "text-text-muted hover:bg-brand-accent/5 hover:text-brand-accent",
-                    isCollapsed && "justify-center px-0",
-                  )
-                }
-              >
-                <link.icon
-                  className={cn(
-                    "shrink-0",
-                    isCollapsed ? "h-5 w-5" : "mr-3 h-4 w-4",
-                  )}
-                />
-                {!isCollapsed && (
-                  <span className="text-[11px] font-bold uppercase tracking-widest truncate">
-                    {link.label}
-                  </span>
-                )}
+          {links.map((link, idx) => {
+            if (link.type === 'separator') {
+              return (
+                <li key={`sep-${idx}`} className={cn("mt-6 mb-2 px-4", isCollapsed && "px-0 flex justify-center")}>
+                   {!isCollapsed ? (
+                     <span className="text-[9px] font-black uppercase tracking-[0.3em] text-brand-accent/60 block">
+                       {link.label}
+                     </span>
+                   ) : (
+                     <div className="w-6 h-px bg-brand-border" />
+                   )}
+                </li>
+              );
+            }
 
-                {/* Tooltip for collapsed state */}
-                {isCollapsed && (
-                  <div className="absolute left-full ml-4 px-2 py-1 bg-brand-accent text-white text-[10px] font-black uppercase tracking-widest rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap border border-brand-primary">
-                    {link.label}
-                  </div>
-                )}
-              </NavLink>
-            </li>
-          ))}
+            return (
+              <li key={link.to}>
+                <NavLink
+                  to={link.to}
+                  className={({ isActive }) =>
+                    cn(
+                      "flex items-center px-4 py-3 rounded-md transition-all duration-200 group relative",
+                      isActive
+                        ? "bg-brand-accent text-white shadow-lg shadow-brand-accent/20"
+                        : "text-text-muted hover:bg-brand-accent/5 hover:text-brand-accent",
+                      isCollapsed && "justify-center px-0",
+                    )
+                  }
+                >
+                  <link.icon
+                    className={cn(
+                      "shrink-0",
+                      isCollapsed ? "h-5 w-5" : "mr-3 h-4 w-4",
+                    )}
+                  />
+                  {!isCollapsed && (
+                    <span className="text-[11px] font-bold uppercase tracking-widest truncate">
+                      {link.label}
+                    </span>
+                  )}
+
+                  {/* Tooltip for collapsed state */}
+                  {isCollapsed && (
+                    <div className="absolute left-full ml-4 px-2 py-1 bg-brand-accent text-white text-[10px] font-black uppercase tracking-widest rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap border border-brand-primary">
+                      {link.label}
+                    </div>
+                  )}
+                </NavLink>
+              </li>
+            );
+          })}
         </ul>
       </nav>
 

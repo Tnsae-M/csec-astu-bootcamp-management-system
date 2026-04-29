@@ -4,11 +4,11 @@ import { authGuard, roleGuard } from "../../middleware/role.guard.js";
 
 const router = express.Router();
 
-// create session (admin/instructor)
+// create session (only instructor)
 router.post(
   "/",
   authGuard,
-  roleGuard(["admin", "instructor"]),
+  roleGuard("instructor"),
   sessionController.createSession
 );
 

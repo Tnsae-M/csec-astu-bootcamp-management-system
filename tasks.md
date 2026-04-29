@@ -32,7 +32,7 @@ frontend/src/services/attendance.service.ts
 cd frontend && npm run dev
 Backend running? Login as instructor/student → Navigate to AttendancePage →
 Check Network tab: API calls to /attendance? Verify CRUD works.
-Paste any errors here: ****\_\_****
+Paste any errors here: \***\*\_\_\*\***
 [ ] Pass → Proceed to Phase 2
 \`\`\`
 
@@ -70,7 +70,7 @@ frontend/src/services/submissions.service.ts
 Test TasksPage/SubmissionFormPage/SubmissionsPage across roles
 Student: Submit task → Instructor: View/grade
 [ ] All APIs hit backend successfully
-Paste issues: ****\_\_****
+Paste issues: \***\*\_\_\*\***
 [ ] Pass → Phase 2
 \`\`\`
 

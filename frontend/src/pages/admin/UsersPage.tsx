@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../app/store';
-import { User, Mail, Shield, Activity, Edit, Plus, Trash2 } from 'lucide-react';
+import { User, Mail, Shield, Activity, Edit, Plus, Trash2, UserPlus } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { usersService } from '../../services/users.service';
+import { divisionsService } from '../../services/divisions.service';
 import { setUsersStart, setUsersSuccess, setUsersFailure } from '../../features/users/usersSlice';
 import { Button, Modal, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui';
 
@@ -11,6 +13,8 @@ export default function UsersPage() {
   const dispatch = useDispatch();
   const { users, loading } = useSelector((state: RootState) => state.users);
   const { searchTerm } = useSelector((state: RootState) => state.ui);
+  const { user } = useSelector((state: RootState) => state.auth);
+  const location = useLocation();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
@@ -20,9 +24,12 @@ export default function UsersPage() {
     name: '',
     email: '',
     password: '',
-    role: 'student',
+    // support multiple roles for backend integration (use uppercase role tokens)
+    roles: ['STUDENT'],
+    division: '',
     status: 'active'
   });
+  const [divisions, setDivisions] = useState<any[]>([]);
 
   const fetchUsers = () => {
     dispatch(setUsersStart());
@@ -37,6 +44,25 @@ export default function UsersPage() {
     fetchUsers();
   }, [dispatch]);
 
+  useEffect(() => {
+    divisionsService.getDivisions().then(res => {
+      const payload = res.data ?? res;
+      const list = Array.isArray(payload) ? payload : payload?.data ?? [];
+      setDivisions(list);
+    }).catch(() => setDivisions([]));
+  }, []);
+
+  // Auto-open create admin modal when navigated from dashboard quick action
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('createAdmin') === 'true' && (user?.roles || []).includes('SUPER ADMIN')) {
+      setEditingUserId(null);
+      setFormData({ name: '', email: '', password: '', roles: ['ADMIN'], division: '', status: 'active' });
+      setIsModalOpen(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const filteredUsers = users.filter((u) => 
     u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -45,7 +71,9 @@ export default function UsersPage() {
 
   const handleOpenCreate = () => {
     setEditingUserId(null);
-    setFormData({ name: '', email: '', password: '', role: 'student', status: 'active' });
+    // Super Admins may only create Admin users per requirements
+    const defaultRoles = (user?.roles || []).includes('SUPER ADMIN') ? ['ADMIN'] : ['STUDENT'];
+    setFormData({ name: '', email: '', password: '', roles: defaultRoles, division: '', status: 'active' });
     setIsModalOpen(true);
   };
 
@@ -55,7 +83,8 @@ export default function UsersPage() {
       name: user.name, 
       email: user.email, 
       password: '', // Blank when editing
-      role: user.role, 
+      roles: user.roles || (user.role ? [String(user.role).toUpperCase()] : ['STUDENT']),
+      division: user.division || user.divisionId || '',
       status: user.status 
     });
     setIsModalOpen(true);
@@ -69,7 +98,20 @@ export default function UsersPage() {
         if (!payload.password) delete payload.password; // Don't submit blank passwords
         await usersService.updateUser(editingUserId, payload);
       } else {
-        await usersService.createUser(formData);
+        // Prepare payload for backend: send `roles` array and a primary `role` for compatibility
+        // Enforce role creation rules: SUPER ADMIN may only create ADMIN
+        const desiredRoles = (user?.role === 'SUPER ADMIN') ? ['ADMIN'] : formData.roles;
+        const primaryRole = Array.isArray(desiredRoles) && desiredRoles.length > 0 ? desiredRoles[0] : 'STUDENT';
+        const payload: any = {
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          roles: (user?.roles || []).includes('SUPER ADMIN') ? ['ADMIN'] : formData.roles,
+          role: primaryRole,
+          division: formData.division || undefined,
+          status: formData.status
+        };
+        await usersService.createUser(payload);
       }
       setIsModalOpen(false);
       fetchUsers(); // Refresh the list
@@ -161,6 +203,8 @@ export default function UsersPage() {
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         title={editingUserId ? "Edit User Profiling" : "Provision New Identity"}
+        subtitle={editingUserId ? "Update the user's profile and access rights." : "Create a new system identity with appropriate role and status."}
+        icon={<UserPlus />}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -169,7 +213,7 @@ export default function UsersPage() {
               required 
               type="text" 
               value={formData.name} 
-              onChange={e => setFormData({...formData, name: e.target.value})}
+              onChange={e => setFormData(prev => ({...prev, name: e.target.value}))}
               className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm font-medium focus:border-brand-accent outline-none transition-colors" 
               placeholder="e.g. John Doe" 
             />
@@ -180,7 +224,7 @@ export default function UsersPage() {
               required 
               type="email" 
               value={formData.email} 
-              onChange={e => setFormData({...formData, email: e.target.value})}
+              onChange={e => setFormData(prev => ({...prev, email: e.target.value}))}
               className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm font-medium focus:border-brand-accent outline-none transition-colors" 
               placeholder="e.g. j.doe@scholar.astu" 
             />
@@ -193,7 +237,7 @@ export default function UsersPage() {
               type="password" 
               required={!editingUserId} // Only required for new users
               value={formData.password} 
-              onChange={e => setFormData({...formData, password: e.target.value})}
+              onChange={e => setFormData(prev => ({...prev, password: e.target.value}))}
               className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm font-medium focus:border-brand-accent outline-none transition-colors" 
               placeholder="••••••••" 
             />
@@ -201,21 +245,46 @@ export default function UsersPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Role Assignment</label>
-              <select 
-                value={formData.role} 
-                onChange={e => setFormData({...formData, role: e.target.value})}
-                className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm font-medium uppercase outline-none focus:border-brand-accent transition-colors"
-               >
-                <option value="student">Student</option>
-                <option value="instructor">Instructor</option>
-                <option value="admin">Administrator</option>
-              </select>
+              {user?.role === 'SUPER ADMIN' ? (
+                <div className="flex items-center gap-2">
+                  <div className="px-3 py-2 rounded-lg bg-brand-primary/30 text-sm font-black uppercase tracking-wider">Administrator</div>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <label className="inline-flex items-center gap-2">
+                    <input type="checkbox" checked={formData.roles.includes('STUDENT')} onChange={() => {
+                      setFormData(prev => {
+                        const has = prev.roles.includes('STUDENT');
+                        return {...prev, roles: has ? prev.roles.filter((r:any) => r !== 'STUDENT') : [...prev.roles, 'STUDENT']};
+                      });
+                    }} />
+                    <span className="text-xs font-bold">Student</span>
+                  </label>
+                  <label className="inline-flex items-center gap-2">
+                    <input type="checkbox" checked={formData.roles.includes('INSTRUCTOR')} onChange={() => {
+                      setFormData(prev => {
+                        const has = prev.roles.includes('INSTRUCTOR');
+                        return {...prev, roles: has ? prev.roles.filter((r:any) => r !== 'INSTRUCTOR') : [...prev.roles, 'INSTRUCTOR']};
+                      });
+                    }} />
+                    <span className="text-xs font-bold">Instructor</span>
+                  </label>
+                </div>
+              )}
+
+              <div className="mt-3">
+                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Assign Division</label>
+                <select value={formData.division} onChange={e => setFormData(prev => ({...prev, division: e.target.value}))} className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm font-medium outline-none focus:border-brand-accent">
+                  <option value="">Unassigned</option>
+                  {divisions.map(d => (<option key={d._id || d.id} value={d._id || d.id}>{d.name}</option>))}
+                </select>
+              </div>
             </div>
             <div>
               <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-text-muted mb-2">Account Status</label>
               <select 
                 value={formData.status} 
-                onChange={e => setFormData({...formData, status: e.target.value})}
+                onChange={e => setFormData(prev => ({...prev, status: e.target.value}))}
                 className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm font-medium uppercase outline-none focus:border-brand-accent transition-colors"
                >
                 <option value="active">Active</option>

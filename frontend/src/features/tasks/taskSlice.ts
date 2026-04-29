@@ -1,20 +1,24 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-interface Task {
-  id: string;
+export interface Task {
+  _id: string;
+  id?: string;
   title: string;
-  description: string;
-  deadline: string;
-  division: string;
-  instructor: string;
+  description?: string;
+  bootcampId: string | any;
+  sessionId?: string | any;
+  dueDate: string;
+  maxScore: number;
+  createdBy: string | any;
 }
 
-interface Submission {
-  id: string;
-  taskId: string;
-  studentId: string;
+export interface Submission {
+  _id: string;
+  id?: string;
+  taskId: string | any;
+  studentId: string | any;
   fileUrl?: string;
-  githubUrl: string;
+  githubUrl?: string;
   status: 'PENDING' | 'GRADED' | 'RETURNED';
   grade?: number;
   feedback?: string;
@@ -24,33 +28,53 @@ interface TaskState {
   tasks: Task[];
   submissions: Submission[];
   loading: boolean;
+  error: string | null;
 }
 
 const initialState: TaskState = {
-  tasks: [
-    { id: 'T1', title: 'Modular Backend Structure', description: 'Design a modular backend using Express', deadline: '2026-04-25', division: 'Software Development', instructor: 'Iman' },
-    { id: 'T2', title: 'Feature Extraction Pipeline', description: 'Build a data pipeline for image processing', deadline: '2026-04-26', division: 'Data Science', instructor: 'Jerusalem' },
-    { id: 'T3', title: 'Security Audit v1.4', description: 'Perform a penetration test on the mock server', deadline: '2026-04-27', division: 'Cybersecurity', instructor: 'Wogari' },
-  ],
+  tasks: [],
   submissions: [],
   loading: false,
+  error: null,
 };
 
 const taskSlice = createSlice({
   name: 'tasks',
   initialState,
   reducers: {
-    setTasks: (state, action: PayloadAction<Task[]>) => {
+    setTasksStart: (state) => {
+      state.loading = true;
+      state.error = null;
+    },
+    setTasksSuccess: (state, action: PayloadAction<Task[]>) => {
+
       state.tasks = action.payload;
+      state.loading = false;
+    },
+    setTasksFailure: (state, action: PayloadAction<string>) => {
+      state.loading = false;
+      state.error = action.payload;
     },
     setSubmissions: (state, action: PayloadAction<Submission[]>) => {
       state.submissions = action.payload;
     },
+    setSubmissionsStart: (state) => {
+      state.loading = true;
+      state.error = null;
+    },
+    setSubmissionsSuccess: (state, action: PayloadAction<Submission[]>) => {
+      state.submissions = action.payload;
+      state.loading = false;
+    },
+    setSubmissionsFailure: (state, action: PayloadAction<string>) => {
+      state.error = action.payload;
+      state.loading = false;
+    },
     addSubmission: (state, action: PayloadAction<Submission>) => {
       state.submissions.push(action.payload);
-    }
+    },
   },
 });
 
-export const { setTasks, setSubmissions, addSubmission } = taskSlice.actions;
+export const { setTasksStart, setTasksSuccess, setTasksFailure, setSubmissions, setSubmissionsStart, setSubmissionsSuccess, setSubmissionsFailure, addSubmission } = taskSlice.actions;
 export default taskSlice.reducer;

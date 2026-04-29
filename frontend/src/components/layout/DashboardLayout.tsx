@@ -2,6 +2,7 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
+import Breadcrumbs from '../common/Breadcrumbs';
 
 export default function DashboardLayout() {
   return (
@@ -11,6 +12,7 @@ export default function DashboardLayout() {
         <Navbar />
         <main className="flex-1 overflow-y-auto p-6 lg:p-10 no-scrollbar">
           <div className="max-w-7xl mx-auto w-full">
+            <Breadcrumbs />
             <Outlet />
           </div>
         </main>

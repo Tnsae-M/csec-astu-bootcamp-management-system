@@ -7,6 +7,7 @@ export interface Feedback {
   message: string;
   rating: number;
   timestamp: string;
+  sessionId?: string | number;
 }
 
 interface FeedbackState {
@@ -15,8 +16,8 @@ interface FeedbackState {
 
 const initialState: FeedbackState = {
   feedbacks: [
-    { id: '1', fromId: '1', toId: '3', message: 'Keep up the good work on React fundamentals.', rating: 5, timestamp: '2026-04-18T10:00:00Z' },
-    { id: '2', fromId: '2', toId: '4', message: 'Focus more on networking layers.', rating: 4, timestamp: '2026-04-17T14:30:00Z' },
+    { id: '1', fromId: '1', toId: '3', message: 'Keep up the good work on React fundamentals.', rating: 5, timestamp: '2026-04-18T10:00:00Z', sessionId: '1' },
+    { id: '2', fromId: '2', toId: '4', message: 'Focus more on networking layers.', rating: 4, timestamp: '2026-04-17T14:30:00Z', sessionId: '3' },
   ],
 };
 

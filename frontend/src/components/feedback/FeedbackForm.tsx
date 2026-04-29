@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import api from '@/src/api/axios';
 import { Button } from '@/src/components/ui';
+import { useDispatch } from 'react-redux';
+import { addFeedback } from '../../features/feedback/feedbackSlice';
+import { v4 as uuidv4 } from 'uuid';
 
 type Props = {
   open: boolean;
@@ -15,6 +18,7 @@ export default function FeedbackForm({ open, onClose, sessionId, instructorId, b
   const [comment, setComment] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(true);
   const [loading, setLoading] = useState(false);
+  const dispatch = useDispatch();
 
   if (!open) return null;
 
@@ -32,6 +36,13 @@ export default function FeedbackForm({ open, onClose, sessionId, instructorId, b
       setComment('');
       setRating(5);
       setIsAnonymous(true);
+      // Optimistically add to local store so UI updates immediately
+      try {
+        const id = uuidv4();
+        dispatch(addFeedback({ id, fromId: 'local', toId: instructorId || '', message: comment, rating, timestamp: new Date().toISOString(), sessionId }));
+      } catch (e) {
+        // ignore
+      }
       onClose();
     } catch (err) {
       console.error(err);
