@@ -148,7 +148,7 @@ export default function ResourcesPage({ sessionId }: ResourcesPageProps) {
                </div>
                
                <div className="flex items-center gap-2">
-                  {isAuthenticated && ['INSTRUCTOR','STUDENT','ADMIN','SUPER ADMIN'].includes(user?.role) ? (
+                  {isAuthenticated && (user?.roles || [user?.role]).some(r => ['INSTRUCTOR','STUDENT','ADMIN','SUPER ADMIN'].includes(String(r).toUpperCase())) ? (
                     <button onClick={() => handleDownload(r)} className="p-3 rounded-lg bg-brand-primary border border-brand-border text-brand-accent hover:bg-brand-accent hover:text-white transition-all shadow-sm flex items-center gap-2">
                       <Download size={18} /> <span className="text-[12px] font-bold">Download</span>
                     </button>

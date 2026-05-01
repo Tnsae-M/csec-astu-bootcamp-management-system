@@ -47,3 +47,12 @@ export const deleteReport = async (req, res, next) => {
     next(err);
   }
 };
+
+export const getAnalytics = async (req, res, next) => {
+  try {
+    const analytics = await reportService.getGlobalAnalytics();
+    res.json({ success: true, data: analytics });
+  } catch (err) {
+    next(err);
+  }
+};

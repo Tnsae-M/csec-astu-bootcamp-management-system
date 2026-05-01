@@ -19,11 +19,13 @@ interface AuthState {
   isAuthenticated: boolean;
   loading: boolean;
   error: string | null;
+  activeRole: string | null;
   isInitializing: boolean;
 }
 
 const rawToken = localStorage.getItem('token');
 const token = (rawToken && rawToken !== 'null' && rawToken !== 'undefined') ? rawToken : null;
+const activeRole = localStorage.getItem('activeRole');
 
 const initialState: AuthState = {
   user: null,
@@ -31,6 +33,7 @@ const initialState: AuthState = {
   isAuthenticated: !!token,
   loading: false,
   error: null,
+  activeRole: activeRole,
   isInitializing: !!token, 
 };
 
@@ -83,12 +86,13 @@ const authSlice = createSlice({
       state.token = null;
       state.isAuthenticated = false;
       state.isInitializing = false;
+      state.activeRole = null;
       localStorage.removeItem('token');
+      localStorage.removeItem('activeRole');
     },
     setActiveRole: (state, action: PayloadAction<string>) => {
-      if (state.user) {
-        (state.user as any).role = action.payload;
-      }
+      state.activeRole = action.payload.toUpperCase();
+      localStorage.setItem('activeRole', action.payload.toUpperCase());
     },
     clearError: (state) => {
       state.error = null;
@@ -119,7 +123,13 @@ const authSlice = createSlice({
           // Backend sanitizeUser returns role (singular string), not roles array
           // Normalize to roles array for frontend consistency
           if (state.user && !Array.isArray(state.user.roles)) {
-            state.user.roles = state.user.role ? [state.user.role.toUpperCase()] : ['STUDENT'];
+            const legacyRole = state.user.role;
+            const rolesArr = Array.isArray(legacyRole) ? legacyRole : [legacyRole || 'STUDENT'];
+            state.user.roles = rolesArr.map(r => String(r).toUpperCase());
+          }
+          
+          if (!state.activeRole && state.user?.roles?.[0]) {
+            state.activeRole = state.user.roles[0].toUpperCase();
           }
         } else {
           state.isAuthenticated = false;
@@ -148,7 +158,12 @@ const authSlice = createSlice({
           state.token = token;
           localStorage.setItem('token', token);
           if (state.user && !Array.isArray(state.user.roles)) {
-            state.user.roles = state.user.role ? [state.user.role.toUpperCase()] : ['STUDENT'];
+            const legacyRole = state.user.role;
+            const rolesArr = Array.isArray(legacyRole) ? legacyRole : [legacyRole || 'STUDENT'];
+            state.user.roles = rolesArr.map(r => String(r).toUpperCase());
+          }
+          if (!state.activeRole && state.user?.roles?.[0]) {
+            state.activeRole = state.user.roles[0].toUpperCase();
           }
         }
       })
@@ -172,10 +187,15 @@ const authSlice = createSlice({
         
         if (user && user.id) {
           if (!Array.isArray(user.roles)) {
-            user.roles = user.role ? [user.role.toUpperCase()] : ['STUDENT'];
+            const legacyRole = user.role;
+            const rolesArr = Array.isArray(legacyRole) ? legacyRole : [legacyRole || 'STUDENT'];
+            user.roles = rolesArr.map((r: any) => String(r).toUpperCase());
           }
           state.user = user;
           state.isAuthenticated = true;
+          if (!state.activeRole && user.roles[0]) {
+            state.activeRole = user.roles[0].toUpperCase();
+          }
         } else {
           state.isInitializing = false;
           state.isAuthenticated = false;

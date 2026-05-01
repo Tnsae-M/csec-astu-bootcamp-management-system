@@ -2,7 +2,7 @@ import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Bell, ShieldAlert, Zap, CheckCircle2 } from 'lucide-react';
 import { RootState } from '../../app/store';
-import { markAsRead, markAllAsRead } from '../../features/notifications/notificationSlice';
+import { markNotificationAsRead, markAllAsRead } from '../../features/notifications/notificationSlice';
 import { cn } from '../../lib/utils';
 
 export default function NotificationsPage() {
@@ -16,7 +16,7 @@ export default function NotificationsPage() {
   );
 
   const handleMarkAsRead = (id: number) => {
-    dispatch(markAsRead(id));
+    dispatch(markNotificationAsRead(id) as any);
   };
 
   const handleMarkAllAsRead = () => {

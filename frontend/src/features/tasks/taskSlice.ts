@@ -45,6 +45,18 @@ const initialState: TaskState = {
 };
 
 // ===== TASKS THUNKS =====
+export const fetchAllTasks = createAsyncThunk(
+  "tasks/fetchAll",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await tasksService.getTasks();
+      return response.data || response;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch tasks');
+    }
+  },
+);
+
 export const fetchTasksByBootcamp = createAsyncThunk(
   "tasks/fetchByBootcamp",
   async (bootcampId: string, { rejectWithValue }) => {
@@ -204,6 +216,18 @@ const taskSlice = createSlice({
         state.tasks = action.payload;
       })
       .addCase(fetchTasksByBootcamp.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || "Failed to fetch tasks";
+      })
+      .addCase(fetchAllTasks.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchAllTasks.fulfilled, (state, action) => {
+        state.loading = false;
+        state.tasks = action.payload;
+      })
+      .addCase(fetchAllTasks.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || "Failed to fetch tasks";
       })

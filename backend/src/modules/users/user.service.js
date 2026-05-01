@@ -2,11 +2,9 @@ import User from './user.model.js';
 import bcrypt from 'bcrypt';
 
 export const createUser = async (userData) => {
-  // Normalize role when provided as an array or with differing case
-  if (Array.isArray(userData.role)) {
-    userData.role = String(userData.role[0] || '').toLowerCase();
-  } else if (typeof userData.role === 'string') {
-    userData.role = userData.role.toLowerCase();
+  // Format bootcamps array if provided as raw IDs
+  if (userData.bootcamps && Array.isArray(userData.bootcamps)) {
+    userData.bootcamps = userData.bootcamps.map(id => ({ bootcampId: id }));
   }
 
   const existingUser = await User.findOne({ email: userData.email });
@@ -30,11 +28,17 @@ export const createUser = async (userData) => {
 
 export const getAllUsers = async (filter = {}) => {
   // We exclude the password from the results for security
-  return await User.find(filter).select('-password');
+  return await User.find(filter)
+    .select('-password')
+    .populate('divisionId', 'name')
+    .populate('bootcamps.bootcampId', 'name title');
 };
 
 export const getUserById = async (userId) => {
-  const user = await User.findById(userId).select('-password');
+  const user = await User.findById(userId)
+    .select('-password')
+    .populate('divisionId', 'name')
+    .populate('bootcamps.bootcampId', 'name title');
     
   if (!user) {
     const error = new Error('User not found');
@@ -50,19 +54,18 @@ export const updateUser = async (userId, updateData) => {
     delete updateData.password;
   }
 
-  // Normalize role if provided as an array or different casing
-  if (updateData.role) {
-    if (Array.isArray(updateData.role)) {
-      updateData.role = String(updateData.role[0] || '').toLowerCase();
-    } else if (typeof updateData.role === 'string') {
-      updateData.role = updateData.role.toLowerCase();
-    }
+  // Format bootcamps if provided as IDs
+  if (updateData.bootcamps && Array.isArray(updateData.bootcamps)) {
+    updateData.bootcamps = updateData.bootcamps.map(id => ({ bootcampId: id }));
   }
 
   const user = await User.findByIdAndUpdate(userId, updateData, { 
-    new: true, // Return the updated document
+    returnDocument: 'after', // Return the updated document
     runValidators: true // Ensure schema rules (like enums) are respected
-  }).select('-password');
+  })
+    .select('-password')
+    .populate('divisionId', 'name')
+    .populate('bootcamps.bootcampId', 'name title');
   
   if (!user) {
     const error = new Error('User not found');

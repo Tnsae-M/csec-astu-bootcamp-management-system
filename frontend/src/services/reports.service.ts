@@ -7,6 +7,11 @@ export const getReports = async () => {
   return res.data;
 };
 
+export const getAnalytics = async () => {
+  const res = await axios.get(`${BASE}/analytics`);
+  return res.data;
+};
+
 export const createReport = async (payload: { title: string; content: string }) => {
   const res = await axios.post(BASE, payload);
   return res.data;

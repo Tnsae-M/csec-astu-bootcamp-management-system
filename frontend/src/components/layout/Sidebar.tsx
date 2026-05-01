@@ -33,22 +33,22 @@ import { useEffect } from "react";
 import { fetchDivisions } from "@/features/divisions/divisionsSlice";
 
 export default function Sidebar() {
-  const { user } = useSelector((state: RootState) => state.auth);
+  const { user, activeRole } = useSelector((state: RootState) => state.auth);
   const { divisions } = useSelector((state: RootState) => state.divisions);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  // Dynamic bootcamps link using first division
-  const userRolesList = user?.roles || ["STUDENT"];
-  const primaryRole = (userRolesList[0] || "student").toLowerCase();
+  const userRolesList = user?.roles || (user?.role ? [user.role] : ["STUDENT"]);
+  const currentRole = (activeRole || userRolesList[0] || "STUDENT").toUpperCase();
+  const primaryRolePath = currentRole.toLowerCase().replace(' ', '');
+  
   const divList = Array.isArray(divisions) ? divisions : [];
   const firstDivisionId = divList[0]?._id;
   const bootcampsPath = firstDivisionId
-    ? `/dashboard/${primaryRole}/divisions/${firstDivisionId}/bootcamps`
-    : `/dashboard/${primaryRole}/divisions`;
-
+    ? `/dashboard/${primaryRolePath}/divisions/${firstDivisionId}/bootcamps`
+    : `/dashboard/${primaryRolePath}/divisions`;
 
   const menuConfig: Record<string, any[]> = {
     ADMIN: [
@@ -60,11 +60,20 @@ export default function Sidebar() {
       },
       { to: "/dashboard/admin/divisions", icon: Building2, label: "Divisions" },
       { to: "/dashboard/admin/users", icon: UserCheck, label: "User Directory" },
+      { type: "separator", label: "Academics" },
+      { to: "/dashboard/admin/sessions", icon: Calendar, label: "Academic Sessions" },
+      { to: "/dashboard/admin/groups", icon: Users2, label: "Synergy Groups" },
+      // { to: "/dashboard/admin/tasks", icon: CheckSquare, label: "Task Registry" },
       { type: "separator", label: "Analytics" },
       {
         to: "/dashboard/admin/reports",
         icon: BarChart3,
         label: "System Reports",
+      },
+      {
+        to: "/dashboard/admin/audit",
+        icon: Activity,
+        label: "System Audit",
       },
     ],
     "SUPER ADMIN": [
@@ -84,11 +93,20 @@ export default function Sidebar() {
         icon: UserCheck,
         label: "Access Management",
       },
+      { type: "separator", label: "Academics" },
+      { to: "/dashboard/admin/sessions", icon: Calendar, label: "Academic Sessions" },
+      // { to: "/dashboard/admin/groups", icon: Users2, label: "Synergy Groups" },
+      // { to: "/dashboard/admin/tasks", icon: CheckSquare, label: "Task Registry" },
       { type: "separator", label: "Insights" },
       {
         to: "/dashboard/admin/reports",
         icon: BarChart3,
         label: "Global Analytics",
+      },
+      {
+        to: "/dashboard/admin/audit",
+        icon: Activity,
+        label: "Governance Audit",
       },
     ],
     INSTRUCTOR: [
@@ -159,13 +177,7 @@ export default function Sidebar() {
     }
   }, [dispatch, divisions]);
 
-  const userRoles = user?.roles || ["STUDENT"];
-
-  // Combine links for all roles the user possesses and remove duplicates
-  const allLinks = userRoles.flatMap(
-    (role) => menuConfig[role as keyof typeof menuConfig] || [],
-  );
-  const links = Array.from(new Set(allLinks));
+  const links = menuConfig[currentRole] || [];
 
   const handleLogout = () => {
     dispatch(logout());
@@ -257,46 +269,6 @@ export default function Sidebar() {
         </ul>
       </nav>
 
-      <div className="mt-auto pt-6 border-t border-brand-border">
-        <div className="flex flex-col gap-4">
-          {/* {!isCollapsed && (
-            <div className="px-4 py-3 bg-brand-accent/5 rounded-lg border border-brand-border">
-              <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1 truncate">
-                {user?.name}
-              </p>
-              <p className="text-[9px] font-black text-brand-accent uppercase tracking-tighter">
-                {role}
-              </p>
-            </div>
-          )} */}
-
-          <button
-            onClick={handleLogout}
-            className={cn(
-              "flex items-center px-4 py-3 text-sm font-medium rounded text-red-400 hover:bg-red-500/10 transition-colors group relative",
-              isCollapsed && "justify-center px-0",
-            )}
-          >
-            <LogOut
-              className={cn(
-                "shrink-0",
-                isCollapsed ? "h-5 w-5" : "mr-3 h-4 w-4",
-              )}
-            />
-            {!isCollapsed && (
-              <span className="text-[11px] font-bold uppercase tracking-widest">
-                Logout System
-              </span>
-            )}
-
-            {isCollapsed && (
-              <div className="absolute left-full ml-4 px-2 py-1 bg-red-500 text-white text-[10px] font-black uppercase tracking-widest rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap">
-                Terminate Session
-              </div>
-            )}
-          </button>
-        </div>
-      </div>
     </div>
   );
 

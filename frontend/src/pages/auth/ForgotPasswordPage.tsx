@@ -97,7 +97,7 @@ export default function ForgotPasswordPage() {
               </div>
               <h2 className="text-xl font-black text-text-main uppercase tracking-tight">Transmission Complete</h2>
               <p className="text-sm text-text-muted font-medium leading-relaxed italic">
-                If an account exists for <span className="text-brand-accent font-black">{email}</span>, you will receive reset instructions shortly. Please check your inbox and spam folder.
+                A verification request has been transmitted to the <span className="text-brand-accent font-black">System Administrators</span>. They will review your identity and reset your credentials shortly.
               </p>
               <Button 
                 onClick={() => navigate('/login')}

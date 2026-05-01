@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../app/store';
-import { User, Mail, Shield, Activity, Edit, Plus, Trash2, UserPlus, Search, MoreHorizontal } from 'lucide-react';
+import { User, Mail, Shield, Activity, Edit, Plus, Trash2, UserPlus, Search, MoreHorizontal, KeyRound } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usersService } from '@/services/users.service';
 import { divisionsService } from '@/services/divisions.service';
+import { bootcampsService } from '@/services/bootcamps.service';
 import { fetchUsers, createUser, updateUser } from '@/features/users/usersSlice';
+import { authService } from '@/services/auth.service';
 
 import { 
   Button, 
@@ -45,9 +47,11 @@ export default function UsersPage() {
     password: '',
     roles: ['STUDENT'],
     division: '',
+    bootcamps: [] as string[],
     status: 'active'
   });
   const [divisions, setDivisions] = useState<any[]>([]);
+  const [bootcampsList, setBootcampsList] = useState<any[]>([]);
 
   const fetchUsersList = () => {
     dispatch(fetchUsers(undefined));
@@ -60,6 +64,11 @@ export default function UsersPage() {
       const payload = res.data ?? res;
       setDivisions(Array.isArray(payload) ? payload : payload?.data ?? []);
     }).catch(() => setDivisions([]));
+
+    bootcampsService.getBootcamps().then(res => {
+      const payload = res.data ?? res;
+      setBootcampsList(Array.isArray(payload) ? payload : payload?.data ?? []);
+    }).catch(() => setBootcampsList([]));
   }, [dispatch]);
 
 
@@ -73,13 +82,14 @@ export default function UsersPage() {
   const filteredUsers = (users || []).filter((u) => 
     (u.name || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
     (u.email || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
-    (u.role || '').toLowerCase().includes((searchTerm || '').toLowerCase())
+    (u.roles || [u.role || '']).some(ro => String(ro).toLowerCase().includes((searchTerm || '').toLowerCase()))
   );
 
   const handleOpenCreate = (forcedRole?: string) => {
     setEditingUserId(null);
-    const defaultRoles = forcedRole ? [forcedRole] : ((currentUser?.roles || []).includes('SUPER ADMIN') ? ['ADMIN'] : ['STUDENT']);
-    setFormData({ name: '', email: '', password: '', roles: defaultRoles, division: '', status: 'active' });
+    const userRoles = (currentUser?.roles || []).map(r => r.toUpperCase());
+    const defaultRoles = forcedRole ? [forcedRole] : (userRoles.includes('SUPER ADMIN') ? ['ADMIN'] : ['STUDENT']);
+    setFormData({ name: '', email: '', password: '', roles: defaultRoles, division: '', bootcamps: [], status: 'active' });
     setIsModalOpen(true);
   };
 
@@ -89,8 +99,9 @@ export default function UsersPage() {
       name: user.name, 
       email: user.email, 
       password: '', 
-      roles: user.roles || (user.role ? [String(user.role).toUpperCase()] : ['STUDENT']),
-      division: user.division || user.divisionId || '',
+      roles: user.roles?.map((r: any) => String(r).toUpperCase()) || (user.role ? [String(user.role).toUpperCase()] : ['STUDENT']),
+      division: user.divisionId || user.division || '',
+      bootcamps: (user.bootcamps || []).map((bc: any) => bc.bootcampId?._id || bc.bootcampId || bc),
       status: user.status || 'active'
     });
     setIsModalOpen(true);
@@ -99,13 +110,16 @@ export default function UsersPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const payload: any = {
+        name: formData.name,
+        email: formData.email,
+        status: formData.status,
+        roles: formData.roles.map(r => r.toLowerCase()),
+        divisionId: formData.division || null,
+        bootcamps: formData.bootcamps
+      };
+
       if (editingUserId) {
-        const payload: any = {
-          name: formData.name,
-          email: formData.email,
-          status: formData.status,
-          role: (formData.roles[0] || 'student').toLowerCase(),
-        };
         if (formData.password) payload.password = formData.password;
         const result = await dispatch(updateUser({ id: editingUserId, data: payload }));
         if (updateUser.fulfilled.match(result)) {
@@ -115,13 +129,7 @@ export default function UsersPage() {
             toast.error(result.payload as string || 'Update failed');
         }
       } else {
-        const payload = {
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          role: (formData.roles[0] || 'student').toLowerCase(),
-          status: formData.status,
-        };
+        payload.password = formData.password;
         const result = await dispatch(createUser(payload));
         if (createUser.fulfilled.match(result)) {
             toast.success('User provisioned successfully');
@@ -132,6 +140,19 @@ export default function UsersPage() {
       }
     } catch (err: any) {
       toast.error(err.response?.data?.message || err.message);
+    }
+  };
+
+  const handleAdminResetPassword = async (userId: string) => {
+    const newPassword = prompt("Enter new password for this user:");
+    if (!newPassword) return;
+    if (newPassword.length < 6) return toast.error("Password must be at least 6 characters");
+
+    try {
+      await authService.adminResetPassword(userId, { newPassword });
+      toast.success("User password has been reset and notified.");
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to reset password");
     }
   };
 
@@ -205,17 +226,26 @@ export default function UsersPage() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>{getRoleBadge(u.role)}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {(u.roles && u.roles.length > 0 ? u.roles : [u.role || 'student']).map((r: string) => (
+                          <React.Fragment key={r}>{getRoleBadge(r)}</React.Fragment>
+                        ))}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <span className="text-xs font-semibold text-text-muted uppercase tracking-tight">
-                        {u.division || 'Unassigned'}
+                        {u.divisionId?.name || u.division || 'Unassigned'}
                       </span>
                     </TableCell>
                     <TableCell>{getStatusBadge(u.status)}</TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-text-muted hover:text-brand-accent" onClick={() => handleOpenEdit(u)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-brand-accent hover:bg-brand-primary" onClick={() => handleAdminResetPassword(u._id)}>
+                          <KeyRound className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-text-muted hover:bg-brand-primary" onClick={() => handleOpenEdit(u)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -265,7 +295,15 @@ export default function UsersPage() {
           <div className="grid grid-cols-2 gap-4">
             <FormField label="Role Path">
               <div className="flex flex-col gap-2 pt-1">
-                {['STUDENT', 'INSTRUCTOR', 'ADMIN'].map((r) => (
+                {['STUDENT', 'INSTRUCTOR', 'ADMIN'].map((r) => {
+                  const userRoles = (currentUser?.roles || []).map(ro => String(ro).toUpperCase());
+                  const isSuperAdmin = userRoles.includes('SUPER ADMIN');
+                  const isAdmin = userRoles.includes('ADMIN');
+
+                  if (isSuperAdmin && r !== 'ADMIN') return null;
+                  if (isAdmin && !isSuperAdmin && r === 'ADMIN') return null;
+                  
+                  return (
                   <label key={r} className="inline-flex items-center gap-2 cursor-pointer">
                     <input 
                       type="checkbox" 
@@ -280,7 +318,7 @@ export default function UsersPage() {
                     />
                     <span className="text-xs font-bold text-text-main uppercase tracking-widest">{r}</span>
                   </label>
-                ))}
+                )})}
               </div>
             </FormField>
 
@@ -306,6 +344,27 @@ export default function UsersPage() {
                   <option value="suspended">Suspended</option>
                   <option value="graduated">Graduated</option>
                 </select>
+              </FormField>
+
+              <FormField label="Assign Bootcamps">
+                <div className="max-h-32 overflow-y-auto p-2 bg-brand-primary/40 rounded-lg space-y-2 no-scrollbar">
+                   {bootcampsList.map(bc => (
+                     <label key={bc._id} className="flex items-center gap-2 cursor-pointer">
+                       <input 
+                         type="checkbox"
+                         className="rounded border-brand-border text-brand-accent"
+                         checked={formData.bootcamps.includes(bc._id)}
+                         onChange={() => {
+                           setFormData(prev => {
+                             const has = prev.bootcamps.includes(bc._id);
+                             return { ...prev, bootcamps: has ? prev.bootcamps.filter(id => id !== bc._id) : [...prev.bootcamps, bc._id] };
+                           });
+                         }}
+                       />
+                       <span className="text-[10px] font-bold text-text-main uppercase">{bc.name || bc.title}</span>
+                     </label>
+                   ))}
+                </div>
               </FormField>
             </div>
           </div>

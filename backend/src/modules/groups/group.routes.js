@@ -1,53 +1,25 @@
-import { Router } from "express";
-import {
-  createGroup,
-  getGroupsByBootcamp,
-  addMember,
-  removeMember,
-  deleteGroup,
+import express from "express";
+import { 
+  createGroupController, 
+  getGroupsByBootcampController, 
+  addMemberController, 
+  removeMemberController, 
+  deleteGroupController,
+  submitProgress,
+  getGroupProgressLogs
 } from "./group.controller.js";
-
 import { authGuard, roleGuard } from "../../middleware/role.guard.js";
 
-const router = Router();
+const router = express.Router();
 
-// Create group
-router.post(
-  "/",
-  authGuard,
-  roleGuard(["admin", "instructor"]),
-  createGroup
-);
+router.post("/", authGuard, roleGuard(['ADMIN', 'SUPER ADMIN']), createGroupController);
+router.get("/bootcamp/:bootcampId", authGuard, getGroupsByBootcampController);
+router.put("/:groupId/members", authGuard, roleGuard(['ADMIN', 'SUPER ADMIN']), addMemberController);
+router.delete("/:groupId/members/:userId", authGuard, roleGuard(['ADMIN', 'SUPER ADMIN']), removeMemberController);
+router.delete("/:groupId", authGuard, roleGuard(['ADMIN', 'SUPER ADMIN']), deleteGroupController);
 
-// Get groups
-router.get(
-  "/bootcamp/:bootcampId",
-  authGuard,
-  getGroupsByBootcamp
-);
-
-// Add member
-router.put(
-  "/:id/add",
-  authGuard,
-  roleGuard(["admin", "instructor"]),
-  addMember
-);
-
-// Remove member
-router.put(
-  "/:id/remove/:userId",
-  authGuard,
-  roleGuard(["admin", "instructor"]),
-  removeMember
-);
-
-// Delete group
-router.delete(
-  "/:id",
-  authGuard,
-  roleGuard("admin"),
-  deleteGroup
-);
+// Weekly Progress
+router.post("/progress", authGuard, submitProgress);
+router.get("/progress/:groupId", authGuard, getGroupProgressLogs);
 
 export default router;

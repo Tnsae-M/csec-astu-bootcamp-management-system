@@ -12,25 +12,35 @@ import { useSelector } from 'react-redux';
 type TabType = 'tasks' | 'submissions' | 'attendance' | 'resources' | 'feedback';
 
 export default function SessionDetailPage() {
-  const { sessionId, bootcampId } = useParams<{ sessionId: string, bootcampId: string }>();
+  const { sessionId, bootcampId: pathBootcampId } = useParams<{ sessionId: string, bootcampId: string }>();
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const bootcampId = pathBootcampId || queryParams.get('bootcampId') || undefined;
+
   const [activeTab, setActiveTab] = useState<TabType>('tasks');
   const { feedbacks } = useSelector((state: RootState) => state.feedback);
-  const { user } = useSelector((state: RootState) => state.auth);
+  const { user, activeRole } = useSelector((state: RootState) => state.auth);
   const [modalOpen, setModalOpen] = useState(false);
-  const location = useLocation();
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    if (params.get('openFeedback')) setModalOpen(true);
+    if (queryParams.get('openFeedback')) setModalOpen(true);
   }, [location.search]);
+
+  const userRoles = (user?.roles || (user?.role ? [user.role] : [])).map(r => r.toUpperCase());
+  const currentRole = (activeRole || userRoles[0] || 'STUDENT').toUpperCase();
+  const isFaculty = ['ADMIN', 'SUPER ADMIN', 'INSTRUCTOR'].includes(currentRole);
 
   const tabs: { id: TabType, label: string }[] = [
     { id: 'attendance', label: 'Attendance' },
     { id: 'tasks', label: 'Tasks' },
-    { id: 'submissions', label: 'Submissions' },
-    { id: 'resources', label: 'Resources' },
-    { id: 'feedback', label: 'Feedback' }
   ];
+
+  if (isFaculty) {
+    tabs.push({ id: 'submissions', label: 'Submissions' });
+    tabs.push({ id: 'feedback', label: 'Feedback' });
+  }
+
+  tabs.push({ id: 'resources', label: 'Resources' });
 
   return (
     <div className="space-y-8">
@@ -39,6 +49,15 @@ export default function SessionDetailPage() {
           <h1 className="text-4xl font-black text-brand-accent uppercase tracking-tighter">Session Hub</h1>
           <p className="text-text-muted font-bold text-xs uppercase tracking-[0.2em] mt-2">ID: {sessionId}</p>
         </div>
+        
+        {!isFaculty && (
+          <button 
+            onClick={() => setModalOpen(true)}
+            className="bg-brand-accent text-white px-6 py-2 rounded-lg font-black uppercase text-xs tracking-widest hover:bg-brand-accent/90 transition-all shadow-lg"
+          >
+            Give Feedback
+          </button>
+        )}
       </div>
 
       {/* Tabs */}
@@ -59,21 +78,11 @@ export default function SessionDetailPage() {
       {/* Tab Content */}
       <div className="pt-6">
         {activeTab === 'tasks' && <TasksPage sessionId={sessionId} bootcampId={bootcampId} />}
-        {activeTab === 'submissions' && <SubmissionsPage sessionId={sessionId} bootcampId={bootcampId} />}
+        {activeTab === 'submissions' && isFaculty && <SubmissionsPage sessionId={sessionId} bootcampId={bootcampId} />}
         {activeTab === 'attendance' && <AttendancePage sessionId={sessionId} bootcampId={bootcampId} />}
         {activeTab === 'resources' && <ResourcesPage sessionId={sessionId} />}
-        {activeTab === 'feedback' && (
+        {activeTab === 'feedback' && isFaculty && (
           <div className="space-y-6">
-            <div className="flex justify-end">
-              {user?.role === 'STUDENT' && (
-                <button 
-                  onClick={() => setModalOpen(true)}
-                  className="bg-brand-accent text-white px-6 py-2 rounded-lg font-black uppercase text-xs tracking-widest hover:bg-brand-accent/90 transition-all shadow-lg"
-                >
-                  Give Feedback
-                </button>
-              )}
-            </div>
             <FeedbackPage sessionId={sessionId} />
           </div>
         )}

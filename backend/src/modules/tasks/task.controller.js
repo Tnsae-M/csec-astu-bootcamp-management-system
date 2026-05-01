@@ -1,5 +1,21 @@
 import * as taskService from "./task.service.js";
 
+export const getAllTasks = async (req, res, next) => {
+  try {
+    const data = await taskService.getAllTasks(
+      req.user.userId,
+      req.user.roles
+    );
+
+    res.status(200).json({
+      success: true,
+      data,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const createTask = async (req, res, next) => {
   try {
     const task = await taskService.createTask(req.body, req.user);
@@ -18,7 +34,8 @@ export const getTasksByBootcamp = async (req, res, next) => {
   try {
     const data = await taskService.getTasksByBootcamp(
       req.params.bootcampId,
-      req.user.userId
+      req.user.userId,
+      req.user.roles
     );
 
     res.status(200).json({
@@ -34,7 +51,8 @@ export const getTaskById = async (req, res, next) => {
   try {
     const data = await taskService.getTaskById(
       req.params.id,
-      req.user.userId
+      req.user.userId,
+      req.user.roles
     );
 
     res.status(200).json({

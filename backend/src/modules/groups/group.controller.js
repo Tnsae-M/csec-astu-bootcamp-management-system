@@ -1,6 +1,6 @@
 import * as groupService from "./group.service.js";
 
-export const createGroup = async (req, res, next) => {
+export const createGroupController = async (req, res, next) => {
   try {
     const group = await groupService.createGroup(
       req.body,
@@ -17,7 +17,7 @@ export const createGroup = async (req, res, next) => {
   }
 };
 
-export const getGroupsByBootcamp = async (req, res, next) => {
+export const getGroupsByBootcampController = async (req, res, next) => {
   try {
     const data = await groupService.getGroupsByBootcamp(
       req.params.bootcampId
@@ -32,10 +32,10 @@ export const getGroupsByBootcamp = async (req, res, next) => {
   }
 };
 
-export const addMember = async (req, res, next) => {
+export const addMemberController = async (req, res, next) => {
   try {
     const data = await groupService.addMember(
-      req.params.id,
+      req.params.groupId,
       req.body.userId,
       req.body.bootcampId
     );
@@ -50,10 +50,10 @@ export const addMember = async (req, res, next) => {
   }
 };
 
-export const removeMember = async (req, res, next) => {
+export const removeMemberController = async (req, res, next) => {
   try {
     const data = await groupService.removeMember(
-      req.params.id,
+      req.params.groupId,
       req.params.userId
     );
 
@@ -67,15 +67,34 @@ export const removeMember = async (req, res, next) => {
   }
 };
 
-export const deleteGroup = async (req, res, next) => {
+export const deleteGroupController = async (req, res, next) => {
   try {
-    const result = await groupService.deleteGroup(req.params.id);
+    const result = await groupService.deleteGroup(req.params.groupId);
 
     res.status(200).json({
       success: true,
       message: "Group deleted",
       data: result,
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const submitProgress = async (req, res, next) => {
+  try {
+    const studentId = req.user.userId;
+    const result = await groupService.submitGroupProgress(req.body, studentId);
+    res.status(201).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getGroupProgressLogs = async (req, res, next) => {
+  try {
+    const result = await groupService.getGroupProgress(req.params.groupId);
+    res.status(200).json(result);
   } catch (err) {
     next(err);
   }

@@ -1,5 +1,7 @@
 import Feedback from "./feedback.model.js";
 import Enrollment from "../enrollments/enrollment.model.js";
+import Session from "../sessions/session.model.js";
+import Attendance from "../attendance/attendance.model.js";
 
 const buildError = (msg, code = 400) => {
   const err = new Error(msg);
@@ -10,6 +12,27 @@ const buildError = (msg, code = 400) => {
 //  Create feedback
 export const createFeedback = async (data, studentId) => {
   const { bootcampId, sessionId, instructorId, rating, isAnonymous = true } = data;
+
+  // 1. Enforce Feedback Window (48 hours after session ends)
+  if (sessionId) {
+    const session = await Session.findById(sessionId);
+    if (!session) throw buildError("Session not found", 404);
+
+    const now = Date.now();
+    const endTime = session.endTime.getTime();
+    const diff = now - endTime;
+
+    if (diff < 0) throw buildError("Feedback cannot be submitted before session ends", 400);
+    if (diff > 48 * 60 * 60 * 1000) {
+      throw buildError("Feedback window has closed (48 hours expired)", 403);
+    }
+
+    // 2. Only present/late students can submit
+    const attendance = await Attendance.findOne({ sessionId, userId: studentId });
+    if (!attendance || !['present', 'late'].includes(attendance.status.toLowerCase())) {
+      throw buildError("Feedback restricted to students who attended the session", 403);
+    }
+  }
 
   //  Must be enrolled if bootcamp feedback
   if (bootcampId) {

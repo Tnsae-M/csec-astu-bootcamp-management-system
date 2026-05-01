@@ -5,11 +5,15 @@ import {
   getTaskById,
   updateTask,
   deleteTask,
+  getAllTasks
 } from "./task.controller.js";
 
 import { authGuard, roleGuard } from "../../middleware/role.guard.js";
 
 const router = Router();
+
+// Get all tasks relevant to user
+router.get("/", authGuard, getAllTasks);
 
 // Create task (admin/instructor)
 router.post(
@@ -41,7 +45,7 @@ router.put(
 router.delete(
   "/:id",
   authGuard,
-  roleGuard("admin"),
+  roleGuard(["admin", "instructor"]),
   deleteTask
 );
 

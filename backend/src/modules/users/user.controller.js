@@ -1,16 +1,17 @@
 import * as userService from "./user.service.js";
 
-const normalizeRole = (roleInput) => {
-  if (!roleInput) return undefined;
-  let r = roleInput;
-  if (Array.isArray(r)) r = r[0];
-  if (typeof r !== 'string') return undefined;
-  r = r.trim().toLowerCase();
-  if (r === 'super' || r === 'superadmin' || r === 'super_admin' || r === 'super-admin') return 'super admin';
-  if (r === 'admin') return 'admin';
-  if (r === 'instructor') return 'instructor';
-  if (r === 'student') return 'student';
-  return undefined;
+const normalizeRoles = (rolesInput) => {
+  if (!rolesInput) return ['student'];
+  const inputs = Array.isArray(rolesInput) ? rolesInput : [rolesInput];
+  const validRoles = ["super admin", "admin", "instructor", "student"];
+  const normalized = inputs
+    .map(r => String(r).trim().toLowerCase())
+    .map(r => {
+      if (r === 'super' || r === 'superadmin' || r === 'super_admin' || r === 'super-admin') return 'super admin';
+      return r;
+    })
+    .filter(r => validRoles.includes(r));
+  return normalized.length > 0 ? [...new Set(normalized)] : ['student'];
 }
 
 /**
@@ -23,17 +24,17 @@ export const createUser = async (req, res, next) => {
     // enforce role creation rules:
     // - super admin (creator) can only create users with role 'admin'
     // - admin (creator) can only create 'instructor' or 'student'
-    const creatorRole = req.user && req.user.role ? String(req.user.role).toLowerCase() : null;
-    const requestedRole = normalizeRole(req.body.role) || 'student';
+    const creatorRoles = req.user && req.user.roles ? req.user.roles.map(r => String(r).toLowerCase()) : [];
+    const requestedRoles = normalizeRoles(req.body.roles || req.body.role);
 
-    if (creatorRole === 'super admin') {
-      if (requestedRole !== 'admin') {
-        const error = new Error('Super admin may only create users with role `admin`.');
-        error.statusCode = 403;
-        throw error;
-      }
-    } else if (creatorRole === 'admin') {
-      if (!['instructor','student'].includes(requestedRole)) {
+    const isSuperAdmin = creatorRoles.includes('super admin');
+    const isAdmin = creatorRoles.includes('admin');
+
+    if (isSuperAdmin) {
+      // Super admin can create anyone
+    } else if (isAdmin) {
+      // admin can only create instructor or student
+      if (requestedRoles.some(r => ['admin', 'super admin'].includes(r))) {
         const error = new Error('Admin may only create users with role `instructor` or `student`.');
         error.statusCode = 403;
         throw error;
@@ -45,7 +46,8 @@ export const createUser = async (req, res, next) => {
     }
 
     // ensure the role written is normalized
-    const payload = { ...req.body, role: requestedRole };
+    const payload = { ...req.body, roles: requestedRoles };
+    delete payload.role;
 
     const user = await userService.createUser(payload);
 
@@ -67,9 +69,10 @@ export const createUser = async (req, res, next) => {
  */
 export const getAllUsers = async (req, res, next) => {
   try {
-    // Optional: Extract basic filters from query params (e.g., ?role=Student&status=Active)
     const filters = {};
-    if (req.query.role) filters.role = req.query.role;
+    if (req.query.role) {
+      filters.roles = { $in: [String(req.query.role).toLowerCase()] };
+    }
     if (req.query.status) filters.status = req.query.status;
 
     const users = await userService.getAllUsers(filters);
@@ -104,29 +107,30 @@ export const getUserById = async (req, res, next) => {
  */
 export const updateUser = async (req, res, next) => {
   try {
-    // Prevent role escalations: only super admin can promote to admin
-    const updaterRole = req.user && req.user.role ? String(req.user.role).toLowerCase() : null;
+    // Permission Logic:
+    // 1. Super Admin can do everything.
+    // 2. Admin can update users, but cannot assign 'admin' or 'super admin' roles.
+    const updaterRoles = req.user && req.user.roles ? req.user.roles.map(r => String(r).toLowerCase()) : [];
+    const isSuperAdmin = updaterRoles.includes('super admin');
+    const isAdmin = updaterRoles.includes('admin');
+
     const updateData = { ...req.body };
-    if (updateData.role) {
-      const normalized = normalizeRole(updateData.role);
-      if (!normalized) {
-        const error = new Error('Invalid role specified');
-        error.statusCode = 400;
-        throw error;
+    if (updateData.roles || updateData.role) {
+      const normalized = normalizeRoles(updateData.roles || updateData.role);
+      
+      if (!isSuperAdmin) {
+        // If not super admin, check if they are trying to assign high-privilege roles
+        if (normalized.some(r => ['admin', 'super admin'].includes(r))) {
+          // If they are an admin, we might want to allow it ONLY if they aren't CHANGING it to admin.
+          // For simplicity, we'll allow Admins to manage non-admins. 
+          // If they try to set roles to admin/super admin, we block them unless they are super admin.
+          const error = new Error('Insufficient permissions to assign administrative roles');
+          error.statusCode = 403;
+          throw error;
+        }
       }
-      // admin cannot set role to 'admin' or 'super admin'
-      if (updaterRole === 'admin' && (normalized === 'admin' || normalized === 'super admin')) {
-        const error = new Error('Admin cannot assign admin or super admin roles');
-        error.statusCode = 403;
-        throw error;
-      }
-      // only super admin can create/promote to admin
-      if (normalized === 'super admin') {
-        const error = new Error('Cannot assign super admin role via this endpoint');
-        error.statusCode = 403;
-        throw error;
-      }
-      updateData.role = normalized;
+      updateData.roles = normalized;
+      delete updateData.role;
     }
 
     const user = await userService.updateUser(req.params.id, updateData);

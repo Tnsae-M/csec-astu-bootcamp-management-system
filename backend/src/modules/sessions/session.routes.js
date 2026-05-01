@@ -8,7 +8,7 @@ const router = express.Router();
 router.post(
   "/",
   authGuard,
-  roleGuard("instructor", "admin"),
+  roleGuard(["instructor", "admin"]),
   sessionController.createSession,
 );
 

@@ -5,7 +5,10 @@ import {
   currentUser,
   verifyEmail,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  changePassword,
+  adminResetPassword,
+  resendVerificationToken
 } from "./auth.service.js";
 
 export const login = async (req, res, next) => {
@@ -87,6 +90,38 @@ export const resetPasswordController = async (req, res, next) => {
       req.params.token,
       req.body.password
     );
+    res.status(200).json(data);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const changePasswordController = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user.userId;
+    const data = await changePassword(userId, currentPassword, newPassword);
+    res.status(200).json(data);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const adminResetPasswordController = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const { newPassword } = req.body;
+    const data = await adminResetPassword(userId, newPassword);
+    res.status(200).json(data);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const resendVerification = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const data = await resendVerificationToken(email);
     res.status(200).json(data);
   } catch (err) {
     next(err);

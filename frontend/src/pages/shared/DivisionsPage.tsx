@@ -5,6 +5,7 @@ import { RootState } from '../../app/store';
 import { Building2, Activity, Plus, Edit, Trash2, AlertCircle, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { divisionsService } from '@/services/divisions.service';
+import { bootcampsService } from '@/services/bootcamps.service';
 import { 
   fetchDivisions, 
   createDivisionAsync, 
@@ -30,9 +31,10 @@ export default function DivisionsPage() {
   const { searchTerm } = useSelector((state: RootState) => state.ui);
   const { user } = useSelector((state: RootState) => state.auth);
   
-  const roles = user?.roles || [];
-  const isSuperAdmin = roles.includes('SUPER ADMIN');
-  const rolePath = roles.includes('INSTRUCTOR') ? 'instructor' : 'student';
+  const userRoles = (user?.roles || (user?.role ? [user.role] : [])).map(r => r.toUpperCase());
+  const isSuperAdmin = userRoles.includes('SUPER ADMIN');
+  const isAdmin = userRoles.includes('ADMIN');
+  const rolePath = userRoles.includes('INSTRUCTOR') ? 'instructor' : (userRoles.includes('ADMIN') ? 'admin' : 'student');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);

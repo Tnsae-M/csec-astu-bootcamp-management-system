@@ -1,25 +1,27 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { RootState } from '../../app/store';
-import { Calendar, Filter, Plus, Edit, Trash2 } from 'lucide-react';
+import { Calendar, Filter, Plus, Edit, Trash2, BookOpen, Clock } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { sessionsService } from '../../services/sessions.service';
 import { bootcampsService } from '../../services/bootcamps.service';
 import { usersService } from '../../services/users.service';
 import { fetchSessions, createSessionAsync, updateSessionAsync } from '../../features/sessions/sessionSlice';
-import { Button, Modal } from '../../components/ui';
+import { Button, Modal, Card, CardHeader, CardTitle, CardFooter } from '../../components/ui';
 import FeedbackForm from '../../components/feedback/FeedbackForm';
 import { toast } from 'sonner';
 
 export default function SessionPage() {
 
   const dispatch = useDispatch() as any;
+  const navigate = useNavigate();
   const { items: sessions, loading } = useSelector((state: RootState) => state.sessions);
   const { searchTerm } = useSelector((state: RootState) => state.ui);
-  const { user } = useSelector((state: RootState) => state.auth);
-  const userRole = (user as any)?.role || (Array.isArray((user as any)?.roles) ? (user as any).roles[0] : null);
-  const isStudent = userRole === 'STUDENT';
-  const isAdminOrInstructor = ['ADMIN', 'SUPER ADMIN', 'INSTRUCTOR'].includes(userRole);
+  const { user, activeRole } = useSelector((state: RootState) => state.auth);
+  const userRoles = (user?.roles || (user?.role ? [user.role] : [])).map(r => r.toUpperCase());
+  const isStudent = userRoles.includes('STUDENT');
+  const isAdminOrInstructor = userRoles.some(r => ['ADMIN', 'INSTRUCTOR'].includes(r));
 
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState<any>(null);
@@ -50,12 +52,29 @@ export default function SessionPage() {
     bootcampsService.getBootcamps().then(res => setBootcamps(res.data || []));
     usersService.getUsers().then(res => {
       const allInts = (res.data || []).filter((u: any) => {
-         const uRoles = u.roles || [u.role]; 
-         return uRoles.includes('INSTRUCTOR') || uRoles.includes('ADMIN') || uRoles.includes('SUPER ADMIN');
+       const uRoles = (u.roles || [u.role]).map((r: string) => r.toUpperCase()); 
+       return uRoles.includes('INSTRUCTOR') || uRoles.includes('ADMIN');
       });
       setInstructors(allInts);
     });
   }, [dispatch]);
+
+  const filteredInstructors = instructors.filter((inst: any) => {
+    if (!formData.bootcamp) return true;
+    const instBootcamps = (inst.bootcamps || []).map((bc: any) => bc.bootcampId?._id || bc.bootcampId || bc);
+    return instBootcamps.includes(formData.bootcamp);
+  });
+
+  useEffect(() => {
+    if (formData.bootcamp && formData.instructor) {
+      const isStillValid = filteredInstructors.some(i => i._id === formData.instructor);
+      if (!isStillValid && filteredInstructors.length > 0) {
+        // Only reset if we are creating, or if it's clearly invalid
+        // Actually, better to just let the user change it if they want.
+        // But for "un assign" cases, we should probably reset.
+      }
+    }
+  }, [formData.bootcamp, instructors]);
 
   const safeSessions = Array.isArray(sessions) ? sessions : [];
   const filteredSessions = safeSessions.filter((s: any) => {
@@ -65,12 +84,14 @@ export default function SessionPage() {
     return title.includes(term) || bcTitle.includes(term);
   });
 
+  const isInstructorOnly = userRoles.includes('INSTRUCTOR') && !userRoles.includes('ADMIN') && !userRoles.includes('SUPER ADMIN');
+
   const handleOpenCreate = () => {
     setEditingId(null);
     setFormData({ 
       title: '', description: '', 
       bootcamp: bootcamps[0]?._id || '', 
-      instructor: instructors[0]?._id || '', 
+      instructor: isInstructorOnly ? (user?._id || user?.id) : (instructors[0]?._id || ''), 
       date: new Date().toISOString().split('T')[0], 
       startTime: '10:00', durationH: 2, location: 'Virtual', status: 'UPCOMING' 
     });
@@ -79,11 +100,12 @@ export default function SessionPage() {
 
   const handleOpenEdit = (session: any) => {
     setEditingId(session._id || session.id);
+    const instId = typeof session.instructor === 'object' ? session.instructor._id : session.instructor;
     setFormData({ 
       title: session.title, 
       description: session.description || '', 
       bootcamp: typeof session.bootcamp === 'object' ? session.bootcamp._id : session.bootcamp,
-      instructor: typeof session.instructor === 'object' ? session.instructor._id : session.instructor,
+      instructor: instId,
       date: session.date ? session.date.substring(0, 10) : '',
       startTime: session.startTime || '10:00', 
       durationH: session.durationH || 2, 
@@ -160,62 +182,77 @@ export default function SessionPage() {
         ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 relative z-10">
           {filteredSessions.map((session) => {
+            const bcId = typeof session.bootcamp === 'object' ? session.bootcamp?._id : session.bootcamp;
             const bcName = typeof session.bootcamp === 'object' ? session.bootcamp?.name : (bootcamps.find(b => b._id === session.bootcamp)?.name || 'Unknown Bootcamp');
             const instName = typeof session.instructor === 'object' ? session.instructor?.name : (instructors.find(i => i._id === session.instructor)?.name || 'Unknown Instructor');
+            
+            let primaryRolePath = (activeRole || userRoles[0] || 'student').toLowerCase().replace(' ', '');
+            if (primaryRolePath === 'superadmin') primaryRolePath = 'admin';
 
             return (
-            <div key={session._id || session.id} className="p-8 rounded-2xl bg-brand-primary border border-brand-border hover:border-brand-accent/30 transition-all group shadow-sm flex flex-col justify-between">
-              <div>
-                <div className="flex justify-between items-start mb-8">
-                  <div className="w-12 h-12 bg-white border border-brand-border text-brand-accent rounded-xl flex items-center justify-center shadow-sm group-hover:bg-brand-accent group-hover:text-white transition-all">
-                    <Calendar size={24} />
-                  </div>
-                  <div className="flex space-x-2">
+              <Card
+                key={session._id || session.id}
+                className="flex flex-col h-full hover:border-brand-accent transition-colors shadow-sm bg-brand-primary"
+              >
+                <CardHeader className="flex flex-col space-y-1.5 pb-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="w-10 h-10 rounded-lg bg-brand-accent/10 text-brand-accent flex items-center justify-center">
+                      <BookOpen size={20} />
+                    </div>
+                    <div className="flex items-center gap-2">
                       {isAdminOrInstructor && (
-                       <>
-                        <button 
-                          onClick={() => handleOpenEdit(session)}
-                          className="text-text-muted hover:text-brand-accent p-1"
-                        >
-                          <Edit size={14} />
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(session._id, session.title)}
-                          className="text-text-muted hover:text-red-500 p-1"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                       </>
+                        <div className="flex gap-1">
+                          <button onClick={() => handleOpenEdit(session)} className="text-text-muted hover:text-brand-accent p-1"><Edit size={14} /></button>
+                          <button onClick={() => handleDelete(session._id, session.title)} className="text-text-muted hover:text-red-500 p-1"><Trash2 size={14} /></button>
+                        </div>
                       )}
-                    <span className={cn(
-                      "px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm",
-                      session.status === 'UPCOMING' ? 'bg-blue-100 text-blue-700 border border-blue-200' : 
-                      session.status === 'ONGOING' ? 'bg-green-100 text-green-700 border border-green-200' :
-                      session.status === 'CANCELLED' ? 'bg-red-100 text-red-700 border border-red-200' :
-                      'bg-gray-100 text-gray-700 border border-gray-200'
-                    )}>
-                      {session.status}
-                    </span>
+                      <div className={cn(
+                        "text-[10px] font-semibold px-2 py-1 rounded border",
+                        session.status === 'UPCOMING' ? 'bg-blue-100 text-blue-700 border-blue-200' : 
+                        session.status === 'ONGOING' ? 'bg-green-100 text-green-700 border-green-200' :
+                        session.status === 'CANCELLED' ? 'bg-red-100 text-red-700 border-red-200' :
+                        'bg-brand-primary text-text-muted border-brand-border'
+                      )}>
+                        {session.status || "SCHEDULED"}
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <h3 className="text-xl font-black text-text-main mb-2 uppercase tracking-tight group-hover:text-brand-accent transition-colors">{session.title}</h3>
-                <p className="text-[10px] font-bold text-brand-accent uppercase tracking-widest mb-1">{bcName}</p>
-                <p className="text-[9px] font-black text-text-muted uppercase tracking-widest mb-6">Inst: {instName}</p>
-              </div>
-
-              <div className="flex justify-between items-center pt-6 border-t border-brand-border">
-                <div className="text-[10px] font-black text-text-muted uppercase tracking-tighter">
-                  {session.date?.substring(0,10)} <span className="mx-1 text-brand-border">|</span> {session.startTime} ({session.durationH}H)
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Button variant="outline" size="sm" className="font-black text-[10px] px-6 py-1 uppercase tracking-widest border-brand-border text-text-muted hover:text-brand-accent hover:border-brand-accent transition-all bg-transparent shadow-none">Details</Button>
-                  {isStudent && (
-                    <Button size="sm" onClick={() => { setSelectedSession(session); setFeedbackModalOpen(true); }} className="font-black text-[10px] px-4 uppercase tracking-widest">Give Feedback</Button>
-                  )}
-                </div>
-              </div>
-            </div>
-          )})}
+                  <CardTitle className="text-xl font-bold uppercase tracking-tight">
+                    {session.title || "Untitled Session"}
+                  </CardTitle>
+                  <p className="text-[10px] font-bold text-brand-accent uppercase tracking-widest">{bcName}</p>
+                  <p className="text-[9px] font-black text-text-muted uppercase tracking-widest">Inst: {instName}</p>
+                  
+                  <div className="flex items-center space-x-2 text-xs text-text-muted mt-2 font-bold uppercase tracking-tighter">
+                    <Calendar size={12} />
+                    <span>{session.date ? session.date.substring(0, 10) : "TBD"}</span>
+                    <Clock size={12} className="ml-2" />
+                    <span>{session.startTime || "--:--"} ({session.durationH}H)</span>
+                  </div>
+                </CardHeader>
+                <CardFooter className="mt-auto pt-4 flex gap-2 border-t border-brand-border">
+                  <div className="flex gap-2 w-full">
+                    <Button
+                      variant="outline"
+                      onClick={() => navigate(`/dashboard/${primaryRolePath}/sessions/${session._id || session.id}${bcId ? `?bootcampId=${bcId}` : ''}`)}
+                      className="w-full text-xs h-9 bg-transparent border-brand-border text-brand-accent hover:bg-brand-accent hover:text-white font-black uppercase tracking-widest"
+                    >
+                      Details Hub
+                    </Button>
+                    {isStudent && (
+                      <Button
+                        size="sm"
+                        onClick={() => { setSelectedSession(session); setFeedbackModalOpen(true); }}
+                        className="w-full text-xs h-9 bg-brand-accent text-white hover:bg-brand-accent/90 font-black uppercase tracking-widest"
+                      >
+                        Give Feedback
+                      </Button>
+                    )}
+                  </div>
+                </CardFooter>
+              </Card>
+            );
+          })}
         </div>
         )}
 
@@ -269,9 +306,10 @@ export default function SessionPage() {
                 value={formData.instructor} 
                 onChange={e => setFormData({...formData, instructor: e.target.value})}
                 className="w-full px-4 py-3 rounded-xl bg-brand-primary/50 border border-brand-border text-text-main text-sm font-medium uppercase outline-none focus:border-brand-accent transition-colors"
+                disabled={isInstructorOnly}
               >
                 <option value="" disabled>Select Lecturer</option>
-                {instructors.map(i => (
+                {filteredInstructors.map(i => (
                    <option key={i._id} value={i._id}>{i.name}</option>
                 ))}
               </select>

@@ -17,22 +17,29 @@ export const roleGuard = (allowedRoles) => {
           return next(error);
         }
         const payload = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = { userId: payload.userId, role: payload.role };
+        req.user = { userId: payload.userId, roles: payload.roles || [payload.role] };
       }
 
-      if (!req.user || !req.user.role) {
+      if (!req.user || !req.user.roles || req.user.roles.length === 0) {
         const error = new Error("Access denied: Authentication required");
         error.status = 401;
         return next(error);
       }
 
       const rolesArray = Array.isArray(allowedRoles)
-        ? allowedRoles
-        : [allowedRoles];
+        ? allowedRoles.map(r => String(r).toLowerCase())
+        : [String(allowedRoles).toLowerCase()];
 
-      if (!rolesArray.includes(req.user.role)) {
+      const rawRoles = req.user.roles || [];
+      const userRoles = rawRoles
+        .filter(r => r) // Remove undefined/null
+        .map(r => String(r).toLowerCase());
+
+      const hasPermission = rolesArray.some(role => userRoles.includes(role));
+
+      if (!hasPermission) {
         const error = new Error(
-          `Access denied: Insufficient role permissions. Required one of: ${rolesArray.join(", ")}`,
+          `Access denied: Insufficient role permissions. User has roles: [${userRoles.join(", ")}], but requires one of: [${rolesArray.join(", ")}]`,
         );
         error.status = 403;
         return next(error);
@@ -68,7 +75,7 @@ export const authGuard = (req, res, next) => {
         return next(error);
       }
       const payload = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = { userId: payload.userId, role: payload.role };
+      req.user = { userId: payload.userId, roles: payload.roles || [payload.role] };
     }
 
     if (!req.user) {

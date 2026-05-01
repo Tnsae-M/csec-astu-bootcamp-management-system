@@ -5,10 +5,11 @@ import { authGuard, roleGuard } from '../../middleware/role.guard.js';
 const router = express.Router();
 
 router.use(authGuard);
-router.get('/', roleGuard('admin', 'super admin'), controller.getReports);
-router.post('/', roleGuard('admin', 'super admin'), controller.createReport);
-router.get('/:id', roleGuard('admin','super admin'), controller.getReport);
-router.put('/:id', roleGuard('admin', 'super admin'), controller.updateReport);
-router.delete('/:id', roleGuard('super admin'), controller.deleteReport);
+router.get('/', roleGuard(['admin', 'super admin']), controller.getReports);
+router.get('/analytics', roleGuard(['admin', 'super admin']), controller.getAnalytics);
+router.post('/', roleGuard(['admin', 'super admin']), controller.createReport);
+router.get('/:id', roleGuard(['admin','super admin']), controller.getReport);
+router.put('/:id', roleGuard(['admin', 'super admin']), controller.updateReport);
+router.delete('/:id', roleGuard(['super admin']), controller.deleteReport);
 
 export default router;

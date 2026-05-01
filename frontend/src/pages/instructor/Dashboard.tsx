@@ -26,14 +26,16 @@ import { useSelector } from "react-redux";
 import { RootState } from "../../app/store";
 import { sessionsService } from '../../services/sessions.service';
 import { bootcampsService } from '../../services/bootcamps.service';
+import { feedbackService } from '../../services/feedback.service';
 import { toast } from "sonner";
+import api from '../../api/axios';
 
 export default function InstructorDashboard() {
   const navigate = useNavigate();
 
   const [totalSessions, setTotalSessions] = useState<number | null>(null);
   const [totalStudents, setTotalStudents] = useState<number | null>(null);
-  const [engagementScore, setEngagementScore] = useState<number>(88);
+  const [engagementScore, setEngagementScore] = useState<number>(0);
   const [todaysSessions, setTodaysSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -41,23 +43,50 @@ export default function InstructorDashboard() {
   const [bootcamps, setBootcamps] = useState<any[]>([]);
   const [form, setForm] = useState({ title: '', bootcampId: '', date: '', time: '' });
 
+  const { user } = useSelector((state: RootState) => state.auth);
+
   const loadData = async () => {
     setLoading(true);
     try {
-      const [sessRes, bcRes] = await Promise.all([
+      const uId = user?._id || user?.id;
+      const [sessRes, bcRes, usersRes, feedbackRes] = await Promise.all([
         sessionsService.getSessions(),
-        bootcampsService.getBootcamps()
+        bootcampsService.getBootcamps(),
+        api.get('/users?role=student'),
+        feedbackService.getInstructorFeedback(uId)
       ]);
 
-      const sessArr = Array.isArray(sessRes.data) ? sessRes.data : sessRes.data?.data ?? [];
-      setTotalSessions(sessArr.length);
-      setTodaysSessions(sessArr.slice(0, 3));
+      const allSessions = Array.isArray(sessRes.data) ? sessRes.data : sessRes.data?.data ?? [];
+      const instructorSessions = allSessions.filter((s: any) => {
+        const instId = typeof s.instructor === 'object' ? s.instructor?._id : s.instructor;
+        return instId === uId;
+      });
+      
+      setTotalSessions(instructorSessions.length);
+      setTodaysSessions(instructorSessions.slice(0, 3));
 
       const bcArr = Array.isArray(bcRes.data) ? bcRes.data : bcRes.data?.data ?? [];
       setBootcamps(bcArr);
       
-      // Mock student count for now
-      setTotalStudents(124);
+      const myBootcampIds = new Set(instructorSessions.map((s: any) => 
+        typeof s.bootcamp === 'object' ? s.bootcamp?._id : s.bootcamp
+      ));
+
+      const students = Array.isArray(usersRes.data?.data) ? usersRes.data.data : (Array.isArray(usersRes.data) ? usersRes.data : []);
+      const myStudents = students.filter((s: any) => 
+        s.bootcamps?.some((en: any) => myBootcampIds.has(en.bootcampId?._id || en.bootcampId))
+      );
+
+      setTotalStudents(myStudents.length);
+
+      // Calculate engagement score from feedback (average rating * 20 for percentage)
+      const feedbacks = feedbackRes.data || [];
+      if (feedbacks.length > 0) {
+        const avg = feedbacks.reduce((acc: number, f: any) => acc + (f.rating || 0), 0) / feedbacks.length;
+        setEngagementScore(Math.round(avg * 20));
+      } else {
+        setEngagementScore(100); // Default to 100 if no feedback yet
+      }
     } catch (e) {
       console.error(e);
       toast.error("Failed to load instructor metrics");
@@ -67,13 +96,15 @@ export default function InstructorDashboard() {
   };
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (user) loadData();
+  }, [user]);
 
   const handleCreateSession = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await sessionsService.createSession(form);
+      // Force current instructor ID
+      const payload = { ...form, instructor: user?.id || user?._id };
+      await sessionsService.createSession(payload);
       toast.success("Session scheduled successfully");
       setShowCreate(false);
       loadData();

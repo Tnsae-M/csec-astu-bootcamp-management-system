@@ -6,7 +6,7 @@ export const enroll = async (req, res, next) => {
     const { userId, bootcampId } = req.body;
 
     const enrollment = await enrollmentService.enrollUser(
-      userId,
+      userId || req.user.userId,
       bootcampId
     );
 

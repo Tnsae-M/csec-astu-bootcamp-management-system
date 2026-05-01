@@ -31,30 +31,34 @@ export default function AttendancePage({
   const records: any[] = attendanceState.records;
   const attendanceLoading: boolean = attendanceState.loading;
 
-  const isInstructor = user?.role === "INSTRUCTOR" || user?.role === "ADMIN";
+  const { activeRole } = useSelector((state: RootState) => state.auth);
+  const userRoles = (user?.roles || (user?.role ? [user.role] : [])).map(r => r.toUpperCase());
+  const currentRole = activeRole || userRoles[0] || "STUDENT";
+  const canMark = currentRole === "INSTRUCTOR";
+  const isFaculty = ["INSTRUCTOR", "ADMIN", "SUPER ADMIN"].includes(currentRole);
 
   useEffect(() => {
-    if (isInstructor && bootcampId) {
+    if (isFaculty && bootcampId) {
       dispatch(fetchBootcampEnrollments(bootcampId));
     }
 
     if (sessionId) {
-      if (isInstructor) {
+      if (isFaculty) {
         dispatch(fetchSessionAttendance(sessionId));
       } else {
         dispatch(fetchMyAttendance());
       }
     }
-  }, [dispatch, sessionId, bootcampId, isInstructor]);
+  }, [dispatch, sessionId, bootcampId, isFaculty]);
 
 
-  const handleMarkAttendance = async (userId: string) => {
+  const handleMarkAttendance = async (userId: string, status: string = "present") => {
     if (!sessionId) return;
     try {
       const data = {
         userId,
         sessionId,
-        status: "present",
+        status,
       };
       dispatch(markAttendanceAsync(data));
     } catch (error: any) {
@@ -64,7 +68,7 @@ export default function AttendancePage({
 
   const getStatus = (studentId: string) => {
     const record = records.find(
-      (r: any) => (r.user?._id || r.user) === studentId,
+      (r: any) => (r.user?._id || r.user) === studentId || (r.userId?._id || r.userId) === studentId,
     );
     return record?.status || "PENDING";
   };
@@ -81,7 +85,7 @@ export default function AttendancePage({
     <div className="space-y-8 selection:bg-brand-accent selection:text-white">
       <div>
         <h1 className="text-4xl font-black text-brand-accent uppercase tracking-tighter">
-          {isInstructor ? "Attendance Governance" : "My Session Presence"}
+          {canMark ? "Attendance Governance" : "Session Attendance"}
         </h1>
         <p className="text-text-muted font-bold text-xs uppercase tracking-[0.2em] mt-2">
           Verified Participation Registry
@@ -89,8 +93,8 @@ export default function AttendancePage({
       </div>
 
       <div className="geo-card overflow-hidden">
-        {isInstructor ? (
-          enrollments.length === 0 ? (
+        {isFaculty || currentRole === "STUDENT" ? (
+          enrollments.length === 0 && isFaculty ? (
             <div className="text-center py-20">
               <Users size={48} className="mx-auto text-brand-border mb-4" />
               <p className="text-text-muted font-black uppercase tracking-widest text-xs">
@@ -110,13 +114,18 @@ export default function AttendancePage({
                   <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-text-muted">
                     Verification Status
                   </th>
-                  <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-text-muted">
-                    Actions
-                  </th>
+                  {canMark && (
+                    <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-text-muted">
+                      Actions
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody>
-                {enrollments.map((enrollment: any) => {
+                {(currentRole === "STUDENT" 
+                  ? enrollments.filter((e: any) => (e.user?._id || e.user) === user?._id)
+                  : enrollments
+                ).map((enrollment: any) => {
                   const studentId = enrollment.user?._id || enrollment.user;
                   const status = getStatus(studentId);
                   return (
@@ -151,22 +160,36 @@ export default function AttendancePage({
                           <span>{status}</span>
                         </div>
                       </td>
-                      <td className="px-8 py-6">
-                        <button
-                          onClick={() => handleMarkAttendance(studentId)}
-                          disabled={status.toLowerCase() === "present"}
-                          className={cn(
-                            "text-[10px] font-black uppercase tracking-widest",
-                            status.toLowerCase() === "present"
-                              ? "text-text-muted cursor-not-allowed"
-                              : "text-brand-accent hover:underline",
-                          )}
-                        >
-                          {status.toLowerCase() === "present"
-                            ? "Verified"
-                            : "Mark Present"}
-                        </button>
-                      </td>
+                      {canMark && (
+                        <td className="px-8 py-6">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleMarkAttendance(studentId, "present")}
+                              disabled={status.toLowerCase() === "present"}
+                              className={cn(
+                                "px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all",
+                                status.toLowerCase() === "present"
+                                  ? "bg-green-500 text-white border-transparent cursor-not-allowed"
+                                  : "bg-white text-green-600 border-green-200 hover:bg-green-50",
+                              )}
+                            >
+                              {status.toLowerCase() === "present" ? "Verified" : "Present"}
+                            </button>
+                            <button
+                              onClick={() => handleMarkAttendance(studentId, "absent")}
+                              disabled={status.toLowerCase() === "absent"}
+                              className={cn(
+                                "px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all",
+                                status.toLowerCase() === "absent"
+                                  ? "bg-red-500 text-white border-transparent cursor-not-allowed"
+                                  : "bg-white text-red-600 border-red-200 hover:bg-red-50",
+                              )}
+                            >
+                              Absent
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}

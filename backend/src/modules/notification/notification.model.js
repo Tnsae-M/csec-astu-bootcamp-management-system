@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const notificationSchema=new mongoose.Schema({
     type:{
         type:String,
-        enum:["session_created","session_cancelled","task_reminder","submission_graded","weekly_progress_alert"]
+        enum:["session_created","session_cancelled","task_reminder","submission_graded","weekly_progress_alert", "SECURITY", "alert", "System", "Academic", "Maintenance"]
     },
     title:{
         type:String,

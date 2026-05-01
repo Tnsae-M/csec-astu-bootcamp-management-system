@@ -5,7 +5,7 @@ import * as sessionService from "./session.service.js";
 
 export const createSession = async (req, res, next) => {
   try {
-    const session = await sessionService.createSession(req.body);
+    const session = await sessionService.createSession(req.body, req.user?.userId);
 
     res.status(201).json({
       success: true,
@@ -49,7 +49,8 @@ export const updateSession = async (req, res, next) => {
   try {
     const session = await sessionService.updateSession(
       req.params.id,
-      req.body
+      req.body,
+      req.user?.userId
     );
 
     res.status(200).json({
