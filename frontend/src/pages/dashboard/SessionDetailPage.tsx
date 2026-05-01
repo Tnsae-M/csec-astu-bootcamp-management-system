@@ -31,7 +31,8 @@ import {
   Send,
   ExternalLink,
   Trash2,
-  Edit2
+  Edit2,
+  AlertCircle
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '../../lib/utils';
@@ -469,7 +470,7 @@ export const SessionDetailPage = () => {
 
         {activeTab === 'tasks' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {tasks.filter(t => String(t.sessionId?._id || t.sessionId) === sessionId).map(task => (
+            {tasks.filter(t => String(t.sessionId) === sessionId).map(task => (
               <Card key={task._id} className="flex flex-col group border-brand-border hover:border-brand-accent transition-all">
                 <CardHeader>
                   <div className="flex justify-between items-start mb-2">
@@ -531,7 +532,7 @@ export const SessionDetailPage = () => {
            <div className="space-y-6">
               {isStudent ? (
                 <div className="grid gap-6">
-                   {tasks.filter(t => String(t.sessionId?._id || t.sessionId) === sessionId).map(task => {
+                   {tasks.filter(t => String(t.sessionId) === sessionId).map(task => {
                      const mySub = mySubmissions.find(s => (s.taskId?._id || s.taskId) === task._id);
                      return (
                        <Card key={task._id} className="p-6">
