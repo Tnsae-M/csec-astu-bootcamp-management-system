@@ -50,38 +50,24 @@ const seed = async () => {
     // 1. Users
     console.log("Seeding Users...");
     const superAdmin = await User.create({
-      name: "Siham Kassim",
-      email: "sihamkassim1@gmail.com",
+      name: "Tinsae Melkamu",
+      email: "tinsaemk6679@gmail.com",
       password: hashedPassword,
-      role: "super admin",
+      roles: ["SUPER ADMIN"],
     });
 
-    const admin = await User.create({
-      name: "Tinsae M.",
-      email: "admin@example.com",
+    const adminInstructor = await User.create({
+      name: "Tinsae Melkamu",
+      email: "tinsae.melkamu.tk@gmail.com",
       password: hashedPassword,
-      role: "admin",
+      roles: ["ADMIN", "INSTRUCTOR"],
     });
 
-    const instructor = await User.create({
-      name: "John Instructor",
-      email: "instructor@example.com",
+    const student = await User.create({
+      name: "Tinsae Student",
+      email: "tnsaemelkamu372@gmail.com",
       password: hashedPassword,
-      role: "instructor",
-    });
-
-    const student1 = await User.create({
-      name: "Alice",
-      email: "student1@example.com",
-      password: hashedPassword,
-      role: "student",
-    });
-
-    const student2 = await User.create({
-      name: "Abel",
-      email: "student2@example.com",
-      password: hashedPassword,
-      role: "student",
+      roles: ["STUDENT"],
     });
 
     // 2. Divisions
@@ -99,16 +85,15 @@ const seed = async () => {
       divisionId: devDiv._id,
       startDate: new Date("2026-05-01"),
       endDate: new Date("2026-08-01"),
-      createdBy: admin._id,
-      instructors: [instructor._id],
+      createdBy: adminInstructor._id,
+      instructors: [adminInstructor._id],
       status: "active",
     });
 
     // 4. Enrollments
     console.log("Seeding Enrollments...");
     await Enrollment.create([
-      { userId: student1._id, bootcampId: webBootcamp._id, status: "active" },
-      { userId: student2._id, bootcampId: webBootcamp._id, status: "active" },
+      { userId: student._id, bootcampId: webBootcamp._id, status: "active" },
     ]);
 
     // 5. Groups
@@ -116,8 +101,8 @@ const seed = async () => {
     const groupAlpha = await Group.create({
       name: "Team Alpha",
       bootcampId: webBootcamp._id,
-      members: [student1._id, student2._id],
-      createdBy: instructor._id,
+      members: [student._id],
+      createdBy: adminInstructor._id,
     });
 
     // 6. Sessions
@@ -126,7 +111,7 @@ const seed = async () => {
       title: "Mastering React Hooks & State",
       description: "Deep dive into useState, useEffect, and custom hooks.",
       bootcamp: webBootcamp._id,
-      instructor: instructor._id,
+      instructor: adminInstructor._id,
       location: "Main Lab - ASTU",
       startTime: new Date("2026-05-02T09:00:00"),
       endTime: new Date("2026-05-02T12:00:00"),
@@ -137,7 +122,7 @@ const seed = async () => {
       title: "Backend Integration with Express",
       description: "Building robust APIs and connecting them to React.",
       bootcamp: webBootcamp._id,
-      instructor: instructor._id,
+      instructor: adminInstructor._id,
       location: "Main Lab - ASTU",
       startTime: new Date("2026-05-05T09:00:00"),
       endTime: new Date("2026-05-05T12:00:00"),
@@ -147,8 +132,7 @@ const seed = async () => {
     // 7. Attendance
     console.log("Seeding Attendance...");
     await Attendance.create([
-      { userId: student1._id, sessionId: session1._id, bootcampId: webBootcamp._id, status: "present", markedBy: instructor._id },
-      { userId: student2._id, sessionId: session1._id, bootcampId: webBootcamp._id, status: "absent", markedBy: instructor._id },
+      { userId: student._id, sessionId: session1._id, bootcampId: webBootcamp._id, status: "present", markedBy: adminInstructor._id },
     ]);
 
     // 8. Tasks
@@ -158,7 +142,7 @@ const seed = async () => {
       description: "Build a responsive portfolio using React and Tailwind CSS.",
       bootcampId: webBootcamp._id,
       sessionId: session1._id,
-      createdBy: instructor._id,
+      createdBy: adminInstructor._id,
       dueDate: new Date("2026-05-10"),
     });
 
@@ -166,18 +150,18 @@ const seed = async () => {
     console.log("Seeding Submissions...");
     await Submission.create({
       taskId: task1._id,
-      studentId: student1._id,
-      content: "Deployment link: csec-alice-portfolio.vercel.app",
+      studentId: student._id,
+      content: "Deployment link: csec-tinsae-portfolio.vercel.app",
       status: "submitted",
     });
 
     // 10. Feedback
     console.log("Seeding Feedback...");
     await Feedback.create({
-      studentId: student1._id,
+      studentId: student._id,
       sessionId: session1._id,
       bootcampId: webBootcamp._id,
-      instructorId: instructor._id,
+      instructorId: adminInstructor._id,
       rating: 5,
       comment: "Excellent session! The live coding part was very helpful.",
       isAnonymous: false,

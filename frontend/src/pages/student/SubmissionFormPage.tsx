@@ -48,12 +48,23 @@ export default function SubmissionFormPage({ bootcampId, sessionId }: Submission
     const fetchInitialData = async () => {
       setLoadingTasks(true);
       try {
-        if (bootcampId) {
-          const result = await dispatch(fetchTasksByBootcamp(bootcampId));
+        // Get parameters from URL as fallback
+        const urlParams = new URLSearchParams(location.search);
+        const urlTaskId = urlParams.get('taskId');
+        const urlBootcampId = urlParams.get('bootcampId') || bootcampId;
+        const urlSessionId = urlParams.get('sessionId') || sessionId;
+        
+        if (urlBootcampId) {
+          const result = await dispatch(fetchTasksByBootcamp(urlBootcampId));
           if (fetchTasksByBootcamp.fulfilled.match(result)) {
               const list = result.payload || [];
-              const filtered = sessionId ? list.filter((t: any) => (t.sessionId?._id || t.sessionId) === sessionId) : list;
+              const filtered = urlSessionId ? list.filter((t: any) => (t.sessionId?._id || t.sessionId) === urlSessionId) : list;
               setTasks(filtered);
+              
+              // Auto-select the task if taskId is in URL
+              if (urlTaskId && filtered.some((t: any) => (t._id || t.id) === urlTaskId)) {
+                setSelectedTask(urlTaskId);
+              }
           }
         }
         dispatch(fetchMySubmissions());
@@ -65,7 +76,7 @@ export default function SubmissionFormPage({ bootcampId, sessionId }: Submission
     };
 
     fetchInitialData();
-  }, [bootcampId, sessionId, dispatch]);
+  }, [bootcampId, sessionId, dispatch, location.search]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -290,21 +301,6 @@ export default function SubmissionFormPage({ bootcampId, sessionId }: Submission
         </div>
 
         <div className="space-y-6">
-          <div className="geo-card p-8 bg-brand-accent text-white shadow-xl shadow-brand-accent/20 relative overflow-hidden group">
-            <h3 className="text-lg font-black uppercase tracking-tighter mb-4">Integrity Protocol</h3>
-            <p className="text-[11px] font-bold uppercase tracking-widest leading-relaxed opacity-80 mb-6">
-              All submissions are automatically scanned for plagiarism and structural validity. Ensure your repository is active.
-            </p>
-            <ul className="space-y-3 text-[10px] font-black uppercase tracking-widest">
-               <li className="flex items-center"><ChevronRight size={10} className="mr-2 text-white/50" /> Clean Code Principles</li>
-               <li className="flex items-center"><ChevronRight size={10} className="mr-2 text-white/50" /> Modular Architecture</li>
-               <li className="flex items-center"><ChevronRight size={10} className="mr-2 text-white/50" /> Working Build Link</li>
-            </ul>
-            <div className="absolute -right-6 -bottom-6 opacity-5 group-hover:scale-125 transition-all duration-700 pointer-events-none">
-               <FileUp size={160} />
-            </div>
-          </div>
-          
           <div className="geo-card p-8">
              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-text-muted mb-6">Recent Activity</h3>
              <div className="space-y-6">
@@ -315,13 +311,23 @@ export default function SubmissionFormPage({ bootcampId, sessionId }: Submission
                      <div>
                         <div className="text-[11px] font-black uppercase tracking-tight text-text-main truncate max-w-[150px]">{tData?.title || 'Unknown Task'}</div>
                         <div className="text-[9px] font-bold text-text-muted uppercase tracking-widest mt-1">{new Date(sub.createdAt || new Date()).toLocaleDateString()}</div>
+                        {sub.feedback && (
+                           <div className="text-[8px] text-text-muted italic mt-1 truncate max-w-[150px]">{sub.feedback}</div>
+                        )}
                      </div>
-                     <span className={cn(
-                       "text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded border shadow-sm",
-                       sub.status === 'GRADED' ? "bg-green-50 border-green-100 text-green-600" : 
-                       sub.status === 'RETURNED' ? "bg-red-50 border-red-100 text-red-600" :
-                       "bg-yellow-50 border-yellow-100 text-yellow-600"
-                     )}>{sub.status || 'PENDING'}</span>
+                     <div className="text-right">
+                        {sub.score !== null && sub.score !== undefined && (
+                           <div className="text-[10px] font-black text-brand-accent mb-1">
+                              {sub.score}/{tData?.maxScore || 100}
+                           </div>
+                        )}
+                        <span className={cn(
+                          "text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded border shadow-sm",
+                          sub.status === 'GRADED' ? "bg-green-50 border-green-100 text-green-600" : 
+                          sub.status === 'RETURNED' ? "bg-red-50 border-red-100 text-red-600" :
+                          "bg-yellow-50 border-yellow-100 text-yellow-600"
+                        )}>{sub.status || 'PENDING'}</span>
+                     </div>
                   </div>
                 )})}
                 {submissions.length === 0 && (

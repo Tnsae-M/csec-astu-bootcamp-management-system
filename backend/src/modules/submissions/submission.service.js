@@ -10,7 +10,26 @@ const buildError = (msg, code = 400) => {
 
 //  Submit task
 export const submitTask = async (data, userId) => {
-  const { taskId, content, fileUrl } = data;
+  // Extract data from processed controller
+  const { taskId, type, link, text, fileUrl } = data;
+
+  if (!taskId) {
+    throw buildError("Task ID is required", 400);
+  }
+
+  // Build content based on submission type
+  let content;
+  if (type === 'link' && link) {
+    content = link;
+  } else if (type === 'text' && text) {
+    content = text;
+  } else if (type === 'both' && link) {
+    content = `Link: ${link}${text ? `\nText: ${text}` : ''}`;
+  } else if (type === 'file') {
+    content = fileUrl || 'File uploaded';
+  } else {
+    content = text || link || 'Submission';
+  }
 
   const task = await Task.findById(taskId);
   if (!task) throw buildError("Task not found", 404);
@@ -42,6 +61,7 @@ export const submitTask = async (data, userId) => {
     studentId: userId,
     content,
     fileUrl,
+    type,
     status,
   });
 };

@@ -3,8 +3,25 @@ import * as submissionService from "./submission.service.js";
 // POST /submissions
 export const submitTask = async (req, res, next) => {
   try {
+    let submissionData;
+    
+    // Handle both FormData and regular JSON submissions
+    if (req.file) {
+      // File upload case - reconstruct data from FormData
+      submissionData = {
+        taskId: req.body.taskId,
+        type: req.body.type,
+        link: req.body.link,
+        text: req.body.text,
+        fileUrl: req.file ? `/uploads/${req.file.filename}` : null,
+      };
+    } else {
+      // Regular JSON case
+      submissionData = req.body;
+    }
+
     const submission = await submissionService.submitTask(
-      req.body,
+      submissionData,
       req.user.userId
     );
 

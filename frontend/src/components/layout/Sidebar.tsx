@@ -64,17 +64,12 @@ export default function Sidebar() {
       { to: "/dashboard/admin/sessions", icon: Calendar, label: "Academic Sessions" },
       { to: "/dashboard/admin/groups", icon: Users2, label: "Synergy Groups" },
       // { to: "/dashboard/admin/tasks", icon: CheckSquare, label: "Task Registry" },
-      { type: "separator", label: "Analytics" },
-      {
-        to: "/dashboard/admin/reports",
-        icon: BarChart3,
-        label: "System Reports",
-      },
-      {
-        to: "/dashboard/admin/audit",
-        icon: Activity,
-        label: "System Audit",
-      },
+      // { type: "separator", label: "Analytics" },
+      // {
+      //   to: "/dashboard/admin/reports",
+      //   icon: BarChart3,
+      //   label: "System Reports",
+      // },
     ],
     "SUPER ADMIN": [
       { type: "separator", label: "Global Governance" },
@@ -97,17 +92,12 @@ export default function Sidebar() {
       { to: "/dashboard/admin/sessions", icon: Calendar, label: "Academic Sessions" },
       // { to: "/dashboard/admin/groups", icon: Users2, label: "Synergy Groups" },
       // { to: "/dashboard/admin/tasks", icon: CheckSquare, label: "Task Registry" },
-      { type: "separator", label: "Insights" },
-      {
-        to: "/dashboard/admin/reports",
-        icon: BarChart3,
-        label: "Global Analytics",
-      },
-      {
-        to: "/dashboard/admin/audit",
-        icon: Activity,
-        label: "Governance Audit",
-      },
+      // { type: "separator", label: "Insights" },
+      // {
+      //   to: "/dashboard/admin/reports",
+      //   icon: BarChart3,
+      //   label: "Global Analytics",
+      // },
     ],
     INSTRUCTOR: [
       { type: "separator", label: "Shortcuts" },

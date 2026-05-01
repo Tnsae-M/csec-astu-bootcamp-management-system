@@ -2,8 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { RootState } from "../../app/store";
-import { setSearchTerm } from "../../features/ui/uiSlice";
-import { Bell, Search, X, Repeat, Check } from "lucide-react";
+import { Bell, X, Repeat, Check } from "lucide-react";
 import { setActiveRole } from "../../features/auth/authSlice";
 import { markNotificationAsRead, markAllAsRead } from "../../features/notifications/notificationSlice";
 import { 
@@ -28,18 +27,10 @@ export default function Navbar() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const [localSearch, setLocalSearch] = useState("");
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      dispatch(setSearchTerm(localSearch));
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [localSearch, dispatch]);
-
-  const handleMarkAsRead = (id: number) => {
-    dispatch(markNotificationAsRead(id) as any);
+  const handleMarkAsRead = (id: string | number) => {
+    dispatch(markNotificationAsRead(id as number) as any);
   };
 
   const handleMarkAll = () => {
@@ -47,23 +38,11 @@ export default function Navbar() {
   };
 
   const roles = user?.roles || [];
-  const displayRole = activeRole || user?.role || (roles[0] || "STUDENT");
+  const displayRole = activeRole || (roles[0] || "STUDENT");
 
   return (
     <header className="h-16 px-6 flex items-center justify-between border-b border-brand-border bg-white shadow-sm shrink-0 sticky top-0 z-40">
       <div className="flex items-center gap-6">
-        <div className="relative group hidden md:block">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-4 w-4 text-text-muted group-focus-within:text-brand-accent transition-colors" />
-          </div>
-          <input
-            className="w-[280px] pl-9 pr-4 py-1.5 bg-brand-primary/40 border border-transparent rounded-lg text-sm text-text-main focus:outline-none focus:ring-2 focus:ring-brand-accent/10 transition-all focus:bg-white focus:border-brand-accent/30 placeholder:text-text-muted/60"
-            placeholder="Search dashboard..."
-            type="search"
-            value={localSearch}
-            onChange={(e) => setLocalSearch(e.target.value)}
-          />
-        </div>
       </div>
 
       <div className="flex items-center gap-4">
@@ -98,7 +77,7 @@ export default function Navbar() {
           </DropdownMenu>
         )}
 
-        {/* Notifications Dropdown */}
+        {/* Notifications Dropdown
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative text-text-muted hover:text-brand-accent transition-colors">
@@ -137,7 +116,7 @@ export default function Navbar() {
               )}
             </div>
           </DropdownMenuContent>
-        </DropdownMenu>
+        </DropdownMenu> */}
 
         <div className="h-8 w-px bg-brand-border mx-1" />
 

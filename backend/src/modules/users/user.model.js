@@ -19,9 +19,9 @@ const userSchema = new mongoose.Schema(
     },
     roles: {
       type: [String],
-      enum: ["super admin", "admin", "instructor", "student"],
+      enum: ["SUPER ADMIN", "ADMIN", "INSTRUCTOR", "STUDENT"],
       required: true,
-      default: ["student"],
+      default: ["STUDENT"],
     },
     status: {
       type: String,
@@ -82,7 +82,7 @@ userSchema.pre('init', function(doc) {
     const rolesArray = Array.isArray(doc.roles) ? doc.roles : [];
     
     if (rolesArray.length === 0) {
-      doc.roles = legacyRoles.map(r => String(r).toLowerCase());
+      doc.roles = legacyRoles.map(r => String(r).toUpperCase());
     }
   }
 });
@@ -93,7 +93,7 @@ userSchema.pre('validate', function() {
     const rolesArray = Array.isArray(this.roles) ? this.roles : [];
     
     if (rolesArray.length === 0) {
-      this.roles = legacyRoles.map(r => String(r).toLowerCase());
+      this.roles = legacyRoles.map(r => String(r).toUpperCase());
     }
   }
 });

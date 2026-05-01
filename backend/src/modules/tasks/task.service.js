@@ -41,7 +41,7 @@ export const createTask = async (data, user) => {
 export const getTasksByBootcamp = async (bootcampId, userId, roles = []) => {
   const userRoles = Array.isArray(roles) ? roles : [roles];
   const isFaculty = userRoles.some(r => 
-    ["admin", "super admin", "instructor"].includes((r || "").toLowerCase())
+    ["ADMIN", "SUPER ADMIN", "INSTRUCTOR"].includes(String(r || "").toUpperCase())
   );
 
   if (!isFaculty) {
@@ -70,7 +70,7 @@ export const getTaskById = async (taskId, userId, roles = []) => {
 
   const userRoles = Array.isArray(roles) ? roles : [roles];
   const isFaculty = userRoles.some(r => 
-    ["admin", "super admin", "instructor"].includes((r || "").toLowerCase())
+    ["ADMIN", "SUPER ADMIN", "INSTRUCTOR"].includes(String(r || "").toUpperCase())
   );
 
   if (!isFaculty) {
@@ -109,10 +109,10 @@ export const deleteTask = async (taskId) => {
 
 //  Get all tasks relevant to the user
 export const getAllTasks = async (userId, roles = []) => {
-  const userRoles = (Array.isArray(roles) ? roles : [roles]).map(r => String(r).toLowerCase());
-  const isSuperAdmin = userRoles.includes('super admin');
-  const isAdmin = userRoles.includes('admin');
-  const isInstructor = userRoles.includes('instructor');
+  const userRoles = (Array.isArray(roles) ? roles : [roles]).map(r => String(r || "").toUpperCase());
+  const isSuperAdmin = userRoles.includes('SUPER ADMIN');
+  const isAdmin = userRoles.includes('ADMIN');
+  const isInstructor = userRoles.includes('INSTRUCTOR');
 
   if (isSuperAdmin || isAdmin) {
     return await Task.find({})

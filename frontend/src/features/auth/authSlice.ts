@@ -120,16 +120,34 @@ const authSlice = createSlice({
           state.token = token;
           localStorage.setItem('token', token);
           
-          // Backend sanitizeUser returns role (singular string), not roles array
-          // Normalize to roles array for frontend consistency
-          if (state.user && !Array.isArray(state.user.roles)) {
+          // Backend sanitizeUser returns roles array, ensure it's properly formatted
+          if (state.user && state.user.roles) {
+            // Ensure roles are uppercase strings
+            state.user.roles = state.user.roles.map((r: any) => String(r).toUpperCase());
+          } else if (state.user && !state.user.roles) {
+            // Fallback for legacy data
             const legacyRole = state.user.role;
             const rolesArr = Array.isArray(legacyRole) ? legacyRole : [legacyRole || 'STUDENT'];
             state.user.roles = rolesArr.map(r => String(r).toUpperCase());
           }
           
-          if (!state.activeRole && state.user?.roles?.[0]) {
-            state.activeRole = state.user.roles[0].toUpperCase();
+          // Set active role with priority: SUPER ADMIN > ADMIN > INSTRUCTOR > STUDENT
+          if (!state.activeRole && state.user?.roles?.length > 0) {
+            const rolePriority = ['SUPER ADMIN', 'ADMIN', 'INSTRUCTOR', 'STUDENT'];
+            const userRoles = state.user.roles;
+            
+            // Find the highest priority role the user has
+            for (const priorityRole of rolePriority) {
+              if (userRoles.includes(priorityRole)) {
+                state.activeRole = priorityRole;
+                break;
+              }
+            }
+            
+            // Fallback to first role if somehow no priority match
+            if (!state.activeRole) {
+              state.activeRole = state.user.roles[0].toUpperCase();
+            }
           }
         } else {
           state.isAuthenticated = false;
@@ -157,13 +175,32 @@ const authSlice = createSlice({
           state.user = user;
           state.token = token;
           localStorage.setItem('token', token);
-          if (state.user && !Array.isArray(state.user.roles)) {
+          if (state.user && state.user.roles) {
+            // Ensure roles are uppercase strings
+            state.user.roles = state.user.roles.map((r: any) => String(r).toUpperCase());
+          } else if (state.user && !state.user.roles) {
+            // Fallback for legacy data
             const legacyRole = state.user.role;
             const rolesArr = Array.isArray(legacyRole) ? legacyRole : [legacyRole || 'STUDENT'];
             state.user.roles = rolesArr.map(r => String(r).toUpperCase());
           }
-          if (!state.activeRole && state.user?.roles?.[0]) {
-            state.activeRole = state.user.roles[0].toUpperCase();
+          // Set active role with priority: SUPER ADMIN > ADMIN > INSTRUCTOR > STUDENT
+          if (!state.activeRole && state.user?.roles?.length > 0) {
+            const rolePriority = ['SUPER ADMIN', 'ADMIN', 'INSTRUCTOR', 'STUDENT'];
+            const userRoles = state.user.roles;
+            
+            // Find the highest priority role the user has
+            for (const priorityRole of rolePriority) {
+              if (userRoles.includes(priorityRole)) {
+                state.activeRole = priorityRole;
+                break;
+              }
+            }
+            
+            // Fallback to first role if somehow no priority match
+            if (!state.activeRole) {
+              state.activeRole = state.user.roles[0].toUpperCase();
+            }
           }
         }
       })
@@ -186,15 +223,34 @@ const authSlice = createSlice({
         const user = rawPayload.data || rawPayload;
         
         if (user && user.id) {
-          if (!Array.isArray(user.roles)) {
+          if (user.roles) {
+            // Ensure roles are uppercase strings
+            user.roles = user.roles.map((r: any) => String(r).toUpperCase());
+          } else if (!user.roles) {
+            // Fallback for legacy data
             const legacyRole = user.role;
             const rolesArr = Array.isArray(legacyRole) ? legacyRole : [legacyRole || 'STUDENT'];
             user.roles = rolesArr.map((r: any) => String(r).toUpperCase());
           }
           state.user = user;
           state.isAuthenticated = true;
-          if (!state.activeRole && user.roles[0]) {
-            state.activeRole = user.roles[0].toUpperCase();
+          // Set active role with priority: SUPER ADMIN > ADMIN > INSTRUCTOR > STUDENT
+          if (!state.activeRole && user.roles.length > 0) {
+            const rolePriority = ['SUPER ADMIN', 'ADMIN', 'INSTRUCTOR', 'STUDENT'];
+            const userRoles = user.roles;
+            
+            // Find the highest priority role the user has
+            for (const priorityRole of rolePriority) {
+              if (userRoles.includes(priorityRole)) {
+                state.activeRole = priorityRole;
+                break;
+              }
+            }
+            
+            // Fallback to first role if somehow no priority match
+            if (!state.activeRole) {
+              state.activeRole = user.roles[0].toUpperCase();
+            }
           }
         } else {
           state.isInitializing = false;

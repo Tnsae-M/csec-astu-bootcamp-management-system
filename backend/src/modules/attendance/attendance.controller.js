@@ -24,10 +24,10 @@ export const getSessionAttendance = async (req, res, next) => {
     );
 
     // If student (and not instructor/admin), only return their own record
-    const userRoles = (req.user.roles || []).map(r => r.toLowerCase());
-    const isPrivileged = userRoles.includes('admin') || userRoles.includes('super admin') || userRoles.includes('instructor');
+    const userRoles = (req.user.roles || []).map(r => String(r || "").toUpperCase());
+    const isPrivileged = userRoles.includes('ADMIN') || userRoles.includes('SUPER ADMIN') || userRoles.includes('INSTRUCTOR');
 
-    if (!isPrivileged && userRoles.includes('student')) {
+    if (!isPrivileged && userRoles.includes('STUDENT')) {
       const filteredData = data.filter(r => (r.userId?._id || r.userId).toString() === req.user.userId);
       return res.status(200).json({
         success: true,

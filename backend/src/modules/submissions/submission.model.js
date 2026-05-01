@@ -24,6 +24,12 @@ const submissionSchema = new mongoose.Schema(
       type: String, // optional (future: file upload)
     },
 
+    type: {
+      type: String,
+      enum: ["link", "text", "file", "both"],
+      required: true,
+    },
+
     submittedAt: {
       type: Date,
       default: Date.now,

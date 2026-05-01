@@ -21,7 +21,7 @@ export const createFeedback = async (req, res, next) => {
 // GET /feedback/bootcamp/:id
 export const getBootcampFeedback = async (req, res, next) => {
   try {
-    const viewerRole = (req.user?.role || '').toLowerCase();
+    const viewerRole = String(req.user?.roles?.[0] || '').toUpperCase();
     const data = await feedbackService.getBootcampFeedback(
       req.params.id,
       viewerRole
@@ -39,7 +39,7 @@ export const getBootcampFeedback = async (req, res, next) => {
 // GET /feedback/instructor/:id
 export const getInstructorFeedback = async (req, res, next) => {
   try {
-    const viewerRole = (req.user?.role || '').toLowerCase();
+    const viewerRole = String(req.user?.roles?.[0] || '').toUpperCase();
     const data = await feedbackService.getInstructorFeedback(
       req.params.id,
       viewerRole
@@ -56,7 +56,7 @@ export const getInstructorFeedback = async (req, res, next) => {
 
 export const getSessionFeedback = async (req, res, next) => {
   try {
-    const viewerRole = (req.user?.role || '').toLowerCase();
+    const viewerRole = String(req.user?.roles?.[0] || '').toUpperCase();
     const data = await feedbackService.getSessionFeedback(
       req.params.id,
       viewerRole
@@ -69,4 +69,4 @@ export const getSessionFeedback = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-};
+};

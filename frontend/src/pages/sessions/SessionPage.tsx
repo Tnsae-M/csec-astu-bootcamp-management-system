@@ -157,23 +157,23 @@ export default function SessionPage() {
           <h1 className="text-4xl font-black text-brand-accent uppercase tracking-tighter">Academic Sessions</h1>
           <p className="text-text-muted font-bold text-xs uppercase tracking-[0.2em] mt-2">Manage and view bootcamp schedules</p>
         </div>
-          {isAdminOrInstructor && (
+          {/* {isAdminOrInstructor && (
             <button 
               onClick={handleOpenCreate}
               className="bg-brand-accent text-white px-6 py-3 rounded-lg font-black uppercase tracking-widest text-xs flex items-center hover:bg-brand-accent/90 transition-colors shadow-lg shadow-brand-accent/20"
             >
               <Plus size={16} className="mr-2" /> Add Session
             </button>
-          )}
+          )} */}
       </div>
 
       <div className="geo-card p-10 relative overflow-hidden">
         <div className="flex justify-between items-center mb-10 relative z-10">
-          <div className="flex space-x-2">
+          {/* <div className="flex space-x-2">
             <Button variant="secondary" className="font-black uppercase tracking-widest flex items-center bg-brand-primary border border-brand-border text-brand-accent px-4 py-2 text-xs">
               <Filter size={12} className="mr-2" /> Filter Schedule
             </Button>
-          </div>
+          </div> */}
           <div className="text-[10px] font-black uppercase tracking-[0.3em] text-text-muted">Live Curriculum Update</div>
         </div>
 

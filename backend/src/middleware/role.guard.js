@@ -27,13 +27,13 @@ export const roleGuard = (allowedRoles) => {
       }
 
       const rolesArray = Array.isArray(allowedRoles)
-        ? allowedRoles.map(r => String(r).toLowerCase())
-        : [String(allowedRoles).toLowerCase()];
+        ? allowedRoles.map(r => String(r).toUpperCase())
+        : [String(allowedRoles).toUpperCase()];
 
       const rawRoles = req.user.roles || [];
       const userRoles = rawRoles
         .filter(r => r) // Remove undefined/null
-        .map(r => String(r).toLowerCase());
+        .map(r => String(r).toUpperCase());
 
       const hasPermission = rolesArray.some(role => userRoles.includes(role));
 

@@ -27,6 +27,7 @@ import {
   fetchBootcampsByDivision,
   createBootcamp
 } from "@/features/bootcamps/bootcampsSlice";
+import { fetchMyEnrollments } from "@/features/enrollments/enrollmentsSlice";
 
 export default function BootcampsPage() {
   const { role, divisionId } = useParams();
@@ -37,9 +38,11 @@ export default function BootcampsPage() {
     (state: RootState) => state.bootcamps,
   );
   const { user } = useSelector((state: RootState) => state.auth);
+  const { enrollments } = useSelector((state: RootState) => state.enrollments);
   const { searchTerm } = useSelector((state: RootState) => state.ui);
   const roles = user?.roles || [];
   const isAdmin = roles.includes("ADMIN") || roles.includes("SUPER ADMIN");
+  const isInstructor = roles.includes("INSTRUCTOR");
   const isStudent = roles.includes("STUDENT");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -56,7 +59,34 @@ export default function BootcampsPage() {
 
   useEffect(() => {
     fetchBootcampsList();
+    dispatch(fetchMyEnrollments());
   }, [divisionId, dispatch]);
+
+  // Check if user has access to bootcamp (as instructor or enrolled student)
+  const hasAccessToBootcamp = (bootcamp: any) => {
+    if (!user || !bootcamp) return false;
+    
+    // Admin has access to all bootcamps
+    if (isAdmin) return true;
+    
+    // Check if user is instructor assigned to this bootcamp
+    if (isInstructor && bootcamp.instructors) {
+      const instructorIds = bootcamp.instructors.map((inst: any) => 
+        typeof inst === 'object' ? inst._id || inst.id : inst
+      );
+      if (instructorIds.includes(user.id)) return true;
+    }
+    
+    // Check if user is enrolled in this bootcamp
+    if (enrollments && enrollments.length > 0) {
+      const bootcampId = bootcamp._id || bootcamp.id;
+      return enrollments.some((enrollment: any) => 
+        enrollment.bootcampId === bootcampId
+      );
+    }
+    
+    return false;
+  };
 
   const filteredBootcamps = (bootcamps || []).filter(
     (b) =>
@@ -157,7 +187,7 @@ export default function BootcampsPage() {
                   </p>
 
                   <div className="mt-auto pt-4 border-t border-brand-border flex items-center justify-between">
-                    {isStudent ? (
+                    {isStudent && !hasAccessToBootcamp(bootcamp) ? (
                       <Button
                         onClick={async () => {
                           if (!divisionId || !bId) return;
@@ -171,10 +201,18 @@ export default function BootcampsPage() {
                               `/dashboard/${role}/divisions/${divisionId}/bootcamps/${bId}`,
                             );
                           } catch (err: any) {
-                            toast.error(
-                              err.response?.data?.message ||
-                                "Enrollment failed",
-                            );
+                            const errorMessage = err.response?.data?.message || "Enrollment failed";
+                            
+                            // If already enrolled, still navigate inside
+                            if (errorMessage.toLowerCase().includes("already enrolled") || 
+                                errorMessage.toLowerCase().includes("enrolled")) {
+                              toast.success("Accessing bootcamp...");
+                              navigate(
+                                `/dashboard/${role}/divisions/${divisionId}/bootcamps/${bId}`,
+                              );
+                            } else {
+                              toast.error(errorMessage);
+                            }
                           }
                         }}
                         className="w-full justify-between group/btn bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/25"

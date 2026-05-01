@@ -16,6 +16,9 @@ const sanitizeUser = (user) => {
     roles = legacyRoles.map(r => String(r).toLowerCase());
   }
   
+  // Convert roles to uppercase for frontend consistency
+  roles = roles.map(r => String(r).toUpperCase());
+  
   return {
     id: user._id.toString(),
     name: user.name,
@@ -52,9 +55,88 @@ const generateTokens = (user) => {
   return { accessToken, refreshToken };
 };
 
+// Validation helper functions
+const validateEmail = (email) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+const validatePassword = (password) => {
+  const errors = [];
+  
+  if (password.length < 8) {
+    errors.push("Password must be at least 8 characters long");
+  }
+  
+  if (password.length > 128) {
+    errors.push("Password must not exceed 128 characters");
+  }
+  
+  if (!/[A-Z]/.test(password)) {
+    errors.push("Password must contain at least one uppercase letter");
+  }
+  
+  if (!/[a-z]/.test(password)) {
+    errors.push("Password must contain at least one lowercase letter");
+  }
+  
+  if (!/\d/.test(password)) {
+    errors.push("Password must contain at least one number");
+  }
+  
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+    errors.push("Password must contain at least one special character");
+  }
+  
+  // Check for common weak passwords
+  const commonPasswords = ['password', '12345678', 'qwerty', 'admin', 'letmein', 'welcome'];
+  if (commonPasswords.some(common => password.toLowerCase().includes(common))) {
+    errors.push("Password cannot contain common words");
+  }
+  
+  return errors;
+};
+
+const validateName = (name) => {
+  if (name.length < 2) {
+    return "Name must be at least 2 characters long";
+  }
+  
+  if (name.length > 50) {
+    return "Name must not exceed 50 characters";
+  }
+  
+  if (!/^[a-zA-Z\s\-']+$/.test(name)) {
+    return "Name can only contain letters, spaces, hyphens, and apostrophes";
+  }
+  
+  return null;
+};
+
 export const registerUser = async (name, email, password, role) => {
   if (!name || !email || !password) {
     throw Object.assign(new Error("Name, email, and password are required."), {
+      statusCode: 400,
+    });
+  }
+
+  // Validate email format
+  if (!validateEmail(email)) {
+    throw Object.assign(new Error("Please provide a valid email address."), {
+      statusCode: 400,
+    });
+  }
+
+  // Validate name
+  const nameError = validateName(name);
+  if (nameError) {
+    throw Object.assign(new Error(nameError), { statusCode: 400 });
+  }
+
+  // Validate password strength
+  const passwordErrors = validatePassword(password);
+  if (passwordErrors.length > 0) {
+    throw Object.assign(new Error(`Password requirements not met:\n${passwordErrors.join('\n')}`), {
       statusCode: 400,
     });
   }
@@ -85,7 +167,7 @@ export const registerUser = async (name, email, password, role) => {
     name,
     email: email.toLowerCase().trim(),
     password: hashedPassword,
-    roles: Array.isArray(role) ? role : [role || "student"],
+    roles: Array.isArray(role) ? role.map(r => r.toUpperCase()) : [role ? role.toUpperCase() : "STUDENT"],
     isEmailVerified: false,
     emailVerificationToken: hashedToken,
     emailVerificationExpires: Date.now() + 15 * 60 * 1000, // 15 minutes
@@ -131,6 +213,13 @@ export const registerUser = async (name, email, password, role) => {
 export const loginUser = async (email, password) => {
   if (!email || !password) {
     throw Object.assign(new Error("Email and password are required."), {
+      statusCode: 400,
+    });
+  }
+
+  // Validate email format
+  if (!validateEmail(email)) {
+    throw Object.assign(new Error("Please provide a valid email address."), {
       statusCode: 400,
     });
   }
@@ -320,6 +409,23 @@ export const forgotPassword = async (email) => {
 };
 
 export const changePassword = async (userId, currentPassword, newPassword) => {
+  if (!currentPassword || !newPassword) {
+    throw Object.assign(new Error("Current password and new password are required"), { statusCode: 400 });
+  }
+
+  // Validate new password strength
+  const passwordErrors = validatePassword(newPassword);
+  if (passwordErrors.length > 0) {
+    throw Object.assign(new Error(`New password requirements not met:\n${passwordErrors.join('\n')}`), {
+      statusCode: 400,
+    });
+  }
+
+  // Check if new password is the same as current password
+  if (currentPassword === newPassword) {
+    throw Object.assign(new Error("New password must be different from current password"), { statusCode: 400 });
+  }
+
   const user = await User.findById(userId).select('+password');
   if (!user) {
     throw Object.assign(new Error("User not found"), { statusCode: 404 });
@@ -337,6 +443,18 @@ export const changePassword = async (userId, currentPassword, newPassword) => {
 };
 
 export const adminResetPassword = async (userId, newPassword) => {
+  if (!newPassword) {
+    throw Object.assign(new Error("New password is required"), { statusCode: 400 });
+  }
+
+  // Validate new password strength
+  const passwordErrors = validatePassword(newPassword);
+  if (passwordErrors.length > 0) {
+    throw Object.assign(new Error(`Password requirements not met:\n${passwordErrors.join('\n')}`), {
+      statusCode: 400,
+    });
+  }
+
   const user = await User.findById(userId);
   if (!user) {
     throw Object.assign(new Error("User not found"), { statusCode: 404 });
@@ -360,6 +478,18 @@ export const adminResetPassword = async (userId, newPassword) => {
 };
 
 export const resetPassword = async (token, newPassword) => {
+  if (!newPassword) {
+    throw Object.assign(new Error("New password is required"), { statusCode: 400 });
+  }
+
+  // Validate new password strength
+  const passwordErrors = validatePassword(newPassword);
+  if (passwordErrors.length > 0) {
+    throw Object.assign(new Error(`Password requirements not met:\n${passwordErrors.join('\n')}`), {
+      statusCode: 400,
+    });
+  }
+
   const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
   const user = await User.findOne({
