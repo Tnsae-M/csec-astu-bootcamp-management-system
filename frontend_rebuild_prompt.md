@@ -1,7 +1,7 @@
 # CSEC-ASTU Bootcamp Management System — Frontend Build Specification
 
 > **Use this file as a prompt to build the entire frontend from scratch.**  
-> Stack: React 19 + Vite + TypeScript + Redux Toolkit + Tailwind CSS v4 + shadcn/ui  
+> Stack: React 19 + Vite + TypeScript + zustrand Toolkit + Tailwind CSS v4 + shadcn/ui  
 > Backend runs at `http://localhost:5000/api` — every response follows `{ success, message?, data }`.
 
 ---
@@ -20,20 +20,8 @@ frontend/
 │   │   ├── common/      # Logo, StatCard, EmptyState, etc.
 │   │   ├── layout/      # Sidebar, Navbar, DashboardLayout
 │   │   └── ui/          # shadcn/ui primitives (Button, Card, Modal, Input, Badge, Table, Skeleton, FormField, Textarea, DropdownMenu)
-│   ├── features/        # Redux slices — one folder per domain
-│   │   ├── auth/        # authSlice.ts
-│   │   ├── divisions/   # divisionsSlice.ts
-│   │   ├── bootcamps/   # bootcampsSlice.ts
-│   │   ├── sessions/    # sessionSlice.ts
-│   │   ├── attendance/  # attendanceSlice.ts
-│   │   ├── tasks/       # taskSlice.ts (includes submissions state)
-│   │   ├── groups/      # groupsSlice.ts
-│   │   ├── enrollments/ # enrollmentsSlice.ts
-│   │   ├── feedback/    # feedbackSlice.ts
-│   │   ├── progress/    # progressSlice.ts
-│   │   ├── notifications/ # notificationSlice.ts
-│   │   ├── reports/     # reportsSlice.ts
-│   │   └── ui/          # uiSlice.ts (searchTerm, sidebarOpen)
+│   ├---store
+|   |     |-store.js #authstore,divisionStore,....
 │   ├── lib/
 │   │   └── utils.ts     # cn() helper (clsx + twMerge)
 │   ├── pages/
@@ -76,6 +64,8 @@ frontend/
 ## §2 — BACKEND DATA MODELS (Mongoose Schemas)
 
 Build all TypeScript interfaces from these. Every `_id` is a MongoDB ObjectId string.
+
+note: `_id` of every model refer to `objectID` of mongoDB. beware of that.
 
 ### User
 ```ts
@@ -204,6 +194,20 @@ interface Notification {
   related_id?: string;
   channels: { inApp: boolean; email: boolean };
   metadata?: { sessionId?: string; taskId?: string; submissionId?: string };
+}
+```
+### Resources
+```ts
+interface Resource {
+  _id: string;
+  title: string;
+  description?: string;
+  type: "document" | "link" | "other";
+  url?: string;
+  fileUrl?: string;
+  bootcampId: string | Bootcamp;
+  sessionId?: string | Session;
+  createdBy: string | User;
 }
 ```
 
@@ -390,6 +394,11 @@ Divisions → Bootcamps → BootcampDetail
 > Routes are NOT prefixed with `/dashboard/admin/` or `/dashboard/student/`. All roles share the same routes. Access is controlled by the `ProtectedRoute` component checking `user.role`.
 
 ---
+## navbar
+navbar should have:
+logo   - logo of the organization with text
+🔔     → /dashboard/notifications
+👤     → /dashboard/profile
 
 ## §6 — SIDEBAR DESIGN (Multi-Role with Quick Access)
 
@@ -398,19 +407,16 @@ The sidebar has TWO sections per role:
 1. **Main Flow** — The hierarchical navigation icons (the primary drill-down path)
 2. **Quick Access** — Shortcut links that jump to specific points in the main flow
 
-### Admin Sidebar
+### Admin and Super Admin Sidebar
 ```
 ─── MAIN FLOW ───
 🏠 Overview          → /dashboard
 🏛 Divisions          → /dashboard/divisions         (entry point to the flow)
-👥 User Management    → /dashboard/users
+👥 Users              → /dashboard/users
 📊 Reports            → /dashboard/reports
 ⚙️ Settings           → /dashboard/settings
 
 ─── QUICK ACCESS ───
-🔔 Notifications      → /dashboard/notifications
-📅 All Sessions       → /dashboard/sessions           (shortcut: skips division→bootcamp)
-📋 All Tasks          → /dashboard/tasks              (shortcut: shows all tasks across bootcamps)
 💬 Feedback Overview  → /dashboard/feedback
 ```
 
@@ -423,7 +429,6 @@ The sidebar has TWO sections per role:
 📝 Submissions        → /dashboard/submissions
 
 ─── QUICK ACCESS ───
-🔔 Notifications      → /dashboard/notifications
 📅 My Sessions        → /dashboard/sessions
 ✅ Attendance          → /dashboard/attendance
 👥 My Groups          → /dashboard/groups
@@ -439,9 +444,7 @@ The sidebar has TWO sections per role:
 📈 My Progress        → /dashboard/progress
 
 ─── QUICK ACCESS ───
-🔔 Notifications      → /dashboard/notifications
 📤 Submit Work        → /dashboard/submit
-✅ My Attendance      → /dashboard/attendance
 👥 My Group           → /dashboard/groups
 💬 Give Feedback      → /dashboard/feedback
 ```
@@ -460,7 +463,7 @@ The sidebar has TWO sections per role:
 - **Role-aware**: Show different stat cards per role
 - **Admin**: Total users, divisions, active bootcamps, total sessions (all from API)
 - **Instructor**: My sessions count, pending submissions, avg feedback rating
-- **Student**: My progress score, upcoming sessions, pending tasks
+- **Student**: My attendance count, my tasks count, my feedback count
 - Include a Recharts bar/area chart (sessions over time or attendance trends)
 - **NO hardcoded mock data** — every number comes from API
 
