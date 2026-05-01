@@ -1,0 +1,6 @@
+{
+  "name": "CSEC-ASTU Bootcamp Management System",
+  "description": "A comprehensive platform to manage divisions, bootcamps, sessions, attendance, tasks, and progress for students and instructors.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

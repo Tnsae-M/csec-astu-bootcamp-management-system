@@ -1,0 +1,43 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --color-brand-primary: hsl(225, 25%, 97%);
+  --color-brand-sidebar: hsl(225, 30%, 15%);
+  --color-brand-accent: hsl(225, 73%, 57%);
+  --color-brand-secondary: hsl(262, 60%, 58%);
+  --color-brand-border: hsl(225, 20%, 90%);
+  --color-brand-card: #ffffff;
+  --color-text-main: hsl(225, 30%, 20%);
+  --color-text-muted: hsl(225, 15%, 45%);
+  --color-success: hsl(152, 60%, 45%);
+  --color-warning: hsl(38, 92%, 55%);
+  --color-danger: hsl(0, 72%, 56%);
+  --color-info: hsl(199, 89%, 55%);
+
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  
+  --shadow-brand: 0 10px 15px -3px rgba(37, 99, 235, 0.2), 0 4px 6px -4px rgba(37, 99, 235, 0.1);
+}
+
+@layer base {
+  body {
+    @apply bg-brand-primary text-text-main font-sans antialiased;
+  }
+}
+
+@layer utilities {
+  .geo-card {
+    @apply bg-brand-card border border-brand-border rounded-xl shadow-sm transition-shadow duration-200;
+  }
+  .sidebar-label {
+    @apply text-[10px] font-black uppercase tracking-widest text-text-muted/50 px-5 py-2;
+  }
+  .btn-shadow {
+    @apply shadow-lg shadow-brand-accent/30;
+  }
+}
