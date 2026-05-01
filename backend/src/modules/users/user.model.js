@@ -17,17 +17,22 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    role: {
-      type: String,
-      enum: ["super admin","admin", "instructor", "student"],
+    roles: {
+      type: [String],
+      enum: ["super admin", "admin", "instructor", "student"],
       required: true,
-      default: "student",
+      default: ["student"],
     },
     status: {
       type: String,
       enum: ["active", "suspended", "graduated"],
       required: true,
       default: "active",
+    },
+    divisionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Division",
+      default: null,
     },
     bootcamps: [
       {
@@ -70,5 +75,29 @@ emailVerificationExpires: {
     timestamps: true,
   },
 );
+
+userSchema.pre('init', function(doc) {
+  if (doc.role) {
+    const roleLower = doc.role.toLowerCase();
+    const rolesArray = Array.isArray(doc.roles) ? doc.roles : [];
+    const isDefaultStudent = rolesArray.length === 1 && rolesArray[0].toLowerCase() === 'student';
+    
+    if (rolesArray.length === 0 || (isDefaultStudent && roleLower !== 'student')) {
+      doc.roles = [roleLower];
+    }
+  }
+});
+
+userSchema.pre('validate', function() {
+  if (this.role) {
+    const roleLower = this.role.toLowerCase();
+    const rolesArray = Array.isArray(this.roles) ? this.roles : [];
+    const isDefaultStudent = rolesArray.length === 1 && rolesArray[0].toLowerCase() === 'student';
+    
+    if (rolesArray.length === 0 || (isDefaultStudent && roleLower !== 'student')) {
+      this.roles = [roleLower];
+    }
+  }
+});
 
 export default mongoose.model("User", userSchema);

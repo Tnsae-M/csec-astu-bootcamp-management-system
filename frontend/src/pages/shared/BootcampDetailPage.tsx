@@ -36,7 +36,9 @@ export default function BootcampDetailPage() {
     (state: RootState) => state.sessions,
   );
   const { user } = useSelector((state: RootState) => state.auth);
-  const isStudent = (user?.roles || []).includes("STUDENT");
+  const userRoles = (user?.roles || (user?.role ? [user.role] : [])).map(r => r.toUpperCase());
+  const isStudent = userRoles.includes("STUDENT");
+  const canManage = userRoles.some(r => ["ADMIN", "INSTRUCTOR"].includes(r));
 
   const [projects, setProjects] = useState<any[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(false);
@@ -146,7 +148,7 @@ export default function BootcampDetailPage() {
   useEffect(() => {
     // load instructors for selects
     usersService
-      .getUsers("INSTRUCTOR")
+      .getUsers("instructor")
       .then((res) => {
         const payload = res.data ?? res;
         const list = Array.isArray(payload) ? payload : (payload?.data ?? []);
@@ -166,8 +168,7 @@ export default function BootcampDetailPage() {
             Manage Groups & Sessions
           </p>
         </div>
-        {((user?.roles || []).includes("ADMIN") ||
-          (user?.roles || []).includes("INSTRUCTOR")) && (
+        {canManage && (
           <div className="flex gap-4">
             <Button
               onClick={() => {

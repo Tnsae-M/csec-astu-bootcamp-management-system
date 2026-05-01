@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Download, Calendar, FileText, CheckCircle } from 'lucide-react';
-import { fetchReports, createReportAsync } from '../../features/reports/reportsSlice';
+import { Download, Calendar, FileText, CheckCircle, Edit, Trash2 } from 'lucide-react';
+import { fetchReports, createReportAsync, updateReportAsync, fetchAnalyticsAsync, deleteReportAsync } from '../../features/reports/reportsSlice';
 import { RootState } from '../../app/store';
 import { toast } from 'sonner';
 
@@ -24,10 +24,12 @@ const StatCard = ({ icon, title, value, subtitle }: any) => (
 
 const ReportsPage: React.FC = () => {
   const dispatch = useDispatch() as any;
-  const { reports, loading, error } = useSelector((state: RootState) => state.reports);
+  const { reports, analytics, loading, error } = useSelector((state: RootState) => state.reports);
+  const [editingReport, setEditingReport] = useState<any>(null);
 
   useEffect(() => { 
     dispatch(fetchReports()); 
+    dispatch(fetchAnalyticsAsync());
   }, [dispatch]);
 
   const handleGenerate = async () => {
@@ -41,6 +43,31 @@ const ReportsPage: React.FC = () => {
       }
     } catch (err: any) {
       toast.error(err.message || 'Failed to generate report');
+    }
+  };
+
+  const handleDownload = (report: any) => {
+    const element = document.createElement("a");
+    const file = new Blob([`${report.title}\n\nGenerated on: ${new Date(report.createdAt).toLocaleString()}\n\n${report.content}`], {type: 'text/plain'});
+    element.href = URL.createObjectURL(file);
+    element.download = `${(report.title || 'report').replace(/\s+/g, '_')}.txt`;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this report?')) {
+      try {
+        const result = await dispatch(deleteReportAsync(id));
+        if (deleteReportAsync.fulfilled.match(result)) {
+          toast.success('Report deleted successfully');
+        } else {
+          toast.error('Failed to delete report');
+        }
+      } catch (err) {
+        toast.error('Failed to delete report');
+      }
     }
   };
 
@@ -66,9 +93,9 @@ const ReportsPage: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <StatCard icon={<CheckCircle className="text-blue-600" />} title="Attendance Stats" value={`${recentCount} New`} subtitle="Recent week" />
-        <StatCard icon={<FileText className="text-blue-600" />} title="Submissions Rate" value={`92%`} subtitle="Overall" />
-        <StatCard icon={<Calendar className="text-blue-600" />} title="System Uptime" value={`99.9%`} subtitle="Last 30 days" />
+        <StatCard icon={<CheckCircle className="text-blue-600" />} title="Attendance Stats" value={`${analytics?.attendance || 0} New`} subtitle="Recent week" />
+        <StatCard icon={<FileText className="text-blue-600" />} title="Submissions Rate" value={`${analytics?.submissionsRate || 0}%`} subtitle="Overall" />
+        <StatCard icon={<Calendar className="text-blue-600" />} title="System Uptime" value={analytics?.uptime || '99.9%'} subtitle="Last 30 days" />
       </div>
 
       <div className="bg-white border rounded-lg">
@@ -91,7 +118,13 @@ const ReportsPage: React.FC = () => {
                     <p className="mt-2 text-sm text-gray-700">{String(r.content || '').slice(0,240)}</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <button className="text-blue-600 hover:bg-blue-50 p-2 rounded" title="Download">
+                    <button onClick={() => setEditingReport(r)} className="text-gray-600 hover:bg-gray-100 p-2 rounded" title="Edit">
+                      <Edit size={18} />
+                    </button>
+                    <button onClick={() => handleDelete(r._id)} className="text-red-600 hover:bg-red-50 p-2 rounded" title="Delete">
+                      <Trash2 size={18} />
+                    </button>
+                    <button onClick={() => handleDownload(r)} className="text-blue-600 hover:bg-blue-50 p-2 rounded" title="Download">
                       <Download size={18} />
                     </button>
                   </div>
@@ -101,6 +134,45 @@ const ReportsPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {editingReport && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg w-full max-w-lg shadow-xl">
+            <h2 className="text-xl font-bold mb-4">Edit Report</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Title</label>
+                <input 
+                  type="text" 
+                  className="w-full border rounded p-2" 
+                  value={editingReport.title}
+                  onChange={e => setEditingReport({...editingReport, title: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Content</label>
+                <textarea 
+                  className="w-full border rounded p-2 h-32"
+                  value={editingReport.content}
+                  onChange={e => setEditingReport({...editingReport, content: e.target.value})}
+                />
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end gap-3">
+              <button onClick={() => setEditingReport(null)} className="px-4 py-2 border rounded font-bold text-gray-700 hover:bg-gray-50">Cancel</button>
+              <button onClick={async () => {
+                try {
+                  await dispatch(updateReportAsync({ id: editingReport._id, payload: { title: editingReport.title, content: editingReport.content } })).unwrap();
+                  toast.success("Report updated successfully");
+                  setEditingReport(null);
+                } catch(e: any) {
+                  toast.error("Failed to update report");
+                }
+              }} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 transition-colors text-white rounded font-bold">Save Changes</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

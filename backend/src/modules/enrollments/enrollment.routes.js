@@ -10,8 +10,8 @@ import { authGuard, roleGuard } from "../../middleware/role.guard.js";
 
 const router = Router();
 
-// Admin/instructor enrolls a user
-router.post("/", authGuard, roleGuard(["admin", "instructor"]), enroll);
+// Admin/instructor/student enrolls a user
+router.post("/", authGuard, enroll);
 
 // Get students in bootcamp
 router.get(

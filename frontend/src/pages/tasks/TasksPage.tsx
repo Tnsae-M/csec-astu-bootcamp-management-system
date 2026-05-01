@@ -18,6 +18,7 @@ import { bootcampsService } from "@/services/bootcamps.service";
 import { sessionsService } from "@/services/sessions.service";
 import {
   fetchTasksByBootcamp,
+  fetchAllTasks,
   setTasksStart,
   setTasksSuccess,
   setTasksFailure,
@@ -66,24 +67,20 @@ export default function TasksPage({ sessionId, bootcampId }: TasksPageProps) {
     if (bootcampId) {
       dispatch(fetchTasksByBootcamp(bootcampId));
     } else {
-      dispatch(setTasksStart());
-      try {
-        // Fallback for general tasks if needed
-        const res = await tasksService.getTasksByBootcamp("general");
-        dispatch(setTasksSuccess(res.data || []));
-      } catch (error: any) {
-        dispatch(setTasksFailure(error.message));
-      }
+      dispatch(fetchAllTasks());
     }
   };
 
   useEffect(() => {
     fetchTasks();
     bootcampsService.getBootcamps().then((res) => setBootcamps(res.data || []));
-    sessionsService.getSessions().then((res) => setAllSessions(res.data.data || []));
-  }, [dispatch, bootcampId]);
+    sessionsService.getSessions().then((res) => setAllSessions(res.data || []));
+  }, [dispatch, bootcampId, sessionId]);
 
 
+
+  const userRoles = (user?.roles || (user?.role ? [user.role] : [])).map(r => r.toUpperCase());
+  const isInstructorOnly = userRoles.includes('INSTRUCTOR') && !userRoles.includes('ADMIN') && !userRoles.includes('SUPER ADMIN');
 
   const filteredTasks = tasks.filter((t) => {
     const matchesSearch = (t.title || "")
@@ -92,14 +89,18 @@ export default function TasksPage({ sessionId, bootcampId }: TasksPageProps) {
     const matchesSession = sessionId
       ? t.sessionId?._id === sessionId || t.sessionId === sessionId
       : true;
-    return matchesSearch && matchesSession;
+    
+    // Instructors only see tasks they created
+    const matchesInstructor = isInstructorOnly 
+      ? (t.createdBy?._id === user?._id || t.createdBy === user?._id) 
+      : true;
+
+    return matchesSearch && matchesSession && matchesInstructor;
   });
 
-  const roles = user?.roles || [];
-  const isFaculty =
-    roles.includes("ADMIN") ||
-    roles.includes("SUPER ADMIN") ||
-    roles.includes("INSTRUCTOR");
+  const isFaculty = userRoles.some(r => ['ADMIN', 'SUPER ADMIN', 'INSTRUCTOR'].includes(r));
+  // Allow managing tasks ONLY if we have a sessionId (as requested to remove from sidebar registry)
+  const canManageTasks = userRoles.some(r => ['ADMIN', 'INSTRUCTOR'].includes(r)) && !!sessionId;
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -147,6 +148,9 @@ export default function TasksPage({ sessionId, bootcampId }: TasksPageProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const payload = { ...formData, createdBy: user?.id };
+    if (!payload.sessionId) {
+      delete payload.sessionId;
+    }
     try {
       if (editingId) {
         await tasksService.updateTask(editingId, payload);
@@ -173,7 +177,7 @@ export default function TasksPage({ sessionId, bootcampId }: TasksPageProps) {
           </p>
         </div>
 
-        {isFaculty && (
+        {canManageTasks && (
           <Button
             onClick={handleOpenCreate}
             className="shadow-lg shadow-brand-accent/20"
@@ -211,7 +215,7 @@ export default function TasksPage({ sessionId, bootcampId }: TasksPageProps) {
           description="There are currently no assignments matching your criteria. Create one to get started."
           icon={<BookOpen />}
           action={
-            isFaculty
+            canManageTasks
               ? { label: "Create First Task", onClick: handleOpenCreate }
               : undefined
           }
@@ -237,7 +241,7 @@ export default function TasksPage({ sessionId, bootcampId }: TasksPageProps) {
                       {isOverdue ? "Past Due" : "Active"}
                     </Badge>
 
-                    {isFaculty && (
+                    {canManageTasks && (
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Button
                           variant="ghost"

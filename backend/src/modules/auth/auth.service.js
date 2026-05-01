@@ -7,13 +7,21 @@ import { sendEmail } from "../../utils/email.js";
 const ACCESS_TOKEN_EXPIRES = process.env.JWT_ACCESS_EXPIRES || "15m";
 const REFRESH_TOKEN_EXPIRES = process.env.JWT_REFRESH_EXPIRES || "7d";
 
-const sanitizeUser = (user) => ({
-  id: user._id.toString(),
-  name: user.name,
-  email: user.email,
-  role: user.role,
-  status: user.status,
-});
+const sanitizeUser = (user) => {
+  // Ensure roles array is populated from legacy role field if necessary
+  let roles = Array.isArray(user.roles) ? user.roles : [];
+  if (user.role && (roles.length === 0 || (roles.length === 1 && roles[0].toLowerCase() === 'student' && user.role.toLowerCase() !== 'student'))) {
+    roles = [user.role.toLowerCase()];
+  }
+  
+  return {
+    id: user._id.toString(),
+    name: user.name,
+    email: user.email,
+    roles: roles,
+    status: user.status,
+  };
+};
 
 // const generateToken = () => {
 //   return crypto.randomBytes(32).toString("hex");
@@ -28,13 +36,13 @@ const createToken = (payload, secret, expiresIn) => {
 
 const generateTokens = (user) => {
   const accessToken = createToken(
-    { userId: user._id.toString(), role: user.role },
+    { userId: user._id.toString(), roles: user.roles },
     process.env.JWT_SECRET,
     ACCESS_TOKEN_EXPIRES,
   );
 
   const refreshToken = createToken(
-    { userId: user._id.toString(), role: user.role },
+    { userId: user._id.toString(), roles: user.roles },
     process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
     REFRESH_TOKEN_EXPIRES,
   );
@@ -75,7 +83,7 @@ export const registerUser = async (name, email, password, role) => {
     name,
     email: email.toLowerCase().trim(),
     password: hashedPassword,
-    role: role || "student",
+    roles: Array.isArray(role) ? role : [role || "student"],
     isEmailVerified: false,
     emailVerificationToken: hashedToken,
     emailVerificationExpires: Date.now() + 60 * 60 * 1000, // 1 hour
@@ -208,6 +216,8 @@ export const verifyEmail = async (token) => {
   return { message: "Email verified successfully" };
 };
 
+import { createNotification } from "../notification/notification.service.js";
+
 export const forgotPassword = async (email) => {
   const user = await User.findOne({ email });
 
@@ -217,34 +227,69 @@ export const forgotPassword = async (email) => {
     });
   }
 
+  // Create reset token for the user (admins will use this or just reset it)
   const resetToken = crypto.randomBytes(32).toString("hex");
-
-  const hashedToken = crypto
-    .createHash("sha256")
-    .update(resetToken)
-    .digest("hex");
+  const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
 
   user.passwordResetToken = hashedToken;
-  user.passwordResetExpires = Date.now() + 10 * 60 * 1000;
-
+  user.passwordResetExpires = Date.now() + 60 * 60 * 1000; // 1 hour
   await user.save();
 
-  const resetURL = `http://localhost:3000/reset-password/${resetToken}`;
+  // Find all Admins and Super Admins
+  const admins = await User.find({ roles: { $in: ['ADMIN', 'SUPER ADMIN'] } });
 
-  // await sendEmail(user.email, "Reset Password", resetURL);
+  // Notify each Admin
+  for (const admin of admins) {
+    await createNotification({
+      recipient: admin._id,
+      type: 'SECURITY',
+      title: 'Password Reset Request',
+      message: `User ${user.name} (${user.email}) has requested a password reset. Please review and reset their credentials in the User Management section.`,
+      metadata: { userId: user._id, email: user.email }
+    });
+  }
 
-  await sendEmail({
-    to: user.email,
-    subject: "Reset Password",
-    text: `Click this link: ${resetURL}`,
-    html: `
-    <h2>Reset Your Password</h2>
-    <p>Click below to Reset your password:</p>
-    <a href="${resetURL}">Verify Email</a>
-  `,
+  return { message: "Your request has been sent to the system administrators for verification." };
+};
+
+export const changePassword = async (userId, currentPassword, newPassword) => {
+  const user = await User.findById(userId).select('+password');
+  if (!user) {
+    throw Object.assign(new Error("User not found"), { statusCode: 404 });
+  }
+
+  const isMatch = await bcrypt.compare(currentPassword, user.password);
+  if (!isMatch) {
+    throw Object.assign(new Error("Current password is incorrect"), { statusCode: 401 });
+  }
+
+  user.password = await bcrypt.hash(newPassword, 10);
+  await user.save();
+
+  return { message: "Password updated successfully" };
+};
+
+export const adminResetPassword = async (userId, newPassword) => {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw Object.assign(new Error("User not found"), { statusCode: 404 });
+  }
+
+  user.password = await bcrypt.hash(newPassword, 10);
+  user.passwordResetToken = undefined;
+  user.passwordResetExpires = undefined;
+  await user.save();
+
+  // Notify user that their password was reset
+  await createNotification({
+    recipient: user._id,
+    type: 'SECURITY',
+    title: 'Password Reset Successful',
+    message: 'Your password has been reset by an administrator. Please log in with your new credentials.',
+    channels: { inApp: true, email: true }
   });
 
-  return { message: "Reset link sent to email" };
+  return { message: `Password for ${user.name} has been reset successfully` };
 };
 
 export const resetPassword = async (token, newPassword) => {

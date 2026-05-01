@@ -43,12 +43,16 @@ export default function FeedbackPage({ sessionId: propSessionId }: FeedbackPageP
     }
   }, [propSessionId, viewType, selectedBootcamp, user?.id, dispatch]);
 
+  const { activeRole } = useSelector((state: RootState) => state.auth);
+  const userRoles = (user?.roles || (user?.role ? [user.role] : [])).map(r => r.toUpperCase());
+  const currentRole = (activeRole || userRoles[0] || 'STUDENT').toUpperCase();
+  const isFaculty = ['ADMIN', 'SUPER ADMIN', 'INSTRUCTOR'].includes(currentRole);
+
   const filteredFeedbacks = (feedbacks || []).filter((f: any) => {
     const comment = f.comment || f.message || '';
-    const studentName = f.studentName || f.user?.name || 'Anonymous';
+    const studentName = (isFaculty ? 'Anonymous' : (f.studentName || f.user?.name || 'Anonymous'));
     
-    return comment.toLowerCase().includes((searchTerm || '').toLowerCase()) ||
-           studentName.toLowerCase().includes((searchTerm || '').toLowerCase());
+    return comment.toLowerCase().includes((searchTerm || '').toLowerCase());
   });
 
 
@@ -111,11 +115,11 @@ export default function FeedbackPage({ sessionId: propSessionId }: FeedbackPageP
               <div className="flex items-center justify-between border-t border-brand-border pt-6 mt-10">
                 <div className="flex items-center space-x-4">
                   <div className="w-10 h-10 rounded-full bg-brand-primary border border-brand-border flex items-center justify-center text-brand-accent font-black text-xs shadow-sm">
-                    {(f.studentName || 'A').charAt(0)}
+                    {isFaculty ? 'A' : (f.studentName || f.user?.name || 'A').charAt(0)}
                   </div>
                   <div>
                     <h4 className="text-text-main text-xs font-black uppercase tracking-widest">
-                      {f.studentName || 'Anonymous'}
+                      {isFaculty ? 'Anonymous Contributor' : (f.studentName || f.user?.name || 'Anonymous Student')}
                     </h4>
                     <p className="text-[9px] font-bold text-text-muted uppercase tracking-widest mt-0.5">Contributor Profile</p>
                   </div>

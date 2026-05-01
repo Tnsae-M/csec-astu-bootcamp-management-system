@@ -32,7 +32,8 @@ export default function GroupsPage() {
   const [activeGroupId, setActiveGroupId] = useState('');
   const [newMemberId, setNewMemberId] = useState('');
 
-  const isAdminOrInst = user?.roles?.some((r: string) => ['ADMIN', 'SUPER ADMIN', 'INSTRUCTOR'].includes(r));
+  const userRoles = (user?.roles || (user?.role ? [user.role] : [])).map(r => r.toUpperCase());
+  const isAdminOrInst = userRoles.some((r: string) => ['ADMIN', 'INSTRUCTOR'].includes(r));
 
   useEffect(() => {
     bootcampsService.getBootcamps().then(res => {
@@ -44,10 +45,10 @@ export default function GroupsPage() {
     usersService.getUsers().then(res => {
       const all = res.data || [];
       setInstructors(all.filter((u: any) => {
-          const r = (u.roles || [u.role]).map((s: string) => s.toLowerCase());
-          return r.includes('admin') || r.includes('instructor') || r.includes('super admin');
+          const uRoles = (u.roles || [u.role]).map((r: string) => r.toUpperCase());
+          return uRoles.includes('ADMIN') || uRoles.includes('INSTRUCTOR') || uRoles.includes('SUPER ADMIN');
       }));
-      setStudents(all.filter((u: any) => (u.roles || [u.role]).map((s: string) => s.toLowerCase()).includes('student')));
+      setStudents(all.filter((u: any) => (u.roles || [u.role]).map((s: string) => s.toUpperCase()).includes('STUDENT')));
     });
   }, []);
 
@@ -60,6 +61,18 @@ export default function GroupsPage() {
     fetchGroupsList();
   }, [selectedBootcampId]);
 
+
+  const filteredInstructors = instructors.filter((inst: any) => {
+    if (!selectedBootcampId) return true;
+    const instBootcamps = (inst.bootcamps || []).map((bc: any) => bc.bootcampId?._id || bc.bootcampId || bc);
+    return instBootcamps.includes(selectedBootcampId);
+  });
+
+  const filteredStudents = students.filter((s: any) => {
+    if (!selectedBootcampId) return true;
+    const sBootcamps = (s.bootcamps || []).map((bc: any) => bc.bootcampId?._id || bc.bootcampId || bc);
+    return sBootcamps.includes(selectedBootcampId);
+  });
 
   const filteredGroups = groups.filter(g =>
     g.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -238,14 +251,14 @@ export default function GroupsPage() {
                 onChange={e => setFormData({ ...formData, mentor: e.target.value })}
             >
                 <option value="">Select Mentor</option>
-                {instructors.map(i => <option key={i._id} value={i._id}>{i.name}</option>)}
+                {filteredInstructors.map(i => <option key={i._id} value={i._id}>{i.name}</option>)}
             </select>
           </div>
 
           <div>
             <label className="block text-[10px] font-black uppercase tracking-widest text-text-muted mb-2">Assign Operatives ({formData.members.length})</label>
             <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 border border-brand-border rounded-xl bg-brand-primary/30 custom-scrollbar">
-                {students.map(s => (
+                {filteredStudents.map(s => (
                     <div 
                         key={s._id} 
                         onClick={() => toggleMemberSelection(s._id)}
@@ -276,7 +289,7 @@ export default function GroupsPage() {
             onChange={e => setNewMemberId(e.target.value)}
           >
             <option value="">Select Student</option>
-            {students.map(s => (
+            {filteredStudents.map(s => (
               <option key={s._id} value={s._id}>{s.name}</option>
             ))}
           </select>

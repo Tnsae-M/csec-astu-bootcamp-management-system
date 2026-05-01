@@ -63,7 +63,7 @@ export const markAsRead = async (notificationId) => {
   const notification = await Notification.findByIdAndUpdate(
     notificationId,
     { is_read: true },
-    { new: true }
+    { returnDocument: 'after' }
   );
 
   if (!notification) throw buildError("Notification not found.", 404);

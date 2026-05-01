@@ -20,7 +20,7 @@ router.get("/me", authGuard, roleGuard("student"), getMySubmissions);
 router.get(
   "/task/:taskId",
   authGuard,
-  roleGuard(["admin", "instructor"]),
+  roleGuard(["admin", "instructor", "super admin"]),
   getSubmissionsByTask
 );
 

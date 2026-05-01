@@ -11,8 +11,10 @@ import submissionRoutes from "../modules/submissions/submission.routes.js";
 import progressRoutes from "../modules/progress/progress.routes.js";
 import feedbackRoutes from "../modules/feedback/feedback.routes.js";
 import reportsRoutes from "../modules/reports/report.route.js";
-
+import notificationsRoutes from "../modules/notification/notification.routes.js";
 import groupRoutes from "../modules/groups/group.routes.js";
+import resourceRoutes from "../modules/resources/resource.routes.js";
+import projectRoutes from "../modules/projects/project.routes.js";
 
 import authRoutes from "../modules/auth/auth.routes.js";
 
@@ -38,11 +40,15 @@ router.use("/submissions", submissionRoutes);
 router.use("/progress", progressRoutes);
 
 router.use("/feedback", feedbackRoutes);
-
+router.use("/notifications", notificationsRoutes);
 router.use("/reports", reportsRoutes);
 
 
 router.use("/groups", groupRoutes);
+router.use("/resources", resourceRoutes);
+router.use("/projects", projectRoutes);
+import auditRoutes from "../modules/audit/activity.routes.js";
+router.use("/audit", auditRoutes);
 
 
 

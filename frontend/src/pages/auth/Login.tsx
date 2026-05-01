@@ -22,7 +22,10 @@ export default function Login() {
 
   React.useEffect(() => {
     if (user) {
-      navigate('/dashboard');
+      const roles = (user as any)?.roles || ((user as any)?.role ? [(user as any).role] : []);
+      if (roles.length > 0) {
+        navigate('/dashboard');
+      }
     }
   }, [user, navigate]);
 

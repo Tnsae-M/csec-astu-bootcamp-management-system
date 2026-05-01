@@ -5,7 +5,7 @@ import { RootState } from "../../app/store";
 import { setSearchTerm } from "../../features/ui/uiSlice";
 import { Bell, Search, X, Repeat, Check } from "lucide-react";
 import { setActiveRole } from "../../features/auth/authSlice";
-import { markAsRead, markAllAsRead } from "../../features/notifications/notificationSlice";
+import { markNotificationAsRead, markAllAsRead } from "../../features/notifications/notificationSlice";
 import { 
   Avatar, 
   AvatarFallback, 
@@ -21,7 +21,7 @@ import {
 import { cn } from "@/lib/utils";
 
 export default function Navbar() {
-  const { user } = useSelector((state: RootState) => state.auth);
+  const { user, activeRole } = useSelector((state: RootState) => state.auth);
   const { notifications } = useSelector(
     (state: RootState) => state.notifications,
   );
@@ -39,12 +39,15 @@ export default function Navbar() {
   }, [localSearch, dispatch]);
 
   const handleMarkAsRead = (id: number) => {
-    dispatch(markAsRead(id));
+    dispatch(markNotificationAsRead(id) as any);
   };
 
   const handleMarkAll = () => {
     dispatch(markAllAsRead());
   };
+
+  const roles = user?.roles || [];
+  const displayRole = activeRole || user?.role || (roles[0] || "STUDENT");
 
   return (
     <header className="h-16 px-6 flex items-center justify-between border-b border-brand-border bg-white shadow-sm shrink-0 sticky top-0 z-40">
@@ -64,6 +67,37 @@ export default function Navbar() {
       </div>
 
       <div className="flex items-center gap-4">
+        {/* Role Switcher Icon (Only if multi-role) */}
+        {roles.length > 1 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="hidden md:flex gap-2 border-brand-border hover:border-brand-accent hover:bg-brand-primary/20 transition-all text-[10px] font-black uppercase tracking-widest px-3">
+                <Repeat className="h-3.5 w-3.5 text-brand-accent" />
+                Switch: {displayRole}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel className="text-[9px] font-black uppercase tracking-[0.2em] text-text-muted px-2 py-1.5">Available Roles</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {roles.map((r) => (
+                <DropdownMenuItem 
+                  key={r} 
+                  onClick={() => {
+                    dispatch(setActiveRole(r));
+                    // Optional: Navigate to base dashboard of that role
+                    const path = r.toLowerCase().replace(' ', '');
+                    navigate(`/dashboard/${path}`);
+                  }}
+                  className="flex items-center justify-between font-bold text-xs uppercase tracking-wider py-2"
+                >
+                  {r}
+                  {displayRole === r && <Check className="h-3.5 w-3.5 text-brand-accent" />}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+
         {/* Notifications Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -107,16 +141,16 @@ export default function Navbar() {
 
         <div className="h-8 w-px bg-brand-border mx-1" />
 
-        {/* User & Role Menu */}
+        {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-auto p-1 flex items-center gap-3 hover:bg-brand-primary/20 rounded-lg transition-all">
               <div className="text-right hidden sm:block">
-                <p className="text-sm font-bold text-text-main leading-none mb-1">
+                <p className="text-sm font-black text-text-main leading-none mb-1">
                   {user?.name}
                 </p>
-                <p className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">
-                  {user?.role === "ADMIN" ? "Administrator" : user?.role}
+                <p className="text-[9px] text-brand-accent uppercase tracking-[0.2em] font-black">
+                  {displayRole === "SUPER ADMIN" ? "Global Admin" : displayRole}
                 </p>
               </div>
               <Avatar className="h-9 w-9 border-2 border-brand-primary shadow-sm">
@@ -128,33 +162,15 @@ export default function Navbar() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
             
-            {Array.isArray(user?.roles) && user.roles.length > 1 && (
-              <>
-                <DropdownMenuLabel className="text-[10px] font-bold text-text-muted uppercase tracking-widest pt-2">
-                  Switch Role
-                </DropdownMenuLabel>
-                {user.roles.map((r) => (
-                  <DropdownMenuItem 
-                    key={r} 
-                    onClick={() => dispatch(setActiveRole(r))}
-                    className="flex items-center justify-between"
-                  >
-                    {r}
-                    {user.role === r && <Check className="h-4 w-4 text-brand-accent" />}
-                  </DropdownMenuItem>
-                ))}
-                <DropdownMenuSeparator />
-              </>
-            )}
-            
-            <DropdownMenuItem onClick={() => navigate("/dashboard/profile")}>
-              Profile Settings
+            <DropdownMenuItem className="py-2.5 font-bold text-xs uppercase" onClick={() => navigate("/dashboard/profile")}>
+              My Identity
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-red-600 focus:text-red-600 focus:bg-red-50" onClick={() => navigate("/logout")}>
-              Log out
+            
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="text-red-600 focus:text-red-600 focus:bg-red-50 py-2.5 font-bold text-xs uppercase" onClick={() => navigate("/logout")}>
+              Logout
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

@@ -6,6 +6,7 @@ import {
   Card, 
   FormField, 
   Input, 
+  Textarea,
   Skeleton 
 } from "@/components/ui";
 import { cn } from "@/lib/utils";
@@ -61,7 +62,7 @@ export default function AdminDashboard() {
   const [showAddSession, setShowAddSession] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const [bootcampForm, setBootcampForm] = useState({ divisionId: "", name: "", startDate: "", endDate: "" });
+  const [bootcampForm, setBootcampForm] = useState({ divisionId: "", name: "", description: "", startDate: "", endDate: "" });
   const [sessionForm, setSessionForm] = useState({ title: '', bootcamp: '', date: '', startTime: '', durationH: 1, instructor: '', location: 'TBD' });
 
   useEffect(() => {
@@ -71,6 +72,7 @@ export default function AdminDashboard() {
     dispatch(fetchBootcamps());
   }, [dispatch]);
 
+  const userRoles = (user?.roles || (user?.role ? [user.role] : [])).map(r => r.toUpperCase());
   const usersList = Array.isArray(users) ? users : [];
   const instructorsList = usersList.filter((u: any) => u.roles?.includes('INSTRUCTOR') || u.role === 'INSTRUCTOR');
   
@@ -110,13 +112,28 @@ export default function AdminDashboard() {
     }
 
     if (activeTab === 'users') {
-      const userMap: Record<string, number> = {};
-      divArr.forEach(d => userMap[d.name] = 0);
-      usersList.forEach((u: any) => {
-        const div = divArr.find((d: any) => (d._id || d.id) === (u.division || u.divisionId));
-        if (div) userMap[div.name]++;
+      const studentMap: Record<string, number> = {};
+      bcArr.forEach(b => {
+        const name = b.name || b.title || "Unnamed";
+        studentMap[name] = 0;
       });
-      return Object.entries(userMap).map(([name, value]) => ({ name, value }));
+
+      usersList.forEach((u: any) => {
+        const isStudent = (u.roles || [u.role] || []).some((r: any) => String(r).toUpperCase() === 'STUDENT');
+        if (!isStudent) return;
+
+        if (u.bootcamps && Array.isArray(u.bootcamps)) {
+          u.bootcamps.forEach((en: any) => {
+            const bId = en.bootcampId?._id || en.bootcampId;
+            const bootcamp = bcArr.find(b => (b._id || b.id) === bId);
+            if (bootcamp) {
+              const name = bootcamp.name || bootcamp.title || "Unnamed";
+              studentMap[name]++;
+            }
+          });
+        }
+      });
+      return Object.entries(studentMap).map(([name, value]) => ({ name, value }));
     }
 
     return data;
@@ -129,6 +146,7 @@ export default function AdminDashboard() {
     try {
       await bootcampsService.createBootcamp(bootcampForm.divisionId, {
         name: bootcampForm.name,
+        description: bootcampForm.description,
         startDate: bootcampForm.startDate,
         endDate: bootcampForm.endDate,
       });
@@ -168,18 +186,11 @@ export default function AdminDashboard() {
         </div>
 
         <div className="flex items-center gap-3">
-          {user?.roles?.includes('SUPER ADMIN') && (
-            <Button 
-              variant="outline" 
-              onClick={() => navigate('/dashboard/admin/users?createAdmin=true')}
-              className="border-brand-accent/20 text-brand-accent hover:bg-brand-accent hover:text-white"
-            >
-              <UserPlus className="mr-2 h-4 w-4" /> Provision Admin
+          {(userRoles.includes('SUPER ADMIN') || userRoles.includes('ADMIN')) && (
+            <Button onClick={() => setShowAddBootcamp(true)} className="shadow-lg shadow-brand-accent/20">
+              <Plus className="mr-2 h-4 w-4" /> New Bootcamp
             </Button>
           )}
-          <Button onClick={() => setShowAddBootcamp(true)} className="shadow-lg shadow-brand-accent/20">
-            <Plus className="mr-2 h-4 w-4" /> New Bootcamp
-          </Button>
         </div>
       </div>
 
@@ -275,6 +286,15 @@ export default function AdminDashboard() {
               value={bootcampForm.name} 
               onChange={(e) => setBootcampForm({...bootcampForm, name: e.target.value})} 
               placeholder="e.g. Advanced Cybersecurity"
+            />
+          </FormField>
+
+          <FormField label="Objective / Description">
+            <Textarea 
+              value={bootcampForm.description} 
+              onChange={(e) => setBootcampForm({...bootcampForm, description: e.target.value})} 
+              placeholder="Specify the goals of this bootcamp..."
+              rows={3}
             />
           </FormField>
 

@@ -9,8 +9,8 @@ import { authGuard, roleGuard } from "../../middleware/role.guard.js";
 
 const router = Router();
 
-// instructor/admin marks attendance
-router.post("/", authGuard, roleGuard(["admin", "instructor"]), markAttendance);
+// only instructor marks attendance
+router.post("/", authGuard, roleGuard("INSTRUCTOR"), markAttendance);
 
 // get attendance for a session
 router.get(

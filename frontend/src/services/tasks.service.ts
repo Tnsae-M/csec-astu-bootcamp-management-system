@@ -25,4 +25,9 @@ export const tasksService = {
     const response = await api.delete(`/tasks/${id}`);
     return response.data;
   },
+  
+  getTasks: async () => {
+    const response = await api.get('/tasks');
+    return response.data;
+  }
 };
