@@ -45,7 +45,15 @@ export default function Login() {
       // Immediate navigation for better responsiveness
       navigate('/dashboard');
     } else if (login.rejected.match(result)) {
-      toast.error(result.payload as string || 'Authentication failed');
+      const errorMessage = result.payload as string || 'Authentication failed';
+      if (errorMessage.toLowerCase().includes('verify your email')) {
+        toast.error('Account not verified. Redirecting to verification page...');
+        setTimeout(() => {
+          navigate(`/verify-email?email=${encodeURIComponent(email)}`);
+        }, 2000);
+      } else {
+        toast.error(errorMessage);
+      }
     }
   };
 

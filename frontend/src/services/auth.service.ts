@@ -39,5 +39,10 @@ export const authService = {
   adminResetPassword: async (userId: string, data: any) => {
     const response = await api.put(`/auth/admin/reset-password/${userId}`, data);
     return response.data;
+  },
+
+  resendVerification: async (email: string) => {
+    const response = await api.post('/auth/resend-verification', { email });
+    return response.data;
   }
 };

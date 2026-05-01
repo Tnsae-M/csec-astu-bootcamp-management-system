@@ -1,5 +1,5 @@
 import { login, myUser, refresh, register,verifyEmailController,forgotPasswordController,
-    resetPasswordController, changePasswordController, adminResetPasswordController
+    resetPasswordController, changePasswordController, adminResetPasswordController, resendVerification
  } from "./auth.controller.js";
 import { Router } from "express";
 import { authRateLimiter } from "../../middleware/rateLimiter.middleware.js";
@@ -20,6 +20,8 @@ router.get("/verify/:token", verifyEmailController);
 
 
 router.get("/verify-email/:token", verifyEmailController);
+
+router.post("/resend-verification", authRateLimiter("forgotPassword"), resendVerification);
 
 router.post(
   "/forgot-password",

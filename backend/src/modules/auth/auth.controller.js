@@ -7,7 +7,8 @@ import {
   forgotPassword,
   resetPassword,
   changePassword,
-  adminResetPassword
+  adminResetPassword,
+  resendVerificationToken
 } from "./auth.service.js";
 
 export const login = async (req, res, next) => {
@@ -111,6 +112,16 @@ export const adminResetPasswordController = async (req, res, next) => {
     const { userId } = req.params;
     const { newPassword } = req.body;
     const data = await adminResetPassword(userId, newPassword);
+    res.status(200).json(data);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const resendVerification = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const data = await resendVerificationToken(email);
     res.status(200).json(data);
   } catch (err) {
     next(err);

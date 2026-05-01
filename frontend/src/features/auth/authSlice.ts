@@ -123,7 +123,9 @@ const authSlice = createSlice({
           // Backend sanitizeUser returns role (singular string), not roles array
           // Normalize to roles array for frontend consistency
           if (state.user && !Array.isArray(state.user.roles)) {
-            state.user.roles = state.user.role ? [state.user.role.toUpperCase()] : ['STUDENT'];
+            const legacyRole = state.user.role;
+            const rolesArr = Array.isArray(legacyRole) ? legacyRole : [legacyRole || 'STUDENT'];
+            state.user.roles = rolesArr.map(r => String(r).toUpperCase());
           }
           
           if (!state.activeRole && state.user?.roles?.[0]) {
@@ -156,7 +158,9 @@ const authSlice = createSlice({
           state.token = token;
           localStorage.setItem('token', token);
           if (state.user && !Array.isArray(state.user.roles)) {
-            state.user.roles = state.user.role ? [state.user.role.toUpperCase()] : ['STUDENT'];
+            const legacyRole = state.user.role;
+            const rolesArr = Array.isArray(legacyRole) ? legacyRole : [legacyRole || 'STUDENT'];
+            state.user.roles = rolesArr.map(r => String(r).toUpperCase());
           }
           if (!state.activeRole && state.user?.roles?.[0]) {
             state.activeRole = state.user.roles[0].toUpperCase();
@@ -183,7 +187,9 @@ const authSlice = createSlice({
         
         if (user && user.id) {
           if (!Array.isArray(user.roles)) {
-            user.roles = user.role ? [user.role.toUpperCase()] : ['STUDENT'];
+            const legacyRole = user.role;
+            const rolesArr = Array.isArray(legacyRole) ? legacyRole : [legacyRole || 'STUDENT'];
+            user.roles = rolesArr.map((r: any) => String(r).toUpperCase());
           }
           state.user = user;
           state.isAuthenticated = true;

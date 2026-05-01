@@ -1,36 +1,75 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link, useParams } from 'react-router-dom';
 import { authService } from '../../services/auth.service';
 import { Button, Card } from '@/components/ui';
-import { CheckCircle2, XCircle, Loader2, ArrowRight, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2, ArrowRight, ShieldCheck, Mail, RefreshCw, KeyRound } from 'lucide-react';
 import Logo from '../../components/common/Logo';
+import { toast } from 'sonner';
 
 export default function VerifyEmailPage() {
-  const { token } = useParams<{ token: string }>();
+  const { token: tokenFromParams } = useParams();
+  const [searchParams] = useSearchParams();
+  const tokenFromUrl = searchParams.get('token') || tokenFromParams;
+  const emailFromUrl = searchParams.get('email');
+  
   const navigate = useNavigate();
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'idle'>('idle');
   const [message, setMessage] = useState('');
+  const [otp, setOtp] = useState(tokenFromUrl || '');
+  const [email, setEmail] = useState(emailFromUrl || '');
+  const [isResending, setIsResending] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
 
   useEffect(() => {
-    const verify = async () => {
-      if (!token) {
-        setStatus('error');
-        setMessage('Invalid verification link.');
-        return;
-      }
+    if (tokenFromUrl && emailFromUrl) {
+      handleVerify(tokenFromUrl);
+    }
+  }, [tokenFromUrl, emailFromUrl]);
 
-      try {
-        const response = await authService.verifyEmail(token);
-        setStatus('success');
-        setMessage(response.message || 'Account successfully activated!');
-      } catch (error: any) {
-        setStatus('error');
-        setMessage(error.response?.data?.message || 'Verification failed. The link may be expired or invalid.');
-      }
-    };
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (resendTimer > 0) {
+      timer = setInterval(() => setResendTimer(prev => prev - 1), 1000);
+    }
+    return () => clearInterval(timer);
+  }, [resendTimer]);
 
-    verify();
-  }, [token]);
+  const handleVerify = async (tokenToUse: string) => {
+    if (!tokenToUse) {
+      toast.error('Please enter a verification code');
+      return;
+    }
+
+    setStatus('loading');
+    try {
+      const response = await authService.verifyEmail(tokenToUse);
+      setStatus('success');
+      setMessage(response.message || 'Account successfully activated!');
+      toast.success('Account activated!');
+    } catch (error: any) {
+      setStatus('error');
+      setMessage(error.response?.data?.message || 'Verification failed. The code may be expired or invalid.');
+      toast.error('Verification failed');
+    }
+  };
+
+  const handleResend = async () => {
+    if (!email) {
+      toast.error('Please enter your email address to resend the code');
+      return;
+    }
+
+    setIsResending(true);
+    try {
+      await authService.resendVerification(email);
+      toast.success('A new verification code has been sent to your email.');
+      setResendTimer(60); // 60s cooldown
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to resend code');
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-brand-primary px-4 relative overflow-hidden">
@@ -82,26 +121,73 @@ export default function VerifyEmailPage() {
             </div>
           )}
 
-          {status === 'error' && (
+          {(status === 'error' || status === 'idle') && (
             <div className="space-y-6">
-              <div className="flex justify-center">
-                <div className="p-4 rounded-full bg-red-50 text-red-600 border border-red-100">
-                  <XCircle className="h-10 w-10" />
+              {status === 'error' && (
+                <div className="flex justify-center mb-2">
+                  <div className="p-4 rounded-full bg-red-50 text-red-600 border border-red-100">
+                    <XCircle className="h-10 w-10" />
+                  </div>
+                </div>
+              )}
+              
+              <div className="text-left space-y-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-1">Email Address</label>
+                  <div className="relative">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-accent" />
+                    <input 
+                      type="email" 
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Enter your email"
+                      className="w-full pl-12 pr-4 py-4 bg-brand-primary/50 border border-brand-border rounded-xl focus:ring-2 focus:ring-brand-accent/20 transition-all outline-none text-sm font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-text-muted ml-1">Verification Code (OTP)</label>
+                  <div className="relative">
+                    <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-accent" />
+                    <input 
+                      type="text" 
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      maxLength={6}
+                      placeholder="6-digit code"
+                      className="w-full pl-12 pr-4 py-4 bg-brand-primary/50 border border-brand-border rounded-xl focus:ring-2 focus:ring-brand-accent/20 transition-all outline-none text-center text-xl font-black tracking-[0.5em]"
+                    />
+                  </div>
                 </div>
               </div>
-              <h2 className="text-xl font-black text-text-main uppercase tracking-tight">Activation Failed</h2>
-              <p className="text-sm text-text-muted font-medium leading-relaxed italic">
-                {message}
-              </p>
-              <div className="flex flex-col gap-3">
-                <Button 
-                  onClick={() => navigate('/login')}
-                  variant="outline"
-                  className="w-full py-6 text-xs font-black uppercase tracking-widest border-brand-border text-text-muted hover:text-text-main"
+
+              <Button 
+                onClick={() => handleVerify(otp)}
+                disabled={otp.length < 6}
+                className="w-full py-6 text-xs font-black uppercase tracking-widest shadow-lg shadow-brand-accent/20"
+              >
+                Activate Account
+              </Button>
+
+              <div className="pt-4 border-t border-brand-border/50">
+                <button
+                  onClick={handleResend}
+                  disabled={isResending || resendTimer > 0}
+                  className="flex items-center justify-center gap-2 w-full text-[10px] font-black uppercase tracking-widest text-brand-accent hover:text-brand-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Return to Login
-                </Button>
+                  {isResending ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-3 w-3" />
+                  )}
+                  {resendTimer > 0 ? `Resend code in ${resendTimer}s` : 'Resend Verification Code'}
+                </button>
               </div>
+
+              <Link to="/login" className="block text-[10px] font-black uppercase tracking-widest text-text-muted hover:text-text-main transition-colors mt-4">
+                Back to Login
+              </Link>
             </div>
           )}
         </Card>

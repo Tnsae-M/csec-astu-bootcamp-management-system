@@ -10,8 +10,10 @@ const REFRESH_TOKEN_EXPIRES = process.env.JWT_REFRESH_EXPIRES || "7d";
 const sanitizeUser = (user) => {
   // Ensure roles array is populated from legacy role field if necessary
   let roles = Array.isArray(user.roles) ? user.roles : [];
-  if (user.role && (roles.length === 0 || (roles.length === 1 && roles[0].toLowerCase() === 'student' && user.role.toLowerCase() !== 'student'))) {
-    roles = [user.role.toLowerCase()];
+  
+  if (user.role && roles.length === 0) {
+    const legacyRoles = Array.isArray(user.role) ? user.role : [user.role];
+    roles = legacyRoles.map(r => String(r).toLowerCase());
   }
   
   return {
@@ -69,13 +71,13 @@ export const registerUser = async (name, email, password, role) => {
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  //  1. CREATE TOKEN (plain)
-  const verificationToken = crypto.randomBytes(32).toString("hex");
+  //  1. CREATE OTP (6 digits)
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-  //  2. HASH TOKEN (store this)
+  //  2. HASH OTP (store this)
   const hashedToken = crypto
     .createHash("sha256")
-    .update(verificationToken)
+    .update(otp)
     .digest("hex");
 
   // 3. CREATE USER
@@ -86,24 +88,43 @@ export const registerUser = async (name, email, password, role) => {
     roles: Array.isArray(role) ? role : [role || "student"],
     isEmailVerified: false,
     emailVerificationToken: hashedToken,
-    emailVerificationExpires: Date.now() + 60 * 60 * 1000, // 1 hour
+    emailVerificationExpires: Date.now() + 15 * 60 * 1000, // 15 minutes
   });
 
   await user.save();
 
-  //  4. SEND EMAIL (REAL)
-  const verifyURL = `http://localhost:3000/verify-email/${verificationToken}`;
+  //  4. SEND EMAIL (REAL or Simulation)
+  const verifyURL = `http://localhost:3000/verify-email?email=${encodeURIComponent(user.email)}&token=${otp}`;
 
-  await sendEmail({
-    to: user.email,
-    subject: "Verify your email",
-    text: `Click this link: ${verifyURL}`,
-    html: `
-    <h2>Verify Your Email</h2>
-    <p>Click below to verify your account:</p>
-    <a href="${verifyURL}">Verify Email</a>
-  `,
-  });
+  // Always print OTP to console as a fallback
+  console.log("------------------------------------------");
+  console.log(`📧 OTP for ${user.email}: ${otp}`);
+  console.log(`🔗 Verify link: ${verifyURL}`);
+  console.log("------------------------------------------");
+
+  try {
+    await sendEmail({
+      to: user.email,
+      subject: "Verify your email - OTP",
+      text: `Your verification code is: ${otp}. You can also verify by clicking: ${verifyURL}`,
+      html: `
+      <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+        <h2 style="color: #3b82f6;">Verify Your Email</h2>
+        <p>Your 6-digit verification code is:</p>
+        <div style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #1e293b; padding: 10px; background: #f1f5f9; display: inline-block; border-radius: 5px;">
+          ${otp}
+        </div>
+        <p style="margin-top: 20px;">Or click the button below:</p>
+        <a href="${verifyURL}" style="display: inline-block; padding: 10px 20px; background: #3b82f6; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">Verify Account</a>
+        <p style="font-size: 12px; color: #64748b; margin-top: 20px;">This code will expire in 15 minutes.</p>
+      </div>
+      `,
+    });
+  } catch (emailErr) {
+    console.error(`⚠️  Email delivery failed (SMTP error): ${emailErr.message}`);
+    console.error("   Check your EMAIL_USER / EMAIL_PASS credentials in .env");
+    // Do NOT re-throw — user was saved, OTP is in console
+  }
   return sanitizeUser(user);
 };
 
@@ -214,6 +235,52 @@ export const verifyEmail = async (token) => {
   await user.save();
 
   return { message: "Email verified successfully" };
+};
+
+export const resendVerificationToken = async (email) => {
+  if (!email) throw Object.assign(new Error("Email is required"), { statusCode: 400 });
+
+  const user = await User.findOne({ email: email.toLowerCase().trim() });
+  if (!user) throw Object.assign(new Error("User not found"), { statusCode: 404 });
+  if (user.isEmailVerified) throw Object.assign(new Error("Email already verified"), { statusCode: 400 });
+
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const hashedToken = crypto.createHash("sha256").update(otp).digest("hex");
+
+  user.emailVerificationToken = hashedToken;
+  user.emailVerificationExpires = Date.now() + 15 * 60 * 1000;
+  await user.save();
+
+  const verifyURL = `http://localhost:3000/verify-email?email=${encodeURIComponent(user.email)}&token=${otp}`;
+
+  console.log("------------------------------------------");
+  console.log(`📧 OTP for ${user.email}: ${otp}`);
+  console.log(`🔗 Verify link: ${verifyURL}`);
+  console.log("------------------------------------------");
+
+  try {
+    await sendEmail({
+      to: user.email,
+      subject: "Your new verification code",
+      text: `Your new verification code is: ${otp}. Link: ${verifyURL}`,
+      html: `
+      <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+        <h2 style="color: #3b82f6;">Verify Your Email</h2>
+        <p>Your new 6-digit verification code is:</p>
+        <div style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #1e293b; padding: 10px; background: #f1f5f9; display: inline-block; border-radius: 5px;">
+          ${otp}
+        </div>
+        <p style="font-size: 12px; color: #64748b; margin-top: 20px;">This code will expire in 15 minutes.</p>
+      </div>
+      `,
+    });
+  } catch (emailErr) {
+    console.error(`⚠️  Email delivery failed (SMTP error): ${emailErr.message}`);
+    console.error("   Check your EMAIL_USER / EMAIL_PASS credentials in .env");
+    // Do NOT re-throw — OTP is saved to DB and printed to console
+  }
+
+  return { message: "Verification code resent successfully" };
 };
 
 import { createNotification } from "../notification/notification.service.js";

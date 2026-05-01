@@ -78,24 +78,22 @@ emailVerificationExpires: {
 
 userSchema.pre('init', function(doc) {
   if (doc.role) {
-    const roleLower = doc.role.toLowerCase();
+    const legacyRoles = Array.isArray(doc.role) ? doc.role : [doc.role];
     const rolesArray = Array.isArray(doc.roles) ? doc.roles : [];
-    const isDefaultStudent = rolesArray.length === 1 && rolesArray[0].toLowerCase() === 'student';
     
-    if (rolesArray.length === 0 || (isDefaultStudent && roleLower !== 'student')) {
-      doc.roles = [roleLower];
+    if (rolesArray.length === 0) {
+      doc.roles = legacyRoles.map(r => String(r).toLowerCase());
     }
   }
 });
 
 userSchema.pre('validate', function() {
   if (this.role) {
-    const roleLower = this.role.toLowerCase();
+    const legacyRoles = Array.isArray(this.role) ? this.role : [this.role];
     const rolesArray = Array.isArray(this.roles) ? this.roles : [];
-    const isDefaultStudent = rolesArray.length === 1 && rolesArray[0].toLowerCase() === 'student';
     
-    if (rolesArray.length === 0 || (isDefaultStudent && roleLower !== 'student')) {
-      this.roles = [roleLower];
+    if (rolesArray.length === 0) {
+      this.roles = legacyRoles.map(r => String(r).toLowerCase());
     }
   }
 });
